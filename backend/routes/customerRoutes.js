@@ -38,7 +38,7 @@ router.post("/login", async (req, res) => {
     });
 
     if (!customer) {
-      return res.status(404).json({ error: "Customer not found" });
+      return res.status(404).json({ error: "User not found" });
     }
 
     // Compare passwords

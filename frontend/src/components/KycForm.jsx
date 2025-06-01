@@ -92,7 +92,7 @@ const CustomerForm = () => {
       
           const paymentUrl = response.data.url;
           const uniqueId = crypto.randomUUID();
-          const termsUrl = `https://frontend-agent-management-system.onrender.com/terms/${uniqueId}?redirect=${encodeURIComponent(paymentUrl)}`;
+          const termsUrl = `${window.origin}/terms/${uniqueId}?redirect=${encodeURIComponent(paymentUrl)}`;
           setTermsLink(termsUrl);
         } catch (error) {
           console.error('Error generating payment link:', error.response.data.error);
