@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/* .container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+  text-align: left;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+input, select, button {
+  padding: 10px;
+  font-size: 16px;
+  margin: 5px 0;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+} */
+
+
+.sidebar-item {
+  transition: all 0.3s ease;
+}
+
+.sidebar-item:hover {
+  transform: translateX(5px);
+}
+
+.active-menu-item {
+  position: relative;
+  background-color: #ffffff29;
+}
+
+.active-menu-item::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 65%;
+  background: #fff;
+  border-radius: 0 4px 4px 0;
+}
+
+.gradient-sidebar {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+#sidebar #toggleSidebar {
+  position: absolute;
+  right: -13px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Custom Scrollbar styles */
+.scrollbar {
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #6366f1 #F0F0F0; /* Green thumb and light gray track for Firefox */
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
+.scrollbar::-webkit-scrollbar {
+  width: 10px; /* Set the width of the scrollbar */
+}
+
+.scrollbar::-webkit-scrollbar-track {
+  background: #F0F0F0; /* Set a light gray color for the track */
+  border-radius: 10px; /* Rounded corners for the track */
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+  background-color: #6366f1; /* Set a green color for the thumb */
+  border-radius: 10px; /* Rounded corners for the thumb */
+  border: 2px solid #FFF; /* White border around the thumb for a clean look */
+}
+
+/* Optional: Hover effect for the thumb */
+.scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #388E3C; /* Darker green on hover */
+}
