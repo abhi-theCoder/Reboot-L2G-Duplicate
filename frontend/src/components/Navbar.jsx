@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import MainLogo from '../../public/Images/main-logo-02-new.png';
@@ -8,6 +8,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     // Simply check if token exists
@@ -19,6 +21,26 @@ const Navbar = () => {
       setUser(null);
     }
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   const logout = () => {
     localStorage.removeItem("Token");
@@ -44,8 +66,8 @@ const Navbar = () => {
             to={link.path}
             className={({ isActive }) =>
               isActive
-                ? "!text-white text-base lg:text-xl font-bold underline hover:underline"
-                : "text-white text-base lg:text-xl font-bold border-0 !outline-0 hover:underline transition-all duration-300"
+                ? "!text-[#F4B41A] text-base lg:text-xl font-bold hover:!text-[#F4B41A]"
+                : "text-white text-base lg:text-xl font-bold border-0 !outline-0 hover:text-[#F4B41A] transition-all duration-300"
             }
             onClick={() => setIsMobileMenuOpen(false)} 
           >
@@ -91,8 +113,12 @@ const Navbar = () => {
               </Link>
             </div>
           ) : (
-            <div className="dropdown dropdown-hover dropdown-end z-50">
-              <div tabIndex={0} role="button">
+            <div className="relative z-50" ref={dropdownRef}>
+              <div
+                tabIndex={0}
+                role="button"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+              >
                 <div className="avatar">
                   <span className="flex items-center gap-2 bg-[#011A4D] text-white rounded-full px-4 py-2 text-base sm:text-lg font-medium hover:shadow-lg hover:scale-105 transition duration-300 cursor-pointer">
                     <FaUser className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -100,26 +126,31 @@ const Navbar = () => {
                   </span>
                 </div>
               </div>
-              <div className="dropdown-content menu w-full p-0 pt-3">
-                <ul
-                  tabIndex={0}
-                  className="bg-[#D9D9D9] rounded-box z-[100] w-full p-2 px-1 shadow flex flex-col gap-2"
-                >
-                  <li className="border-b border-[#113A5F] pb-2">
-                    <Link to='/' className="text-md text-[#113A5F] font-bold">
-                      Track Your Booking
-                    </Link>
-                  </li>
-                  <li>
-                    <button
-                      onClick={logout}
-                      className="text-md text-[#113A5F] font-bold"
-                    >
-                      Logout
-                    </button>
-                  </li>
-                </ul>
-              </div>
+              {isDropdownOpen && (
+                <div className="dropdown-content menu w-full p-0">
+                  <ul
+                    tabIndex={0}
+                    className="bg-[#D9D9D9] rounded-box z-[100] w-[180px] p-2 shadow flex flex-col gap-2 absolute right-0 top-full mt-2 rounded-lg"
+                  >
+                    <li className="border-b border-[#113A5F] pb-2">
+                      <Link to='/' className="text-md text-[#113A5F] font-bold" onClick={() => setIsDropdownOpen(false)}>
+                        Track Your Booking
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsDropdownOpen(false);
+                        }}
+                        className="text-md text-[#113A5F] font-bold cursor-pointer"
+                      >
+                        Logout
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
           )}
         </div>
