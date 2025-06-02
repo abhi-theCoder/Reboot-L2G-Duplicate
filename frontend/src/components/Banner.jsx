@@ -25,19 +25,22 @@ const Banner = () => {
         className="mySwiper"
       >
         <SwiperSlide>
-          <div className="w-full lg:h-[100vh] hero bg-cover bg-no-repeat bg-center" style={{backgroundImage: `url(${BannerImg1})`}}>
-            <div className="rounded-lg">
-              <div className="border-0 text-center px-[38vh] flex flex-col gap-5 justify-center items-center border-black h-screen rounded-lg">
-                <h1 className="font-bold text-4xl md:text-5xl lg:text-6xl text-white">
-                Exclusive Leisure and Medical Tours for Your Ultimate Well-Being
+          <div
+            className="w-full h-[60vh] sm:h-[70vh] md:h-[80vh] lg:h-[100vh] hero bg-cover bg-no-repeat bg-center flex items-center justify-center"
+            style={{ backgroundImage: `url(${BannerImg1})` }}
+          >
+            <div className="w-full flex justify-center items-center">
+              <div className="border-0 text-center flex flex-col gap-5 justify-center items-center w-full px-4 sm:px-8 md:px-16 lg:px-0 max-w-4xl mx-auto">
+                <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-white leading-tight">
+                  Exclusive Leisure and Medical Tours for Your Ultimate Well-Being
                 </h1>
-                <p className="text-base lg:text-lg text-gray-50 my-[30px]">
+                <p className="text-sm sm:text-base md:text-lg text-gray-50 my-6 sm:my-8">
                   Indulge in Premium Healthcare Experiences While Exploring Breathtaking Destinations
                 </p>
-                <div className="max-w-[500px] w-full">
-                <button className="bg-[#011A4D] to-black text-white rounded-full px-8 py-3 text-3xl font-bold hover:opacity-90 transition max-w-[500px] w-full">
-                  Contact Now
-                </button>
+                <div className="w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+                  <button className="bg-[#011A4D] text-white rounded-full px-6 py-2 sm:px-8 sm:py-3 text-lg sm:text-xl md:text-2xl font-bold hover:opacity-90 transition w-full">
+                    Contact Now
+                  </button>
                 </div>
               </div>
             </div>

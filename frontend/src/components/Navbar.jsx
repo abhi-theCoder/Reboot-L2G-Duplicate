@@ -66,10 +66,11 @@ const Navbar = () => {
             to={link.path}
             className={({ isActive }) =>
               isActive
-                ? "!text-[#F4B41A] text-base lg:text-xl font-bold hover:!text-[#F4B41A]"
-                : "text-white text-base lg:text-xl font-bold border-0 !outline-0 hover:text-[#F4B41A] transition-all duration-300"
+                ? "!text-[#F4B41A] text-base md:text-base xl:text-xl font-bold hover:!text-[#F4B41A]"
+                : "text-white text-base md:text-base xl:text-xl font-bold border-0 !outline-0 hover:text-[#F4B41A] transition-all duration-300"
             }
-            onClick={() => setIsMobileMenuOpen(false)} 
+
+            onClick={() => setIsMobileMenuOpen(false)}
           >
             {link.label}
           </NavLink>
@@ -88,7 +89,7 @@ const Navbar = () => {
         </div>
 
         <div className="flex-grow flex justify-center mx-4">
-          <p className="bg-[#011A4D] max-w-[800px] w-full py-3 sm:py-5 px-4 text-center text-white font-bold text-lg sm:text-2xl lg:text-3xl rounded-t-2xl shadow-lg hidden md:block">
+          <p className="bg-[#011A4D] max-w-[800px] w-full py-3 lg:py-4 lg:px-4 px-2 sm:py-2 text-center text-white font-bold text-md sm:text-lg lg:text-3xl rounded-t-2xl shadow-lg hidden md:block">
             L2g Cruise & Cure Travel Management Pvt. Ltd.
           </p>
         </div>
@@ -96,10 +97,10 @@ const Navbar = () => {
         <div className="flex-shrink-0 flex items-center gap-4">
           <div className="lg:hidden">
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => setIsMobileMenuOpen(true)}
               className="text-[#011A4D] text-3xl p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#011A4D]"
             >
-              {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
+              <FaBars />
             </button>
           </div>
 
@@ -156,27 +157,35 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className="hidden lg:flex justify-center bg-[#011A4D] sticky top-0 z-30 w-full py-3"> 
+      <div className="hidden lg:flex justify-center bg-[#011A4D] sticky top-0 z-30 w-full py-3">
         <ul className="menu menu-horizontal px-1 flex flex-row gap-5">
           {navLinks}
         </ul>
       </div>
 
       {isMobileMenuOpen && (
-        <div className="lg:hidden bg-[#011A4D] w-full absolute top-full left-0 z-40 shadow-lg pb-4">
-          <ul className="menu menu-vertical px-4 py-2 flex flex-col gap-2">
+        <div className="lg:hidden bg-[#011A4D] w-[250px] fixed top-0 h-full left-0 z-50 shadow-lg pb-4">
+          {/* Close button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute top-4 right-4 text-white bg-red-700 text-xl cursor-pointer p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-white"
+            aria-label="Close menu"
+          >
+            <FaTimes />
+          </button>
+          <ul className="menu menu-vertical px-4 py-2 flex flex-col gap-2 mt-12">
             {navLinks}
-            
+
             {!user ? (
               <li>
-                <Link to="/login" className="text-white text-xl font-bold hover:underline" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link to="/login" className="text-white text-xl font-bold hover:!text-[#F4B41A]" onClick={() => setIsMobileMenuOpen(false)}>
                   Login
                 </Link>
               </li>
             ) : (
               <>
                 <li>
-                  <Link to='/' className="text-white text-xl font-bold hover:underline" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link to='/' className="text-white lg:text-xl text-md font-bold hover:!text-[#F4B41A]" onClick={() => setIsMobileMenuOpen(false)}>
                     Track Your Booking
                   </Link>
                 </li>
@@ -186,7 +195,7 @@ const Navbar = () => {
                       logout();
                       setIsMobileMenuOpen(false);
                     }}
-                    className="text-white text-xl font-bold hover:underline"
+                    className="text-white lg:text-xl text-md font-bold hover:!text-[#F4B41A]"
                   >
                     Logout
                   </button>

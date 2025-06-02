@@ -44,7 +44,7 @@ const TourSection = () => {
         </h2>
 
         <div className="relative">
-          <div className="px-[10vh]">
+          <div className="xl:px-[10vh]">
             <Swiper
               modules={[Navigation]}
               spaceBetween={20}

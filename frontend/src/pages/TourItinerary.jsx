@@ -215,20 +215,16 @@ const TourItinerary = () => {
             }
         }
 
-        const agentID = agentReferralId.trim();
-        const tourName = selectedTourDate.name;
+        const agentID = agentReferralId ? agentReferralId.trim() : '';
         const tourID = selectedTourDate.tourID;
-        const tourPricePerHead = selectedTourDate.pricePerHead;
-        const tourActualOccupancy = selectedTourDate.occupancy;
-        const tourGivenOccupancy = numPeople;
-        const tourStartDate = selectedTourDate.startDate ? new Date(selectedTourDate.startDate).toISOString() : '';
 
-        const query = new URLSearchParams({
-            agentID: agentID ? agentID : '',
-            tourID: tourID
-        }).toString();
+        // Create a more compact URL with just IDs
+        const query = new URLSearchParams();
+        if (agentID) query.append('a', agentID);  // 'a' for agent
+        query.append('t', tourID);                // 't' for tour
+        query.append('p', numPeople);             // 'p' for people
 
-        const fullLink = `/kyc?${query}`;
+        const fullLink = `/kyc?${query.toString()}`;
         console.log("Navigating to:", fullLink);
 
         setTimeout(() => {

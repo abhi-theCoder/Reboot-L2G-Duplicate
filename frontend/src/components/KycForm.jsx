@@ -288,7 +288,7 @@ const CustomerForm = () => {
                 <button
                     type="button"
                     onClick={() => navigate(-1)}
-                    className="flex items-center text-blue-600 hover:text-blue-800 mb-6 text-sm cursor-pointer transition-colors duration-300"
+                    className="flex items-center text-blue-600 hover:text-blue-800 mb-6 text-sm cursor-pointer"
                 >
                     <FaArrowLeft className="mr-2" />
                     Back
