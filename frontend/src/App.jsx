@@ -17,6 +17,9 @@ import ErrorPage from './pages/ErrorPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import TourPrograms from './pages/TourPrograms';
+import TourItinerary from './pages/TourItinerary';
+import CustomerDashboard from './pages/CustomerDashboard';
+import EditTour from './components/EditTour';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -34,11 +37,11 @@ function App() {
         {/* Main Layout wrapper for all other routes */}
         <Route path="/" element={<Mainlayout />} errorElement={<ErrorPage />}>
           <Route index element={<Home />} />
-          
+
           <Route path="/agent-register" element={<AgentForm />} />
-          <Route path='/register' element={<Register/>} />
+          <Route path='/register' element={<Register />} />
           <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
-          <Route path= "/leisure-tour" element={<TourPrograms/>}/>
+          <Route path="/tour-programs/:tourType" element={<TourPrograms />} />
 
           {/* 404 fallback */}
           <Route path="*" element={<ErrorPage />} />
@@ -46,35 +49,49 @@ function App() {
         </Route>
 
         <Route path="thank-you" element={<ThankYou />} />
-          <Route path="cancel" element={<PaymentCancelled />} />
-          <Route path="kyc" element={<KycForm />} />
-          <Route path="terms/:id" element={<TermsAndConditions />} />
+        <Route path="cancel" element={<PaymentCancelled />} />
+        <Route path="kyc" element={<KycForm />} />
+        <Route path="terms/:id" element={<TermsAndConditions />} />
 
-          {/* Protected Routes */}
-          <Route
-            path="agent/dashboard"
-            element={
-              <AgentProtectedRoute>
-                <AgentDashboard />
-              </AgentProtectedRoute>
-            }
-          />
-          <Route
-            path="superadmin/dashboard"
-            element={
-              <SuperadminProtectedRoute>
-                <Dashboard />
-              </SuperadminProtectedRoute>
-            }
-          />
-          <Route
-            path="agent-requests"
-            element={
-              <SuperadminProtectedRoute>
-                <AgentRequests />
-              </SuperadminProtectedRoute>
-            }
-          />
+        {/* Protected Routes */}
+        <Route
+          path="agent/dashboard"
+          element={
+            <AgentProtectedRoute>
+              <AgentDashboard />
+            </AgentProtectedRoute>
+          }
+        />
+        <Route
+          path="superadmin/dashboard"
+          element={
+            <SuperadminProtectedRoute>
+              <Dashboard />
+            </SuperadminProtectedRoute>
+          }
+        />
+        <Route
+          path="agent-requests"
+          element={
+            <SuperadminProtectedRoute>
+              <AgentRequests />
+            </SuperadminProtectedRoute>
+          }
+        />
+
+        <Route
+          path="edit-tour/:tourID"
+          element={
+            <SuperadminProtectedRoute>
+              <EditTour />
+            </SuperadminProtectedRoute>
+          }
+        />
+
+        <Route path="tour-itinerary/:tourID" element={<TourItinerary />} />
+
+        <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+
       </Routes>
     </BrowserRouter>
   );

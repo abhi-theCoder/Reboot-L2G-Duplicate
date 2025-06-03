@@ -3,10 +3,13 @@ import Footer from "../components/Footer";
 import { FaSun, FaCloudRain, FaCloud } from "react-icons/fa";
 import { SlCalender } from "react-icons/sl";
 import { HiOutlineUserGroup } from "react-icons/hi";
-import { MdOutlineAccessTime } from "react-icons/md";
+import { MdOutlineAccessTime, MdOutlineTour } from "react-icons/md";
 import { IoLocationOutline } from "react-icons/io5";
-import { useNavigate } from "react-router-dom";
+import { FaCheck, FaEye, FaUserSlash } from "react-icons/fa";
+import { useNavigate, useSearchParams, Link, useParams } from "react-router-dom";
 import axios from "../api";
+import NeedHelp from "../components/NeedHelp";
+import Swal from "sweetalert2";
 
 // Helper function to format date
 const formatDateForDisplay = (isoDateString) => {
@@ -21,8 +24,9 @@ const formatDateForDisplay = (isoDateString) => {
 
 const TourPrograms = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams(); // Initialize useSearchParams
 
-  const [allTours, setAllTours] = useState([]);
+  const [allTours, setAllTours] = useState([]); // This will store the initially fetched & tourType-filtered tours
   const [availableMonths, setAvailableMonths] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [toursForSelectedMonth, setToursForSelectedMonth] = useState([]);
@@ -35,14 +39,22 @@ const TourPrograms = () => {
   const [tooltipText, setTooltipText] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
-  // States for the booking modal
+  // States for the booking modal (kept for completeness, though Link is used now)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [numberOfPeople, setNumberOfPeople] = useState("");
   const [agentReferralId, setAgentReferralId] = useState("");
   const [bookingError, setBookingError] = useState("");
   const [bookingSuccessMessage, setBookingSuccessMessage] = useState("");
+
   const token = localStorage.getItem('Token');
   const role = localStorage.getItem('role');
+
+  const {tourType} =  useParams();
+  const tourTypeFromUrl = tourType;
+  const pageTitleTourType = tourTypeFromUrl ? tourTypeFromUrl.replace(/%20/g, ' ') : 'All';
+
+  // console.log(tourTypeFromUrl)
+
   useEffect(() => {
     const fetchTourData = async () => {
       setLoading(true);
@@ -55,7 +67,7 @@ const TourPrograms = () => {
           return;
         }
 
-        const FetchToursRoute = role === 'superadmin' ? 'api/admin/tours' : role === 'customer'? 'api/customer/tours' : 'api/agents/tours';
+        const FetchToursRoute = role === 'superadmin' ? 'api/admin/tours' : role === 'customer' ? 'api/customer/tours' : 'api/agents/tours';
 
         const res = await axios.get(FetchToursRoute, {
           headers: {
@@ -64,9 +76,24 @@ const TourPrograms = () => {
           },
         });
 
-        const toursData = res.data.tours;
+        let toursData = res.data.tours;
         console.log("Fetched all tours data:", toursData);
-        setAllTours(toursData);
+
+        // --- NEW: Filter by tourType from URL ---
+        if (tourTypeFromUrl) {
+          const normalizedTourType = tourTypeFromUrl.toLowerCase();
+          toursData = toursData.filter(tour =>
+            tour.tourType && tour.tourType.toLowerCase() === normalizedTourType
+          );
+          if (toursData.length === 0) {
+            setError(`No tours found for type: "${tourTypeFromUrl}".`);
+            setLoading(false);
+            return; // Exit if no tours of this type
+          }
+        }
+        // --- END NEW ---
+
+        setAllTours(toursData); // Set the (potentially filtered) tours
 
         const months = new Set();
         if (Array.isArray(toursData)) {
@@ -78,8 +105,8 @@ const TourPrograms = () => {
             }
           });
         } else {
-          console.warn("toursData is not an array:", toursData);
-          setError("Unexpected data format from server.");
+          console.warn("toursData is not an array after filtering:", toursData);
+          setError("Unexpected data format from server after filtering.");
         }
 
         setAvailableMonths(Array.from(months));
@@ -87,23 +114,23 @@ const TourPrograms = () => {
       } catch (err) {
         let errorMessage = '';
         const message = err?.response?.data?.message;
-        // console.log(err.response.data.error)
-        if(err.response.data.error === 'Unauthorized: Invalid token'){
-          errorMessage = 'Unauthorized access or Session expired. Please re-login again.!!';
-        }else if(message === 'Inactive user'){
+        if (err.response?.data?.error === 'Unauthorized: Invalid token') {
+          errorMessage = 'Unauthorized access or Session expired. Please re-login!!';
+        } else if (message === 'Inactive user') {
           errorMessage = 'Your account is inactive. Please contact support.';
-        }else{
-          errorMessage = 'Error fetching tours. Try again later.';
+        } else {
+          errorMessage = err.response?.data?.message || 'Error fetching tours. Try again later.';
         }
         setError(errorMessage);
         console.error("Error fetching tour data:", err);
+        Swal.fire('Error', errorMessage, 'error'); // Use Swal for error display
       } finally {
         setLoading(false);
       }
     };
 
     fetchTourData();
-  }, []);
+  }, [token, role, tourTypeFromUrl]); // Add tourTypeFromUrl to dependency array
 
   useEffect(() => {
     if (selectedMonth && allTours.length > 0) {
@@ -123,7 +150,7 @@ const TourPrograms = () => {
 
   const handleMonthClick = (month) => {
     if (!availableMonths.includes(month)) {
-      return;
+      return; // Prevent selection of unavailable months
     }
     console.log(`Clicked on month: ${month}`);
     setSelectedMonth(month);
@@ -138,100 +165,25 @@ const TourPrograms = () => {
     setBookingSuccessMessage(""); // Clear any previous success message
   };
 
+  // This handleContinue is now less critical as you are using Link directly
   const handleContinue = () => {
     if (selectedTourDate) {
+      // If you still want a modal before navigating, re-enable this.
+      // For now, the Link component handles navigation directly.
       setIsBookingModalOpen(true);
     } else {
-      alert("Please select a tour date to continue.");
+      Swal.fire('Oops!', 'Please select a tour date to continue.', 'warning');
     }
   };
 
-  const handleModalContinue = async() => {
-    const numPeople = parseInt(numberOfPeople, 10);
-
-    setBookingError("");
-    setBookingSuccessMessage("");
-
-    if (isNaN(numPeople) || numPeople <= 0) {
-      setBookingError("Please enter a valid number of people (greater than 0).");
-      return;
-    }
-
-    if (!selectedTourDate) {
-      setBookingError("No tour selected. Please close and try again.");
-      return;
-    }
-
-    if (numPeople > selectedTourDate.remainingOccupancy) {
-      setBookingError(`Only ${selectedTourDate.remainingOccupancy} seats available. Please enter a lower number.`);
-      return;
-    }
-
-    const message = `Booking ${numPeople} people for ${selectedTourDate.name}. Redirecting to KYC page...`;
-    setBookingSuccessMessage(message);
-
-    // Prepare data for URL parameters
-    if (agentReferralId) {
-      try {
-        const res = await axios.get(`/api/agents/${agentReferralId.trim()}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Role: role,
-          },
-        });
-        // Assuming your API returns a success status or agent details if valid
-        if (res.status !== 200) {
-          setBookingError("Invalid Agent Referral ID. Please check and try again.");
-          return;
-        }
-      } catch (err) {
-        // --- CHANGE STARTS HERE ---
-        console.error("Full Axios Error Object:", err); // This will print the entire error object
-        if (err.response && err.response.data && err.response.data.message) {
-          setBookingError(err.response.data.message);
-        } else {
-          setBookingError("Agent Referral ID validation failed. Please try again.");
-        }
-        return;
-      }
-    }
-    // console.log(agentDetails)
-    const agentID = agentReferralId.trim();
-    const tourName = selectedTourDate.name;
-    const tourID = selectedTourDate.tourID;
-    const tourPricePerHead = selectedTourDate.pricePerHead;
-    const tourActualOccupancy = selectedTourDate.occupancy;
-    const tourGivenOccupancy = numPeople;
-    // Ensure startDate is formatted correctly for URL, if it's an ISO string, encode it
-    const tourStartDate = selectedTourDate.startDate ? new Date(selectedTourDate.startDate).toISOString() : '';
-
-    const query = new URLSearchParams({
-      agentID: agentID?agentID:'',
-      tourName: tourName,
-      tourID: tourID,
-      tourPricePerHead: tourPricePerHead,
-      tourActualOccupancy: tourActualOccupancy,
-      tourGivenOccupancy: tourGivenOccupancy,
-      tourStartDate: tourStartDate
-    }).toString();
-
-    // Log the full link for debugging
-    const fullLink = `/kyc?${query}`;
-    console.log("Navigating to:", fullLink);
-
-
-    setTimeout(()=>{
-      setIsBookingModalOpen(false);
-      navigate(fullLink);
-    }, 3000);
+  const handleModalContinue = () => {
+    console.log("Booking logic would go here for selectedTourDate:", selectedTourDate);
   };
 
-
-  // Tooltip handlers
   const handleMouseEnterMonth = (month, event) => {
     if (!availableMonths.includes(month)) {
       setIsTooltipVisible(true);
-      setTooltipText("Not Available Now");
+      setTooltipText("No tours available for this month (for selected type)"); // More specific tooltip
       setTooltipPosition({ x: event.clientX + 10, y: event.clientY + 10 });
     }
   };
@@ -265,15 +217,24 @@ const TourPrograms = () => {
   return (
     <div className="flex flex-col min-h-screen relative">
       <main className="flex-grow container mx-auto px-4 py-12">
-        <h1 className="text-4xl font-semibold text-gray-800 mb-8">
-          Select Your Travel Dates
+        <h1 className="text-4xl font-bold text-gray-800 mb-1.5">
+          Select Your Travel Dates for <span className="text-blue-600">{pageTitleTourType}</span> Tours
         </h1>
         <p className="text-gray-600 mb-10">
           Select your preferred month and available dates
         </p>
 
-        {loading && <div className="text-center text-blue-500">Loading available tour dates...</div>}
-        {error && <div className="text-center text-red-500">{error}</div>}
+        {loading && (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+            <p className="ml-4 text-lg text-blue-600">Loading available tour dates...</p>
+          </div>
+        )}
+        {error && (
+          <div className="text-center text-lg text-red-500 bg-red-100 p-4 rounded-md border border-red-200">
+            {error}
+          </div>
+        )}
 
         {!loading && !error && (
           <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
@@ -281,13 +242,12 @@ const TourPrograms = () => {
               {monthsData.map((month, index) => (
                 <div
                   key={index}
-                  className={`p-6 rounded-lg border ${
-                    selectedMonth === month.month
-                      ? "border-blue-500 bg-blue-50"
-                      : availableMonths.includes(month.month)
+                  className={`p-6 rounded-lg border ${selectedMonth === month.month
+                    ? "border-blue-500 bg-blue-50"
+                    : availableMonths.includes(month.month)
                       ? "border-gray-300 hover:border-blue-500 cursor-pointer"
                       : "border-gray-200 bg-gray-50 text-gray-400 opacity-70 cursor-not-allowed"
-                  } flex justify-between items-start`}
+                    } flex justify-between items-start`}
                   onClick={() => handleMonthClick(month.month)}
                   onMouseEnter={(e) => handleMouseEnterMonth(month.month, e)}
                   onMouseMove={handleMouseMoveMonth}
@@ -298,13 +258,12 @@ const TourPrograms = () => {
                       {month.month} {month.year}
                     </h3>
                     <p
-                      className={`text-sm mt-1 ${
-                        month.season === "Peak Season"
-                          ? "text-red-500"
-                          : month.season === "Off-Peak Season"
+                      className={`text-sm mt-1 ${month.season === "Peak Season"
+                        ? "text-red-500"
+                        : month.season === "Off-Peak Season"
                           ? "text-green-600"
                           : "text-orange-500"
-                      }`}
+                        }`}
                     >
                       {month.season}
                     </p>
@@ -320,64 +279,109 @@ const TourPrograms = () => {
             {/* Details of Tour Section */}
             {selectedMonth && toursForSelectedMonth.length > 0 && (
               <div className="mt-12">
-                <h2 className="text-3xl font-semibold text-gray-800 mb-6">
-                  Details of Tour
+                <h2 className="text-3xl font-bold text-gray-800 mb-6">
+                  Available Tours for {selectedMonth}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {toursForSelectedMonth.map((tour) => (
                     <div
                       key={tour.tourID}
-                      className={`p-6 rounded-lg border cursor-pointer
-                      ${selectedTourDate?.tourID === tour.tourID
-                        ? "border-blue-500 bg-blue-50 shadow-md"
-                        : "border-gray-300 hover:border-blue-500"
-                      }`}
+                      className={`relative bg-white rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-lg cursor-pointer overflow-hidden ${selectedTourDate?.tourID === tour.tourID
+                          ? "border-blue-500 ring-4 ring-blue-100"
+                          : "border-gray-100 hover:border-blue-300"
+                        }`}
                       onClick={() => handleTourDateClick(tour)}
                     >
-                      {tour.image && (
-                        <img
-                          src={tour.image}
-                          alt={tour.name}
-                          className="w-full h-40 object-cover rounded-md mb-4"
-                        />
+                      {/* Selected badge */}
+                      {selectedTourDate?.tourID === tour.tourID && (
+                        <div className="absolute top-3 right-3 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10 flex items-center">
+                          <FaCheck className="mr-1" /> SELECTED
+                        </div>
                       )}
-                      <h3 className="text-xl font-bold text-gray-800 mb-2">{tour.name}</h3>
-                      <p className="text-gray-600 text-sm flex items-center mb-1">
-                        <IoLocationOutline className="mr-2 text-blue-500" />
-                        {tour.categoryType} | {tour.country}
-                      </p>
-                      <p className="text-gray-600 text-sm flex items-center mb-1">
-                        <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                           {tour.tourType}
-                        </span>
-                        <span className="text-lg font-semibold text-green-600">
-                          ₹{tour.pricePerHead?.toLocaleString()}
-                        </span>
-                      </p>
 
-                      <p className="text-gray-600 text-lg font-bold my-2">
-                        ₹{tour.pricePerHead?.toLocaleString()}
-                      </p>
+                      {/* Tour Image */}
+                      {tour.image && (
+                        <div className="h-48 w-full overflow-hidden relative">
+                          <img
+                            src={tour.image}
+                            alt={tour.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent h-20" />
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <h3 className="text-xl font-bold text-white">{tour.name}</h3>
+                            <div className="flex items-center text-white/90 text-sm mt-1">
+                              <IoLocationOutline className="mr-1" />
+                              {tour.categoryType} | {tour.country}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                      <p className="text-gray-600 text-sm flex items-center mb-1">
-                        <MdOutlineAccessTime className="mr-2 text-blue-500" />
-                        Duration: {tour.duration} days
-                      </p>
-                      <p className="text-gray-600 text-sm flex items-center mb-1">
-                        <HiOutlineUserGroup className="mr-2 text-blue-500" />
-                        Occupancy: {tour.occupancy} people
-                      </p>
-                      <p className="text-gray-600 text-sm flex items-center mb-1">
-                        <HiOutlineUserGroup className="mr-2 text-blue-500" />
-                        Remaining Occupancy: {tour.remainingOccupancy} people
-                      </p>
-                      <p className="text-gray-600 text-sm flex items-center mb-1">
-                        <SlCalender className="mr-2 text-blue-500" />
-                        Start: {formatDateForDisplay(tour.startDate)}
-                      </p>
-                       <p className="text-gray-600 text-sm mt-2">
-                        {tour.description}
-                      </p>
+                      {/* Tour Details */}
+                      <div className="p-5">
+                        {/* Price and Tour Type */}
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-end">
+                            <span className="text-2xl font-bold text-green-600">
+                              ₹{tour.pricePerHead?.toLocaleString()}
+                            </span>
+                            <span className="text-md text-gray-500 ml-1">/person</span>
+                          </div>
+                          <span className="flex items-center text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            <MdOutlineTour className="mr-1" />
+                            {tour.tourType}
+                          </span>
+                        </div>
+
+                        {/* Key Info Grid */}
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="flex items-center text-sm text-gray-700">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <MdOutlineAccessTime className="text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Duration</div>
+                              <div className="font-medium">{tour.duration} days</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center text-sm text-gray-700">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <HiOutlineUserGroup className="text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Occupancy</div>
+                              <div className="font-medium">{tour.occupancy}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center text-sm text-gray-700">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <FaUserSlash className="text-blue-600 text-sm" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Remaining</div>
+                              <div className="font-medium">{tour.remainingOccupancy}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center text-sm text-gray-700">
+                            <div className="bg-blue-100 p-2 rounded-full mr-3">
+                              <SlCalender className="text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-500">Start Date</div>
+                              <div className="font-medium">{formatDateForDisplay(tour.startDate)}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                          {tour.description}
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -386,7 +390,7 @@ const TourPrograms = () => {
 
             {selectedMonth && toursForSelectedMonth.length === 0 && (
               <div className="mt-12 text-center text-gray-600">
-                No tours found for {selectedMonth}. Please select another month.
+                No tours found for {selectedMonth} with the current filters. Please select another month or clear tour type filter.
               </div>
             )}
 
@@ -402,51 +406,27 @@ const TourPrograms = () => {
                   <span>Selected</span>
                 </div>
               </div>
-              <button
-                className={`bg-blue-700 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-                  !selectedTourDate ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={!selectedTourDate}
-                onClick={handleContinue}
-              >
-                Continue
-              </button>
+              {selectedTourDate ? (
+                <Link
+                  to={`/tour-itinerary/${selectedTourDate.tourID}`}
+                  className="bg-blue-700 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                >
+                  Continue
+                </Link>
+              ) : (
+                <button
+                  className="bg-blue-700 text-white px-8 py-3 rounded-lg font-medium opacity-50 cursor-not-allowed"
+                  disabled
+                >
+                  Continue
+                </button>
+              )}
             </div>
           </div>
         )}
 
-        <div className="mt-16">
-          <h2 className="text-3xl font-semibold text-gray-800 mb-6">
-            Need Help?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-              <h3 className="text-xl font-medium text-gray-800 mb-2">
-                24/7 Support
-              </h3>
-              <p className="text-gray-600">
-                Our travel experts are available round the clock to assist you
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-              <h3 className="text-xl font-medium text-gray-800 mb-2">
-                Secure Booking
-              </h3>
-              <p className="text-gray-600">
-                Your payments and personal information are protected
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-              <h3 className="text-xl font-medium text-gray-800 mb-2">
-                Best Price Guarantee
-              </h3>
-              <p className="text-gray-600">
-                Find a lower price? We'll match it!
-              </p>
-            </div>
-          </div>
-        </div>
       </main>
+      <NeedHelp />
 
       {/* Tooltip component */}
       {isTooltipVisible && (
@@ -464,7 +444,7 @@ const TourPrograms = () => {
         </div>
       )}
 
-      {/* Booking Modal */}
+      {/* Booking Modal (Potentially unused if using Link directly) */}
       {isBookingModalOpen && selectedTourDate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md mx-4">
@@ -514,9 +494,8 @@ const TourPrograms = () => {
               </button>
               <button
                 onClick={handleModalContinue}
-                className={`bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 ${
-                  bookingSuccessMessage ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 ${bookingSuccessMessage ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
                 disabled={!!bookingSuccessMessage}
               >
                 Continue

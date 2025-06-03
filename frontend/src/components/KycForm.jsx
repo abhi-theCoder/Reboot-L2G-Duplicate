@@ -1,10 +1,47 @@
-import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import MainLogo from '../../public/main-logo.png';
 import { motion } from 'framer-motion';
 import axios from '../api';
+import { FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { z } from 'zod';
+
+// --- Zod Schemas ---
+const sectionASchema = z.object({
+    name: z.string().min(1, 'Full Name is required'),
+    dob: z.string().min(1, 'Date of Birth is required'),
+    age: z.string().min(1, 'Age is required'),
+    gender: z.string().min(1, 'Gender is required'),
+    phone: z.string().min(1, 'Primary Phone is required'),
+    aadhar: z.string().min(1, 'Aadhar Card Number is required'),
+    homeAddress: z.string().min(1, 'Complete Address is required'),
+    aadharFront: z.any().refine((file) => !!file, { message: 'Aadhar Front Image is required' }),
+    aadharBack: z.any().refine((file) => !!file, { message: 'Aadhar Back Image is required' }),
+    panCard: z.any().refine((file) => !!file, { message: 'PAN Card Image is required' }),
+});
+
+const sectionBSchema = z.object({
+    packageSelected: z.string().min(1, 'Package selected is required'),
+    selectedTrip: z.string().min(1, 'Selected Trip is required'),
+});
+
+const sectionCSchema = z.object({
+    numPersons: z.string().min(1, 'Number of persons is required'),
+    passengers: z.array(
+        z.object({
+            name: z.string().min(1, 'Name is required'),
+            age: z.string().min(1, 'Age is required'),
+            gender: z.string().min(1, 'Gender is required'),
+            idType: z.string().min(1, 'ID Type is required'),
+            idNumber: z.string().min(1, 'ID Number is required'),
+        })
+    ),
+    // Add childPassengers validation if needed
+});
 
 const CustomerForm = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
     const [formData, setFormData] = useState({
         // Section A
@@ -49,6 +86,7 @@ const CustomerForm = () => {
         accountHolderName: ''
     });
 
+    const [errors, setErrors] = useState({});
     const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [currentSection, setCurrentSection] = useState('A');
     const [showModal, setShowModal] = useState(false);
@@ -57,16 +95,38 @@ const CustomerForm = () => {
     const [buttonDisabled, setButtonDisabled] = useState(false);
     const [error, setError] = useState(false);
     const [errorData, setErrorData] = useState(null);
+    const [tour, setTour] = useState(null);
+    const token = localStorage.getItem('Token');
+    const role = localStorage.getItem('role');
+    const tourID = searchParams.get('t');
+    
+    const getTourDetails = async()=>{
+        console.log("getTourDetails function is running");
+        const FetchToursRoute = role === 'superadmin' ? 'api/admin/tours' : role === 'customer' ? 'api/customer/tours' : 'api/agents/tours';
+        const res = await axios.get(`${FetchToursRoute}/${tourID}`,{
+             headers: {
+                Authorization: `Bearer ${token}`,
+                Role: role,
+            },
+        });
+        console.log(res.data.tour);
+        setTour(res.data.tour);
+    }
 
-    const generateTermsAndPaymentLink = async ({
-        agentID = searchParams.get('agentID'),
-        tourName = searchParams.get('tourName'),
-        tourPricePerHead = searchParams.get('tourPricePerHead'),
-        tourActualOccupancy = searchParams.get('tourActualOccupancy'),
-        tourGivenOccupancy = searchParams.get('tourGivenOccupancy'),
-        tourStartDate = searchParams.get('tourStartDate'),
-        tourID = searchParams.get('tourID')
-      }) => {
+    useEffect(()=>{
+        getTourDetails();
+    },[tourID, token, role]);
+
+    const generateTermsAndPaymentLink = async () => {
+        const givenOccupancy = searchParams.get('p');
+        // Get from searchParams or fallback to location.state
+        // console.log(location.state);
+        const agentID = searchParams.get('a') || '';
+        const tourName = tour.name;
+        const tourPricePerHead = tour.pricePerHead;
+        const tourActualOccupancy = tour.occupancy;
+        const tourGivenOccupancy = givenOccupancy;
+        const tourStartDate = tour.startDate;
         setGenerating(true);
         setButtonDisabled(true);
         setError(false);
@@ -80,7 +140,8 @@ const CustomerForm = () => {
               tourPricePerHead,
               tourActualOccupancy,
               tourGivenOccupancy,
-              tourStartDate
+              tourStartDate,
+              GST : tour.GST
             },
             {
               headers: {
@@ -95,26 +156,81 @@ const CustomerForm = () => {
           const termsUrl = `${window.origin}/terms/${uniqueId}?redirect=${encodeURIComponent(paymentUrl)}`;
           setTermsLink(termsUrl);
         } catch (error) {
-          console.error('Error generating payment link:', error.response.data.error);
-          setError(true);
-          setErrorData(error.response.data.error);
-        //   alert('Failed to generate payment link');
+            console.error('Error generating payment link:', error.response.data.error);
+            setError(true);
+            setErrorData(error.response.data.error);
+            //   alert('Failed to generate payment link');
         } finally {
-          setGenerating(false);
-          setTimeout(() => {
-            setButtonDisabled(false); 
-          }, 5000); 
+            setGenerating(false);
+            setTimeout(() => {
+                setButtonDisabled(false);
+            }, 5000);
         }
     };
-      
+
+    // --- Validation with Zod ---
+    const validateSection = (section) => {
+        let result;
+        if (section === 'A') {
+            result = sectionASchema.safeParse(formData);
+            if (!result.success) {
+                const fieldErrors = {};
+                result.error.errors.forEach(err => {
+                    fieldErrors[err.path[0]] = err.message;
+                });
+                setErrors(fieldErrors);
+                return false;
+            }
+        }
+        if (section === 'B') {
+            result = sectionBSchema.safeParse(formData);
+            if (!result.success) {
+                const fieldErrors = {};
+                result.error.errors.forEach(err => {
+                    fieldErrors[err.path[0]] = err.message;
+                });
+                setErrors(fieldErrors);
+                return false;
+            }
+        }
+        if (section === 'C') {
+            // Only validate the number of passengers entered
+            const passengersToValidate = formData.passengers.slice(0, Number(formData.numPersons) || 1);
+            result = sectionCSchema.safeParse({
+                numPersons: formData.numPersons,
+                passengers: passengersToValidate,
+            });
+            if (!result.success) {
+                const fieldErrors = {};
+                result.error.errors.forEach(err => {
+                    if (err.path[0] === 'passengers') {
+                        // For array errors, show error for each passenger
+                        const idx = err.path[1];
+                        const field = err.path[2];
+                        fieldErrors[`passenger_${idx}_${field}`] = err.message;
+                    } else {
+                        fieldErrors[err.path[0]] = err.message;
+                    }
+                });
+                setErrors(fieldErrors);
+                return false;
+            }
+        }
+        setErrors({});
+        return true;
+    };
+
+    // --- Handlers ---
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        setErrors(prev => ({ ...prev, [name]: undefined }));
     };
 
     const handleFileChange = (e) => {
         const { name, files } = e.target;
         setFormData(prev => ({ ...prev, [name]: files[0] }));
+        setErrors(prev => ({ ...prev, [name]: undefined }));
     };
 
     const handleArrayChange = (arrayName, index, field, value) => {
@@ -123,19 +239,48 @@ const CustomerForm = () => {
             newArray[index] = { ...newArray[index], [field]: value };
             return { ...prev, [arrayName]: newArray };
         });
+        // For passenger fields
+        if (arrayName === 'passengers') {
+            setErrors(prev => ({ ...prev, [`passenger_${index}_${field}`]: undefined }));
+        }
+    };
+
+    const handleNextSection = () => {
+        if (!validateSection(currentSection)) return;
+        const sections = ['A', 'B', 'C', 'D', 'E'];
+        const currentIndex = sections.indexOf(currentSection);
+        if (currentIndex < sections.length - 1) {
+            setCurrentSection(sections[currentIndex + 1]);
+        }
+    };
+
+    const handlePrevSection = () => {
+        const sections = ['A', 'B', 'C', 'D', 'E'];
+        const currentIndex = sections.indexOf(currentSection);
+        if (currentIndex > 0) {
+            setCurrentSection(sections[currentIndex - 1]);
+        }
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setShowModal(true); // Open the modal on form submission
+        setShowModal(true);
     };
 
     const handleFinalSubmit = () => {
+        // Validate all sections before final submit
+        let valid = true;
+        ['A', 'B', 'C'].forEach(section => {
+            if (!validateSection(section)) valid = false;
+        });
+        if (!valid) {
+            setShowModal(false);
+            return;
+        }
         if (acceptedTerms) {
-            console.log('Form submitted:', formData);
-            setShowModal(false); // Close the modal
-        } else {
-            alert('Please accept the terms and conditions.');
+            setErrors({});
+            setShowModal(false);
+            // Submit logic here
         }
     };
 
@@ -148,9 +293,31 @@ const CustomerForm = () => {
         E: 'Payment Details'
     };
 
+    const handleSectionClick = (section) => {
+        const sections = ['A', 'B', 'C', 'D', 'E'];
+        const currentIndex = sections.indexOf(currentSection);
+        const targetIndex = sections.indexOf(section);
+
+        // Allow direct navigation only if going forward or to the same section
+        if (targetIndex <= currentIndex) {
+            setCurrentSection(section);
+        }
+    };
+
     return (
         <div className="container mx-auto px-4 py-8 max-w-5xl">
             <div className="bg-white rounded-lg shadow-lg p-6">
+
+                {/* Back Button */}
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="flex items-center text-blue-600 hover:text-blue-800 mb-6 text-sm cursor-pointer"
+                >
+                    <FaArrowLeft className="mr-2" />
+                    Back
+                </button>
+
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
@@ -174,11 +341,12 @@ const CustomerForm = () => {
                         {['A', 'B', 'C', 'D', 'E'].map((section) => (
                             <div key={section} className="flex flex-col items-center z-10">
                                 <button
-                                    onClick={() => setCurrentSection(section)}
+                                    type="button"
+                                    onClick={() => handleSectionClick(section)}
                                     className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg 
-                    ${currentSection === section ? 'bg-blue-600 scale-110' :
-                                            (section < currentSection ? 'bg-green-500' : 'bg-gray-400')}
-                    transition-all duration-300 shadow-md`}
+                                    ${currentSection === section ? 'bg-blue-600 scale-110' :
+                                    (section < currentSection ? 'bg-green-500' : 'bg-gray-400')}
+                                    transition-all duration-300 shadow-md`}
                                 >
                                     {section}
                                 </button>
@@ -219,10 +387,10 @@ const CustomerForm = () => {
                                                     name="name"
                                                     value={formData.name}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
+                                                    className={`w-full px-4 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="Enter your full name"
                                                 />
+                                                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -233,9 +401,9 @@ const CustomerForm = () => {
                                                         name="dob"
                                                         value={formData.dob}
                                                         onChange={handleChange}
-                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        required
+                                                        className={`w-full px-4 py-2 border ${errors.dob ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     />
+                                                    {errors.dob && <p className="text-red-500 text-xs mt-1">{errors.dob}</p>}
                                                 </div>
 
                                                 <div>
@@ -245,10 +413,10 @@ const CustomerForm = () => {
                                                         name="age"
                                                         value={formData.age}
                                                         onChange={handleChange}
-                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        required
+                                                        className={`w-full px-4 py-2 border ${errors.age ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                         placeholder="Your age"
                                                     />
+                                                    {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age}</p>}
                                                 </div>
                                             </div>
 
@@ -258,14 +426,14 @@ const CustomerForm = () => {
                                                     name="gender"
                                                     value={formData.gender}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
+                                                    className={`w-full px-4 py-2 border ${errors.gender ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                 >
                                                     <option value="">Select Gender</option>
                                                     <option value="M">Male</option>
                                                     <option value="F">Female</option>
                                                     <option value="Others">Others</option>
                                                 </select>
+                                                {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
                                             </div>
                                         </div>
                                     </div>
@@ -281,11 +449,11 @@ const CustomerForm = () => {
                                                     name="phone"
                                                     value={formData.phone}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
+                                                    className={`w-full px-4 py-2 border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="Primary contact number"
                                                 />
                                                 <p className="text-xs text-gray-500 mt-1">(for official communication)</p>
+                                                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                             </div>
 
                                             <div>
@@ -295,7 +463,7 @@ const CustomerForm = () => {
                                                     name="altPhone"
                                                     value={formData.altPhone}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    className={`w-full px-4 py-2 border ${errors.altPhone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="Emergency contact number"
                                                 />
                                                 <p className="text-xs text-gray-500 mt-1">(medical/other traveling emergency)</p>
@@ -308,7 +476,7 @@ const CustomerForm = () => {
                                                     name="whatsapp"
                                                     value={formData.whatsapp}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    className={`w-full px-4 py-2 border ${errors.whatsapp ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="WhatsApp number"
                                                 />
                                             </div>
@@ -320,7 +488,7 @@ const CustomerForm = () => {
                                                     name="email"
                                                     value={formData.email}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    className={`w-full px-4 py-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="Your email address"
                                                 />
                                             </div>
@@ -340,10 +508,10 @@ const CustomerForm = () => {
                                                     name="aadhar"
                                                     value={formData.aadhar}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
+                                                    className={`w-full px-4 py-2 border ${errors.aadhar ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="12-digit Aadhar number"
                                                 />
+                                                {errors.aadhar && <p className="text-red-500 text-xs mt-1">{errors.aadhar}</p>}
                                             </div>
 
                                             <div>
@@ -353,7 +521,7 @@ const CustomerForm = () => {
                                                     name="pan"
                                                     value={formData.pan}
                                                     onChange={handleChange}
-                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                    className={`w-full px-4 py-2 border ${errors.pan ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                     placeholder="10-digit PAN number"
                                                 />
                                             </div>
@@ -412,11 +580,11 @@ const CustomerForm = () => {
                                                 name="homeAddress"
                                                 value={formData.homeAddress}
                                                 onChange={handleChange}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                className={`w-full px-4 py-2 border ${errors.homeAddress ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                 rows="3"
                                                 placeholder="Your full residential address"
-                                                required
                                             ></textarea>
+                                            {errors.homeAddress && <p className="text-red-500 text-xs mt-1">{errors.homeAddress}</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -429,9 +597,9 @@ const CustomerForm = () => {
                                         type="file"
                                         name="aadharFront"
                                         onChange={handleFileChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required
+                                        className={`w-full px-4 py-2 border ${errors.aadharFront ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                     />
+                                    {errors.aadharFront && <p className="text-red-500 text-xs mt-1">{errors.aadharFront}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-gray-700 font-medium mb-2">Aadhar Back Image*</label>
@@ -439,9 +607,9 @@ const CustomerForm = () => {
                                         type="file"
                                         name="aadharBack"
                                         onChange={handleFileChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required
+                                        className={`w-full px-4 py-2 border ${errors.aadharBack ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                     />
+                                    {errors.aadharBack && <p className="text-red-500 text-xs mt-1">{errors.aadharBack}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-gray-700 font-medium mb-2">PAN Card Image*</label>
@@ -449,22 +617,20 @@ const CustomerForm = () => {
                                         type="file"
                                         name="panCard"
                                         onChange={handleFileChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required
+                                        className={`w-full px-4 py-2 border ${errors.panCard ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                     />
+                                    {errors.panCard && <p className="text-red-500 text-xs mt-1">{errors.panCard}</p>}
                                 </div>
                             </div>
 
-                            <div className="flex justify-end mt-6">
+                            <div className="flex justify-end mt-8">
                                 <button
                                     type="button"
-                                    onClick={() => setCurrentSection('B')}
+                                    onClick={handleNextSection}
                                     className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center"
                                 >
                                     Next: Section B
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
+                                    <FaArrowRight className="ml-2" />
                                 </button>
                             </div>
                         </div>
@@ -486,9 +652,10 @@ const CustomerForm = () => {
                                         name="packageSelected"
                                         value={formData.packageSelected}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className={`w-full px-4 py-2 border ${errors.packageSelected ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                         placeholder="Enter package name"
                                     />
+                                    {errors.packageSelected && <p className="text-red-500 text-xs mt-1">{errors.packageSelected}</p>}
                                 </div>
 
                                 <div>
@@ -528,9 +695,10 @@ const CustomerForm = () => {
                                                 name="agentName"
                                                 value={formData.agentName}
                                                 onChange={handleChange}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                className={`w-full px-4 py-2 border ${errors.agentName ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                 placeholder="Agent's name"
                                             />
+                                            {errors.agentName && <p className="text-red-500 text-xs mt-1">{errors.agentName}</p>}
                                         </div>
 
                                         <div>
@@ -540,9 +708,10 @@ const CustomerForm = () => {
                                                 name="agentId"
                                                 value={formData.agentId}
                                                 onChange={handleChange}
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                className={`w-full px-4 py-2 border ${errors.agentId ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                                 placeholder="Agent's ID"
                                             />
+                                            {errors.agentId && <p className="text-red-500 text-xs mt-1">{errors.agentId}</p>}
                                         </div>
                                     </div>
                                 )}
@@ -553,14 +722,14 @@ const CustomerForm = () => {
                                         name="selectedTrip"
                                         value={formData.selectedTrip}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        required
+                                        className={`w-full px-4 py-2 border ${errors.selectedTrip ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                     >
                                         <option value="">Select Trip</option>
                                         <option value="A">MIRIK, DARJEELING, GANGTOK & NATHULA PASS (East Sikkim) 08th May-2025</option>
                                         <option value="B">MIRIK, DARJEELING, MAHANANDA WILD LIFE SANCTUARY 08th May-2025</option>
                                         <option value="C">GANGTOK, NATHULA PASS, LACHUNG (North Sikkim) 10th May-2025</option>
                                     </select>
+                                    {errors.selectedTrip && <p className="text-red-500 text-xs mt-1">{errors.selectedTrip}</p>}
                                 </div>
 
                                 {formData.selectedTrip && (
@@ -587,9 +756,7 @@ const CustomerForm = () => {
                                     onClick={() => setCurrentSection('A')}
                                     className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-300 flex items-center"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                                    </svg>
+                                    <FaArrowLeft className="mr-2" />
                                     Back: Section A
                                 </button>
                                 <button
@@ -598,9 +765,7 @@ const CustomerForm = () => {
                                     className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center"
                                 >
                                     Next: Section C
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
+                                    <FaArrowRight className="ml-2" />
                                 </button>
                             </div>
                         </div>
@@ -623,10 +788,11 @@ const CustomerForm = () => {
                                             name="numPersons"
                                             value={formData.numPersons}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className={`w-full px-4 py-2 border ${errors.numPersons ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                             required
                                             min="1"
                                         />
+                                        {errors.numPersons && <p className="text-red-500 text-xs mt-1">{errors.numPersons}</p>}
                                     </div>
 
                                     <div>
@@ -636,7 +802,7 @@ const CustomerForm = () => {
                                             name="numChildren"
                                             value={formData.numChildren}
                                             onChange={handleChange}
-                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            className={`w-full px-4 py-2 border ${errors.numChildren ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                             min="0"
                                         />
                                     </div>
@@ -824,9 +990,9 @@ const CustomerForm = () => {
                                     className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-300 flex items-center"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+                                        <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110-2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
                                     </svg>
-                                    Back: Section B
+                                    Back: Section A
                                 </button>
                                 <button
                                     type="button"
@@ -834,101 +1000,98 @@ const CustomerForm = () => {
                                     className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center"
                                 >
                                     Next: Section D
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                    </svg>
+                                    <FaArrowRight className="ml-2" />
                                 </button>
                             </div>
                         </div>
                     )}
 
+                    {/* Section D */}
                     {currentSection === 'D' && (
                         <div className="mb-8">
                             <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                            <h4 className="text-xl font-bold text-blue-800">Section D: Terms and Conditions</h4>
-                            <p className="text-gray-600">Here you can view Terms and Conditions link which will also include the payment link.</p>
+                                <h4 className="text-xl font-bold text-blue-800">Section D: Terms and Conditions</h4>
+                                <p className="text-gray-600">Here you can view Terms and Conditions link which will also include the payment link.</p>
                             </div>
 
                             <div className="bg-gray-50 p-6 rounded-lg space-y-6">
-                            <button
-                                type="button"
-                                onClick={generateTermsAndPaymentLink}
-                                className={`bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition ${buttonDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
-                                disabled={buttonDisabled}
-                            >
-                                {generating ? 'Generating...' : 'View Terms & Conditions Link'}
-                            </button>
-
-                            {generating && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 1 }}
-                            className="mt-4 flex justify-center items-center"
-                        >
-                            <motion.div
-                            initial={{ rotate: 0 }}
-                            animate={{ rotate: 360 }}
-                            transition={{
-                                repeat: Infinity,
-                                duration: 1,
-                                ease: 'linear',
-                            }}
-                            className="w-10 h-10 border-4 border-t-transparent border-blue-600 rounded-full"
-                            ></motion.div>
-                        </motion.div>
-                        )}
-
-                        {error && (
-                        <div className="text-red-600 mt-4">
-                            {errorData.includes('exceeds maximum amount') ? (
-                            <p>The maximum amount allowed per transaction is ₹5,00,000. Please reduce the number of travelers for this payment, and complete additional payments separately for the remaining individuals.</p>
-                            ) : (
-                            <p>Internal server error. Try again later...</p>
-                            )}
-                        </div>
-                        )}
-
-                            {termsLink && (
-                                <div className="mt-4">
-                                <p className="text-gray-700 font-medium">Click to view Terms and conditions:</p>
-                                <a
-                                    href={termsLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 underline break-all"
+                                <button
+                                    type="button"
+                                    onClick={generateTermsAndPaymentLink}
+                                    className={`bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition ${buttonDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
+                                    disabled={buttonDisabled}
                                 >
-                                    {termsLink}
-                                </a>
-                                </div>
-                            )}
+                                    {generating ? 'Generating...' : 'View Terms & Conditions Link'}
+                                </button>
+
+                                {generating && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ duration: 1 }}
+                                        className="mt-4 flex justify-center items-center"
+                                    >
+                                        <motion.div
+                                            initial={{ rotate: 0 }}
+                                            animate={{ rotate: 360 }}
+                                            transition={{
+                                                repeat: Infinity,
+                                                duration: 1,
+                                                ease: 'linear',
+                                            }}
+                                            className="w-10 h-10 border-4 border-t-transparent border-blue-600 rounded-full"
+                                        ></motion.div>
+                                    </motion.div>
+                                )}
+
+                                {error && (
+                                    <div className="text-red-600 mt-4">
+                                        {errorData.includes('exceeds maximum amount') ? (
+                                            <p>The maximum amount allowed per transaction is ₹5,00,000. Please reduce the number of travelers for this payment, and complete additional payments separately for the remaining individuals.</p>
+                                        ) : (
+                                            <p>Internal server error. Try again later...</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {termsLink && (
+                                    <div className="mt-4">
+                                        <p className="text-gray-700 font-medium">Click to view Terms and conditions:</p>
+                                        <a
+                                            href={termsLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 underline break-all"
+                                        >
+                                            {termsLink}
+                                        </a>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex justify-between mt-8">
-                            <button
-                                type="button"
-                                onClick={() => setCurrentSection('C')}
-                                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-300 flex items-center"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    fillRule="evenodd"
-                                    d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z"
-                                    clipRule="evenodd"
-                                />
-                                </svg>
-                                Back: Section C
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setCurrentSection('E')}
-                                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center"
-                            >
-                                Next: Section E
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentSection('C')}
+                                    className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors duration-300 flex items-center"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110-2H7.414l2.293 2.293a1 1 0 010 1.414z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                    Back: Section C
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentSection('E')}
+                                    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-300 flex items-center"
+                                >
+                                    Next: Section E
+                                   <FaArrowRight className="ml-2" />
+                                </button>
                             </div>
                         </div>
                     )}
@@ -948,7 +1111,7 @@ const CustomerForm = () => {
                                         name="paymentMethod"
                                         value={formData.paymentMethod}
                                         onChange={handleChange}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className={`w-full px-4 py-2 border ${errors.paymentMethod ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                         required
                                     >
                                         <option value="">Select Payment Method</option>
@@ -956,6 +1119,7 @@ const CustomerForm = () => {
                                         <option value="upi">UPI</option>
                                         <option value="bankTransfer">Bank Transfer</option>
                                     </select>
+                                    {errors.paymentMethod && <p className="text-red-500 text-xs mt-1">{errors.paymentMethod}</p>}
                                 </div>
 
                                 {/* Cheque Details */}
@@ -1082,7 +1246,7 @@ const CustomerForm = () => {
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                         <path
                                             fillRule="evenodd"
-                                            d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z"
+                                            d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110-2H7.414l2.293 2.293a1 1 0 010 1.414z"
                                             clipRule="evenodd"
                                         />
                                     </svg>
@@ -1130,9 +1294,8 @@ const CustomerForm = () => {
                         <div className="flex justify-end">
                             <button
                                 onClick={handleFinalSubmit}
-                                className={`px-6 py-2 rounded-lg text-white ${
-                                    acceptedTerms ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
-                                }`}
+                                className={`px-6 py-2 rounded-lg text-white ${acceptedTerms ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+                                    }`}
                                 disabled={!acceptedTerms}
                             >
                                 Submit

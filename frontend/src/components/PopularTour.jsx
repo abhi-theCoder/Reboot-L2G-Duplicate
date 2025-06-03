@@ -51,7 +51,7 @@ const PopularTourSection = () => {
                                             <img src={tour.icon} alt="" />
                                         </span>
                                         <div>
-                                            <h4 className="font-bold capitalize text-[20px] text-[#748424]">
+                                            <h4 className="font-bold capitalize text-[20px] text-[#011A4D]">
                                                 {tour.title}
                                             </h4>
                                             <p className="text-black mt-2 text-[15px]">{tour.description}</p>

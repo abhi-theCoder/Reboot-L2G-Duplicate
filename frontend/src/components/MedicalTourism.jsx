@@ -36,34 +36,39 @@ const MedicalTourismSection = () => {
             <div className="max-w-[1440px] mx-auto">
                 <h2 className="lg:text-6xl text-3xl font-bold text-black mb-10">
                     <span className="text-[#011A4D]">Health Meets Travel:</span>
+                    <br className="max-lg:hidden"/>
                     <span className="inline-flex gap-6 text-[#086A16]">Redefining Medical Tourism</span>
                 </h2>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                     <div className="max-w-[850px] w-full">
                         <div className="relative">
                             {/* Swiper Slider */}
-                            <div className="max-w-[760px] mx-auto">
+                            <div className="max-w-full sm:max-w-[760px] mx-auto">
                                 <Swiper
                                     modules={[Navigation]}
                                     spaceBetween={20}
                                     slidesPerView={1}
                                     breakpoints={{
+                                        640: { slidesPerView: 1 },
                                         768: { slidesPerView: 1 },
                                     }}
                                     navigation={{
                                         nextEl: ".swiper-button-next",
                                         prevEl: ".swiper-button-prev",
                                     }}
-
-                                    className="py-6"
+                                    className="py-4 sm:py-6"
                                 >
                                     {medicalTourismPackages.map((item, index) => (
                                         <SwiperSlide key={index}>
-                                            <div className="bg-[#E8F3FF] rounded-xl shadow-lg overflow-hidden flex items-start gap-6 p-5 m-6">
-                                                <img src={item.image} alt={item.title} className="w-full max-h-[260px] h-full object-cover rounded-lg" />
-                                                <div className="mt-12">
-                                                    <h4 className="font-bold text-xl mb-3 text-[#011A4D]">{item.title}</h4>
-                                                    <p className="text-[#4A4A4A] mt-2">{item.description}</p>
+                                            <div className="bg-[#E8F3FF] rounded-xl shadow-lg overflow-hidden flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 p-3 sm:p-5 m-2 sm:m-6">
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.title}
+                                                    className="w-full sm:w-1/2 max-h-[180px] sm:max-h-[260px] h-full object-cover rounded-lg"
+                                                />
+                                                <div className="mt-4 sm:mt-12 w-full">
+                                                    <h4 className="font-bold text-lg sm:text-xl mb-2 sm:mb-3 text-[#011A4D]">{item.title}</h4>
+                                                    <p className="text-[#4A4A4A] mt-1 sm:mt-2 text-sm sm:text-base">{item.description}</p>
                                                 </div>
                                             </div>
                                         </SwiperSlide>
@@ -71,16 +76,16 @@ const MedicalTourismSection = () => {
                                 </Swiper>
                             </div>
                             {/* Navigation Buttons */}
-                            <button className="swiper-button-prev absolute left-0 top-1/2 -translate-y-1/2 bg-[#011A4D] transition-all shadow-md rounded-lg !w-12 !h-12 hover:bg-black p-0 after:hidden">
+                            <button className="swiper-button-prev absolute left-2 sm:left-0 top-1/2 -translate-y-1/2 bg-[#011A4D] transition-all shadow-md rounded-lg !w-10 !h-10 sm:!w-12 sm:!h-12 hover:bg-black p-0 after:hidden z-10">
                                 <img src={ArrowLeft} alt="" />
                             </button>
-                            <button className="swiper-button-next absolute right-0 top-1/2 -translate-y-1/2 bg-[#011A4D] transition-all shadow-md rounded-lg !w-12 !h-12 hover:bg-black p-0 after:hidden">
+                            <button className="swiper-button-next absolute right-2 sm:right-0 top-1/2 -translate-y-1/2 bg-[#011A4D] transition-all shadow-md rounded-lg !w-10 !h-10 sm:!w-12 sm:!h-12 hover:bg-black p-0 after:hidden z-10">
                                 <img src={ArrowRight} alt="" />
                             </button>
                         </div>
                     </div>
-                    <div className="rounded-lg overflow-hidden">
-                        <img src={TravelBackground01} alt="" />
+                    <div className="rounded-lg overflow-hidden max-xl:flex-grow">
+                        <img src={TravelBackground01} alt="" className="max-xl:w-full max-h-[250px] object-cover" />
                     </div>
                 </div>
             </div>
