@@ -262,7 +262,7 @@ router.post('/login', async (req, res) => {
                     
                 return res.status(400).json({ error: 'Invalid SuperAdmin credentials!' });
                 }
-                const token = jwt.sign({ id: superadmin._id, role: 'superadmin' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                const token = jwt.sign({ id: superadmin._id, role: 'superadmin' }, process.env.JWT_SECRET, { expiresIn: '5h' });
                 // console.log("ll");
                 
                 return res.json({
@@ -287,7 +287,7 @@ router.post('/login', async (req, res) => {
         if(agent.status != 'active'){
           return res.status(400).json({ error: 'Your ID is inactive. Wait till your ID is getting active'});
         }
-        const token = jwt.sign({ id: agent._id, role: 'agent' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: agent._id, role: 'agent' }, process.env.JWT_SECRET, { expiresIn: '5h' });
         res.json({ message: 'Login successful!', token, role: 'agent', agent, agentID: agent.agentID });
     } catch (error) {
         console.error("Error Occured while login:",error);
