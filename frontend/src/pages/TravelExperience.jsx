@@ -1,7 +1,7 @@
 import React from "react";
-import { FaUmbrellaBeach } from "react-icons/fa";
-import { GiTempleGate } from "react-icons/gi";
-import { PiHouseLineBold } from "react-icons/pi";
+import { FaUmbrellaBeach, FaMonument, FaTree, FaMountain, FaHiking, FaLandmark, FaUtensils, FaBuilding } from 'react-icons/fa';
+import { GiTempleGate, GiTiger } from 'react-icons/gi';
+import { PiHouseLineBold } from 'react-icons/pi';
 import { Link } from "react-router-dom";
 import InnerBanner from "../components/InnerBanner";
 import InnerBannerImage from "../../public/Images/inner-banner-image.jpg";
@@ -16,22 +16,64 @@ const experiences = [
     description: "Relax and unwind at beautiful beaches and serene locations",
     icon: FaUmbrellaBeach,
     places: ["Goa", "Kerala"],
-    image: "https://i.imgur.com/WxNKZs0.jpg",
+    image: "https://plus.unsplash.com/premium_photo-1663011707758-9af31c6618e7?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     title: "Religious Tourism",
     description: "Explore sacred sites and spiritual destinations",
     icon: GiTempleGate,
     places: ["Varanasi", "Tirupati"],
-    image: "https://i.imgur.com/AEnTXvb.jpg",
+    image: "https://images.unsplash.com/photo-1706790574525-d218c4c52b5c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     title: "Rural Tourism",
     description: "Experience authentic village life and traditions",
     icon: PiHouseLineBold,
     places: ["Rajasthan Villages", "Gujarat Crafts"],
-    image: "https://i.imgur.com/kGS6tUp.jpg",
+    image: "https://plus.unsplash.com/premium_photo-1663036377788-a60733e5fb43?q=80&w=2091&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
+  {
+    title: "Heritage Tourism",
+    description: "Discover India's rich historical monuments",
+    icon: FaMonument,
+    places: ["Taj Mahal", "Hampi"],
+    image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  },
+  {
+    title: "Nursery Tourism",
+    description: "Visit beautiful gardens and flower valleys",
+    icon: FaTree,
+    places: ["Valley of Flowers", "Sikkim Orchids"],
+    image: "https://images.unsplash.com/photo-1603712725038-e9334ae8f39f?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  },
+  {
+    title: "Wildlife Tourism",
+    description: "Explore India's diverse wildlife and national parks",
+    icon: GiTiger,
+    places: ["Jim Corbett", "Kaziranga"],
+    image: "https://plus.unsplash.com/premium_photo-1661866819978-7393e9d985bc?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  },
+  {
+    title: "Dark Tourism",
+    description: "Visit historical sites with compelling past",
+    icon: FaLandmark,
+    places: ["Cellular Jail", "Jallianwala Bagh"],
+    image: "https://images.unsplash.com/photo-1677772112152-f92ab9f59d49?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  },
+  {
+    title: "Food Tourism",
+    description: "Savor India's diverse culinary traditions",
+    icon: FaUtensils,
+    places: ["Delhi Food Trail", "Lucknow Nawabi"],
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  },
+  {
+    title: "MICE Tourism",
+    description: "Perfect venues for corporate events and meetings",
+    icon: FaBuilding,
+    places: ["Mumbai", "Bangalore"],
+    image: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=2069&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  }
 ];
 
 const TravelExperience = () => {
@@ -62,20 +104,20 @@ const TravelExperience = () => {
                     className="h-[250px] bg-cover bg-center"
                     style={{ backgroundImage: `url(${exp.image})` }}
                   >
-                    <div className="h-full w-full flex items-center justify-center flex-col backdrop-brightness-50">
-                      <div className="flex items-center gap-2 bg-black/50 px-4 py-2 rounded-full">
-                        <Icon className="text-white text-2xl bg-[#D95697] p-2 w-[50px] h-[50px] rounded-xl" />
-                        <span className="text-white xl:text-xl font-bold text-md">{exp.title}</span>
+                    <div className="h-full w-full flex items-center justify-center flex-col backdrop-brightness-50 gap-3">
+                      <div className="flex items-center gap-2 rounded-full">
+                        <Icon className="text-white text-2xl bg-[#31B462] p-2 w-[50px] h-[50px] rounded-xl" />
+                        <span className="text-white xl:text-2xl font-bold text-md">{exp.title}</span>
                       </div>
                       <p className="text-white max-w-[290px] mx-auto text-center">{exp.description}</p>
                     </div>
                   </div>
                   <div className="p-4">
-                    <div className="flex items-center lg:gap-3.5 gap-1.5 mb-4 py-6 border-b border-gray-200">
+                    <div className="flex items-center lg:gap-3.5 gap-1.5 mb-4 py-6 border-b border-gray-200 flex-wrap">
                       {exp.places.map((place, i) => (
                         <span
                           key={i}
-                          className="text-sm text-[#D95697] font-medium"
+                          className="text-sm text-[#31B462] font-medium"
                         >
                           {place}
                         </span>
@@ -86,7 +128,7 @@ const TravelExperience = () => {
                     </div>
                     <Link className="flex items-center justify-between w-full text-sm text-gray-600 font-medium gap-1">
                       Explore destinations
-                      <span className="text-white bg-[#D95697] w-[20px] h-[20px] rounded-full flex items-center justify-center">→</span>
+                      <span className="text-white bg-[#31B462] w-[20px] h-[20px] rounded-full flex items-center justify-center">→</span>
                     </Link>
                   </div>
                 </div>
