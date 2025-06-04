@@ -7,7 +7,7 @@ import { MdOutlineAccessTime } from 'react-icons/md';
 import { HiOutlineUserGroup } from 'react-icons/hi';
 import { SlCalender } from 'react-icons/sl';
 import { FaArrowLeft, FaMapMarkerAlt, FaHotel, FaUtensils, FaBus, FaHiking, FaCamera, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import { FiX, FiUsers, FiUserCheck, FiCalendar } from 'react-icons/fi';
+import { FiX, FiUsers, FiUserCheck, FiCalendar, FiCheck } from 'react-icons/fi';
 import { FaRegMoneyBillAlt } from 'react-icons/fa';
 import axios from '../api';
 import NeedHelp from '../components/NeedHelp';
