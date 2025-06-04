@@ -55,12 +55,14 @@ const AgentSidebar = ({ collapsed, setCollapsed, setView }) => {
       {/* Top Section */}
       <div className="p-5 flex items-center justify-between border-b border-indigo-400 border-opacity-30 relative">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-3">
-            <img src={MainLogo} alt="Logo" className="p-1" />
-          </div>
-          {!collapsed && (
-            <span className="text-white font-bold text-xl sidebar-text">L2G Cruise</span>
-          )}
+          <Link to="/" className='flex items-center'>
+            <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-3">
+              <img src={MainLogo} alt="Logo" className="p-1" />
+            </div>
+            {!collapsed && (
+              <span className="text-white font-bold text-xl sidebar-text">L2G Cruise</span>
+            )}
+          </Link>
         </div>
         <button
           onClick={toggleSidebar}

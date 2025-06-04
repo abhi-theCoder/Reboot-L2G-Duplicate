@@ -1,7 +1,7 @@
 import React from "react";
 
-const NeedHelp = () => (
-    <div className="mt-16 bg-[#E8F3FF]">
+const NeedHelp = ({ className = "" }) => (
+    <div className={`mt-16 bg-[#E8F3FF] ${className}`}>
         <div className="max-w-[1500px] mx-auto px-4 py-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-6">
                 Need Help?

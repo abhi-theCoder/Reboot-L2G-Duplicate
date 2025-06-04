@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import MainLogo from '../../public/main-logo.png';
@@ -14,11 +14,11 @@ import {
   faPaperPlane,
   faCog,
   faUser,
-  faChevronLeft, 
+  faChevronLeft,
   faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
-import { Link } from 'react-router-dom'; 
-import AgentRequests from './AgentRequest'; 
+import { Link } from 'react-router-dom';
+import AgentRequests from './AgentRequest';
 
 const Sidebar = ({ collapsed, setCollapsed, setView }) => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -58,30 +58,31 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     localStorage.clear();
     window.location.href = '/';
   };
-  
+
   return (
     <div
-      className={`fixed inset-y-0 left-0 ${
-        collapsed ? 'w-20' : 'w-64'
-      } bg-blue-900 text-white z-10 transition-all duration-300 ease-in-out hidden md:block`}
+      className={`fixed inset-y-0 left-0 ${collapsed ? 'w-20' : 'w-64'
+        } bg-blue-900 text-white z-10 transition-all duration-300 ease-in-out hidden md:block`}
     >
       {/* Top Section */}
       <div className="p-5 flex items-center justify-between border-b border-indigo-400 border-opacity-30 relative">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-3">
-            {!collapsed ? (
-              <span className="text-indigo-600 font-bold text-xl p-1">
-                <img src={MainLogo} alt="" />
-              </span>
-            ) : (
-              <span className="text-indigo-600 font-bold text-xl">
-                <img src={MainLogo} alt="" />
-              </span>
+          <Link to="/" className='flex items-center'>
+            <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-3">
+              {!collapsed ? (
+                <span className="text-indigo-600 font-bold text-xl p-1">
+                  <img src={MainLogo} alt="Home" />
+                </span>
+              ) : (
+                <span className="text-indigo-600 font-bold text-xl">
+                  <img src={MainLogo} alt="Home" />
+                </span>
+              )}
+            </div>
+            {!collapsed && (
+              <span className="text-white font-bold text-xl sidebar-text">L2G Cruise</span>
             )}
-          </div>
-          {!collapsed && (
-            <span className="text-white font-bold text-xl sidebar-text">L2G Cruise</span>
-          )}
+          </Link>
         </div>
         <button
           onClick={toggleSidebar}
@@ -101,7 +102,7 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
           )}
 
           {[
-            { icon: faThLarge, label: 'Dashboard', view: 'dashboard'},
+            { icon: faThLarge, label: 'Dashboard', view: 'dashboard' },
             { icon: faTasks, label: 'Add Tour', view: 'addTour' },
             { icon: faChartBar, label: 'View Tours', view: 'FetchTours' },
             { icon: faChartBar, label: 'Edit Tours', view: 'EditTours' },
@@ -117,9 +118,8 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
                   setView?.(item.view); // Call parent setView if provided
                 }
               }}
-              className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative ${
-                activeView === item.view ? 'active-menu-item' : ''
-              }`}
+              className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative ${activeView === item.view ? 'active-menu-item' : ''
+                }`}
             >
               <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
                 <FontAwesomeIcon icon={item.icon} />
@@ -142,17 +142,16 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
               { icon: faTasks, label: 'Cancellations', view: 'cancellations' },
             ].map(item => (
               <Link
-                to={item.path} 
+                to={item.path}
                 key={item.label}
                 onClick={() => {
                   if (item.view) {
                     setActiveView(item.view);
-                    setView?.(item.view); 
+                    setView?.(item.view);
                   }
                 }}
-                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] hover:bg-opacity-10 rounded-xl cursor-pointer relative ${
-                  activeView === item.view ? 'active-menu-item' : ''
-                }`}
+                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] hover:bg-opacity-10 rounded-xl cursor-pointer relative ${activeView === item.view ? 'active-menu-item' : ''
+                  }`}
               >
                 <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
                   <FontAwesomeIcon icon={item.icon} />
@@ -193,9 +192,8 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
                   item.action();
                 }
               }}
-              className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] hover:bg-opacity-10 rounded-xl cursor-pointer ${
-                activeView === item.view ? 'active-menu-item' : ''
-              }`}
+              className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] hover:bg-opacity-10 rounded-xl cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''
+                }`}
             >
               <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
                 <FontAwesomeIcon icon={item.icon} />

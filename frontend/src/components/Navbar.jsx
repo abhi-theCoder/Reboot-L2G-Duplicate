@@ -14,8 +14,8 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-  const token = localStorage.getItem("Token");
-  const role = localStorage.getItem("role");
+    const token = localStorage.getItem("Token");
+    const role = localStorage.getItem("role");
 
     if (token && token !== 'null' && token !== 'undefined') { // Crucial check!
       fetchProfile(token, role);
@@ -26,32 +26,32 @@ const Navbar = () => {
 
 
   const fetchProfile = async (token, role) => {
-     if (!token || token === 'null' || token === 'undefined') {
-        console.warn("Attempted to fetch profile with an invalid token string. Aborting.");
-        setUser(null);
-        setProfile(null);
-        return; // Exit early if token is invalid
+    if (!token || token === 'null' || token === 'undefined') {
+      console.warn("Attempted to fetch profile with an invalid token string. Aborting.");
+      setUser(null);
+      setProfile(null);
+      return; // Exit early if token is invalid
     }
 
-  try {
-    const route = role === 'superadmin' ? 'api/admin/profile' : role === 'customer' ? 'api/customer/profile' : 'api/agents/profile';
+    try {
+      const route = role === 'superadmin' ? 'api/admin/profile' : role === 'customer' ? 'api/customer/profile' : 'api/agents/profile';
 
-    const res = await axios.get(route, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        role,
-      },
-    });
-    console.log(res.data);
-    setProfile(res.data);
-    setUser({ name: res.data.name });
-  } catch (err) {
-    // const message = 'Error: ' + (err.response?.data?.error || 'Failed to fetch profile');
-    // alert(message);
-    console.log(err);
-  }
-};
+      const res = await axios.get(route, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          role,
+        },
+      });
+      console.log(res.data);
+      setProfile(res.data);
+      setUser({ name: res.data.name });
+    } catch (err) {
+      // const message = 'Error: ' + (err.response?.data?.error || 'Failed to fetch profile');
+      // alert(message);
+      console.log(err);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -165,8 +165,23 @@ const Navbar = () => {
                     className="bg-[#D9D9D9] rounded-box z-[100] w-[180px] p-2 shadow flex flex-col gap-2 absolute right-0 top-full mt-2 rounded-lg"
                   >
                     <li className="border-b border-[#113A5F] pb-2">
-                      <Link to='/' className="text-md text-[#113A5F] font-bold" onClick={() => setIsDropdownOpen(false)}>
-                        Track Your Booking
+                      <Link
+                        to={
+                          localStorage.getItem('role') === 'superadmin'
+                            ? '/superadmin/dashboard'
+                            : localStorage.getItem('role') === 'customer'
+                              ? '/customer-dashboard'
+                              : localStorage.getItem('role') === 'agent'
+                                ? '/agent/dashboard'
+                                : '/'
+                        }
+                        className="text-md text-[#113A5F] font-bold"
+                        onClick={() => {
+                          // console.log('Navigating as role:', localStorage.getItem('role'));
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        Dashboard
                       </Link>
                     </li>
                     <li>

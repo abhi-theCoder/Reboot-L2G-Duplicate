@@ -19,8 +19,8 @@ import Register from './pages/Register';
 import TourPrograms from './pages/TourPrograms';
 import TourItinerary from './pages/TourItinerary';
 import CustomerDashboard from './pages/CustomerDashboard';
-import EditTour from './components/EditTour';
 import TravelExperience from './pages/TravelExperience';
+import EditTour from './components/EditTour';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -93,6 +93,8 @@ function App() {
         />
 
         <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+
+        <Route path="/travel-experience" element={<TravelExperience />} />
 
       </Routes>
     </BrowserRouter>
