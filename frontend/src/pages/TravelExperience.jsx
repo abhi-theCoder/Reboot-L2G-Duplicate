@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { FaUmbrellaBeach, FaMonument, FaTree, FaMountain, FaHiking, FaLandmark, FaUtensils, FaBuilding } from 'react-icons/fa';
 import { GiTempleGate, GiTiger } from 'react-icons/gi';
 import { PiHouseLineBold } from 'react-icons/pi';
@@ -84,6 +84,10 @@ const TravelExperience = () => {
     console.log(`Redirecting to: ${window.origin}${window.location.pathname}/${title}`);
     navigate(`${window.location.pathname}/${title}`);
   };
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>

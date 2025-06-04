@@ -7,7 +7,9 @@ import { MdOutlineAccessTime } from 'react-icons/md';
 import { HiOutlineUserGroup } from 'react-icons/hi';
 import { SlCalender } from 'react-icons/sl';
 import { FaArrowLeft, FaMapMarkerAlt, FaHotel, FaUtensils, FaBus, FaHiking, FaCamera, FaChevronDown, FaChevronUp } from 'react-icons/fa';
-import axios from '../api'; 
+import { FiX, FiUsers, FiUserCheck, FiCalendar } from 'react-icons/fi';
+import { FaRegMoneyBillAlt } from 'react-icons/fa';
+import axios from '../api';
 import NeedHelp from '../components/NeedHelp';
 import Swal from 'sweetalert2'; // For better alert messages
 
@@ -29,13 +31,18 @@ const TourItinerary = () => {
     const token = localStorage.getItem('Token');
     const role = localStorage.getItem('role');
 
+    // Scroll to top on mount
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     useEffect(() => {
         const fetchTour = async () => {
             try {
                 setLoading(true);
                 // Use the actual API call
                 const FetchToursRoute = role === 'superadmin' ? 'api/admin/tours' : role === 'customer' ? 'api/customer/tours' : 'api/agents/tours';
-                const response = await axios.get(`${FetchToursRoute}/${tourID}`,{
+                const response = await axios.get(`${FetchToursRoute}/${tourID}`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         Role: role,
@@ -159,7 +166,10 @@ const TourItinerary = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
                 <h2 className="text-xl font-medium text-gray-800">Tour not found</h2>
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => {
+                        navigate(-1);
+                        setTimeout(() => window.scrollTo(0, 0), 0);
+                    }}
                     className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                 >
                     Back to tours
@@ -478,83 +488,153 @@ const TourItinerary = () => {
                 </div>
 
                 {isBookingModalOpen && selectedTourDate && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"> {/* Added p-4 for mobile spacing */}
-                        <div className="bg-white p-6 sm:p-8 rounded-lg shadow-xl w-full max-w-md mx-auto relative"> {/* Added relative for potential close button */}
-                            <button
-                                onClick={() => setIsBookingModalOpen(false)}
-                                className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-lg"
-                                aria-label="Close booking modal"
-                            >
-                                &times;
-                            </button>
-                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
-                                Enter Booking Details for: {selectedTourDate.name}
-                            </h2>
-                            <div className="mb-4">
-                                <label htmlFor="numPeople" className="block text-gray-700 text-sm font-bold mb-2">
-                                    Number of People:
-                                </label>
-                                <input
-                                    type="number"
-                                    id="numPeople"
-                                    value={numberOfPeople}
-                                    onChange={(e) => setNumberOfPeople(e.target.value)}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mb-4"
-                                    min="1"
-                                    placeholder="e.g., 2"
-                                />
-
-                                <label htmlFor="agentReferral" className="block text-gray-700 text-sm font-bold mb-2">
-                                    Agent Referral ID (Optional):
-                                </label>
-                                <input
-                                    type="text"
-                                    id="agentReferral"
-                                    value={agentReferralId}
-                                    onChange={(e) => setAgentReferralId(e.target.value)}
-                                    className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                    placeholder="Enter Agent ID"
-                                />
-
-                                {bookingError && (
-                                    <p className="text-red-500 text-xs mt-2">{bookingError}</p>
-                                )}
-                                {bookingSuccessMessage && (
-                                    <p className="text-green-600 text-sm mt-2 font-medium">{bookingSuccessMessage}</p>
-                                )}
-                            </div>
-                            <div className="flex flex-col sm:flex-row justify-end items-center gap-4 mt-6 pt-4 border-t border-gray-200">
-                                {/* Detailed Price Breakdown */}
-                                {numberOfPeople > 0 && tour.pricePerHead && (
-                                    <p className="text-base sm:text-lg font-medium text-gray-800 text-center sm:text-right flex-grow">
-                                        Subtotal: ₹{(tour.pricePerHead * numberOfPeople).toLocaleString()}
-                                        {tour.GST !== undefined && tour.GST !== null && (
-                                            <span className="block sm:inline-block sm:ml-2">
-                                                + {tour.GST}% GST (₹{((tour.pricePerHead * numberOfPeople * tour.GST) / 100).toLocaleString()})
-                                            </span>
-                                        )}
-                                        <span className="block sm:inline-block text-lg sm:text-xl font-bold text-blue-700 mt-1 sm:mt-0">
-                                            = ₹{(tour.pricePerHead * numberOfPeople * (1 + (tour.GST / 100))).toLocaleString()}
-                                        </span>
-                                    </p>
-                                )}
-
-                                {/* Buttons */}
-                                <div className="flex gap-3 w-full sm:w-auto">
+                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in">
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-xl font-bold">
+                                            Book Your Adventure: <span className="block text-white/90 text-lg mt-1">{selectedTourDate.name}</span>
+                                        </h2>
+                                        <p className="text-sm opacity-90 mt-1 flex items-center">
+                                            <FiCalendar className="mr-1" />
+                                            {new Date(selectedTourDate.startDate).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
+                                        </p>
+                                    </div>
                                     <button
                                         onClick={() => setIsBookingModalOpen(false)}
-                                        className="flex-1 sm:flex-none bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-300 transition-colors duration-200 text-base font-medium shadow-sm"
+                                        className="text-white hover:text-white/80 transition-colors p-1 rounded-full"
+                                        aria-label="Close booking modal"
+                                    >
+                                        <FiX className="h-6 w-6" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6">
+                                <div className="space-y-4">
+                                    {/* Number of People */}
+                                    <div className="relative">
+                                        <label htmlFor="numPeople" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Number of Travelers
+                                        </label>
+                                        <div className="relative rounded-md shadow-sm">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                <FiUsers className="h-5 w-5" />
+                                            </div>
+                                            <input
+                                                type="number"
+                                                id="numPeople"
+                                                value={numberOfPeople}
+                                                onChange={(e) => setNumberOfPeople(e.target.value)}
+                                                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 pr-12 py-3 border-gray-300 rounded-md"
+                                                min="1"
+                                                placeholder="e.g., 2"
+                                            />
+                                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                                                <span className="text-sm">people</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Agent Referral */}
+                                    <div>
+                                        <label htmlFor="agentReferral" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Agent Referral (Optional)
+                                        </label>
+                                        <div className="relative rounded-md shadow-sm">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                <FiUserCheck className="h-5 w-5" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                id="agentReferral"
+                                                value={agentReferralId}
+                                                onChange={(e) => setAgentReferralId(e.target.value)}
+                                                className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 py-3 border-gray-300 rounded-md"
+                                                placeholder="Enter Agent ID"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Status Messages */}
+                                    {bookingError && (
+                                        <div className="rounded-md bg-red-50 p-4">
+                                            <div className="flex">
+                                                <div className="flex-shrink-0 text-red-400">
+                                                    <FiX className="h-5 w-5" />
+                                                </div>
+                                                <div className="ml-3">
+                                                    <h3 className="text-sm font-medium text-red-800">{bookingError}</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {bookingSuccessMessage && (
+                                        <div className="rounded-md bg-green-50 p-4">
+                                            <div className="flex">
+                                                <div className="flex-shrink-0 text-green-400">
+                                                    <FiCheck className="h-5 w-5" />
+                                                </div>
+                                                <div className="ml-3">
+                                                    <h3 className="text-sm font-medium text-green-800">{bookingSuccessMessage}</h3>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Price Breakdown */}
+                                {numberOfPeople > 0 && tour.pricePerHead && (
+                                    <div className="mt-6 bg-blue-50 rounded-lg p-4">
+                                        <div className="flex items-center text-blue-800 mb-2">
+                                            <FaRegMoneyBillAlt className="mr-2" />
+                                            <h3 className="font-medium">Price Breakdown</h3>
+                                        </div>
+                                        <div className="space-y-1 text-sm text-gray-700">
+                                            <div className="flex justify-between">
+                                                <span>Base Price ({numberOfPeople} × ₹{tour.pricePerHead.toLocaleString()})</span>
+                                                <span>₹{(tour.pricePerHead * numberOfPeople).toLocaleString()}</span>
+                                            </div>
+                                            {tour.GST !== undefined && tour.GST !== null && (
+                                                <div className="flex justify-between">
+                                                    <span>GST ({tour.GST}%)</span>
+                                                    <span>₹{((tour.pricePerHead * numberOfPeople * tour.GST) / 100).toLocaleString()}</span>
+                                                </div>
+                                            )}
+                                            <div className="border-t border-gray-200 my-1"></div>
+                                            <div className="flex justify-between font-semibold text-blue-900">
+                                                <span>Total Amount</span>
+                                                <span>₹{(tour.pricePerHead * numberOfPeople * (1 + (tour.GST / 100))).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                                    <button
+                                        onClick={() => setIsBookingModalOpen(false)}
+                                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleModalContinue}
-                                        className={`flex-1 sm:flex-none bg-blue-600 text-white px-6 py-2.5 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-base font-medium shadow-md ${bookingSuccessMessage || numberOfPeople <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-                                        disabled={!!bookingSuccessMessage}
+                                        disabled={!!bookingSuccessMessage || numberOfPeople <= 0}
+                                        className={`flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 ${bookingSuccessMessage || numberOfPeople <= 0 ? "opacity-50 cursor-not-allowed" : ""
+                                            }`}
                                     >
-                                        Continue
+                                        Continue Booking
                                     </button>
-                            </div>
+                                </div>
                             </div>
                         </div>
                     </div>

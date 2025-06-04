@@ -48,7 +48,7 @@ const Login = () => {
           navigate("/superadmin/dashboard");
         } else {
           navigate(location?.state ? location.state : "/agent/dashboard");
-            window.location.reload(true);
+          window.location.reload(true);
         }
       }, 2000); // Shorter timeout for better UX
 
@@ -71,7 +71,7 @@ const Login = () => {
           toast.success("Login successful!");
           reset(); // Clear form fields
           setTimeout(() => {
-            navigate("/"); // Navigate to customer dashboard or home
+            navigate("/customer-dashboard"); // Navigate to customer dashboard or home
             window.location.reload(true);
           }, 2000);
 

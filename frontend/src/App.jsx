@@ -21,7 +21,6 @@ import TourItinerary from './pages/TourItinerary';
 import CustomerDashboard from './pages/CustomerDashboard';
 import TravelExperience from './pages/TravelExperience';
 import EditTour from './components/EditTour';
-import TravelExperience from './pages/TravelExperience';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
