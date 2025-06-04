@@ -22,8 +22,4 @@ const InnerBanner = ({ backgroundImage, title, description }) => {
     );
 };
 
-<<<<<<< HEAD
 export default InnerBanner;
-=======
-export default InnerBanner;
->>>>>>> 8dea90005557a2a1826d4363ddc66597f3e924ea
