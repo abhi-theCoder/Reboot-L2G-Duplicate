@@ -20,6 +20,7 @@ import TourPrograms from './pages/TourPrograms';
 import TourItinerary from './pages/TourItinerary';
 import CustomerDashboard from './pages/CustomerDashboard';
 import EditTour from './components/EditTour';
+import TravelExperience from './pages/TravelExperience';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -42,6 +43,9 @@ function App() {
           <Route path='/register' element={<Register />} />
           <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
           <Route path="/tour-programs/:tourType" element={<TourPrograms />} />
+          <Route path="tour-itinerary/:tourID" element={<TourItinerary />} />
+          <Route path='/travel-experience/:tourCategory' element = { <TravelExperience/> }/>
+          <Route path='/travel-experience/:tourCategory/:tourType' element = { <TourPrograms/> }/>
 
           {/* 404 fallback */}
           <Route path="*" element={<ErrorPage />} />
@@ -87,8 +91,6 @@ function App() {
             </SuperadminProtectedRoute>
           }
         />
-
-        <Route path="tour-itinerary/:tourID" element={<TourItinerary />} />
 
         <Route path="/customer-dashboard" element={<CustomerDashboard />} />
 
