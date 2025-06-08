@@ -222,6 +222,10 @@ router.post('/', express.json(), async (req, res) => {
     const customerEmail = payment.email || 'unknown@example.com';
 
     if(agentID === ''){
+      dayjs.extend(customParseFormat);
+      const rawDate = tourStartDate;
+      const formattedDate = dayjs(rawDate).format('YYYY-MM-DD');
+      console.log(formattedDate);  // Output: '2025-06-02'
       const newTransaction = new Transaction({
         tourID,
         agentID,
@@ -290,8 +294,8 @@ router.post('/', express.json(), async (req, res) => {
 
       // Save transaction
       dayjs.extend(customParseFormat);
-      const rawDate = decodeURIComponent(decodeURIComponent(tourStartDate)); // First decode, then decode again
-      const formattedDate = dayjs(rawDate, 'DD/MM/YYYY').format('YYYY-MM-DD');
+      const rawDate = tourStartDate;
+      const formattedDate = dayjs(rawDate).format('YYYY-MM-DD');
       console.log(formattedDate);  // Output: '2025-06-02'
 
       // const tourStartDateISO = new Date(tourStartDate).toISOString().split("T")[0];
@@ -316,9 +320,9 @@ router.post('/', express.json(), async (req, res) => {
       // If packages is an array, find the correct one to update
       // const pkgIndex = tour.packages.findIndex(p => p._id.toString() === tourID);
       // if (pkgIndex !== -1) {
-        tour.packages[0].remainingOccupancy -= parseFloat(tourGivenOccupancy);
-        if (tour.packages[0].remainingOccupancy < 0) {
-          tour.packages[0].remainingOccupancy = 0;
+        tour.remainingOccupancy -= parseFloat(tourGivenOccupancy);
+        if (tour.remainingOccupancy < 0) {
+          tour.remainingOccupancy = 0;
         }
       // }
       await tour.save();
