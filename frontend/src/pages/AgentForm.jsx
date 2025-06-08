@@ -66,6 +66,7 @@ function AgentForm() {
       pincode: '',
       village: '',
       district: '',
+      state: '',
       thana: '',
       post_office: '',
     },
@@ -238,7 +239,7 @@ function AgentForm() {
           <section className='mt-6'>
             <h3 className="text-xl font-semibold text-gray-700 mb-4">Permanent Address</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {['house_no', 'road_no', 'flat_name', 'pincode', 'village', 'district', 'thana', 'post_office'].map((key) => (
+              {['house_no', 'road_no', 'flat_name', 'pincode', 'village', 'district', 'state', 'thana', 'post_office'].map((key) => (
                 <Input
                   key={key}
                   label={key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}

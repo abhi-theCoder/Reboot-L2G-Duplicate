@@ -447,7 +447,7 @@ router.get('/tours', authenticate, async (req, res) => {
   }
 });
 
-router.get('/tours/:_id', authenticate, async (req, res) => {
+router.get('/tours/:_id', async (req, res) => {
   // console.log(req.params._id)
     try {
         const tour = await Tour.findById(req.params._id);

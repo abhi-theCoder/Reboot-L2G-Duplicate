@@ -28,6 +28,7 @@ const agentSchema = new mongoose.Schema({
         pincode: String,
         village: String,
         district: String,
+        state: String,
         thana: String,
         post_office: String
     },

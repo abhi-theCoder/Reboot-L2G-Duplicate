@@ -241,9 +241,9 @@ router.post('/', express.json(), async (req, res) => {
         return res.status(404).json({ error: 'Tour not found' });
       }
 
-      tour.packages[0].remainingOccupancy -= parseFloat(tourGivenOccupancy);
-      if (tour.packages[0].remainingOccupancy < 0) {
-        tour.packages[0].remainingOccupancy = 0;
+      tour.remainingOccupancy -= parseFloat(tourGivenOccupancy);
+      if (tour.remainingOccupancy < 0) {
+        tour.remainingOccupancy = 0;
       }
 
       await tour.save();

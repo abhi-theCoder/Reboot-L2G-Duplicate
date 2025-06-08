@@ -71,7 +71,7 @@ function TopNav({ collapsed }) {
     <nav className="bg-white p-4 flex justify-between items-center shadow-md pl-10">
       <div>
         <h1 className="text-xl font-bold text-gray-800">Hi {profile?.name || 'User'}</h1>
-        {profile?._id && (
+        {profile?._id && role !== 'superadmin' && (
           <div className="text-sm text-gray-600 mt-1">
             Your Referral Code: 
             <span 

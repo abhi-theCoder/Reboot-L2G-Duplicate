@@ -67,7 +67,7 @@ const TourItinerary = () => {
             return new Date(dateString).toLocaleDateString(undefined, options);
         } catch (e) {
             console.error("Invalid date string:", dateString, e);
-            return 'Invalid Date';
+            return 'Invalid Date yes';
         }
     };
 
