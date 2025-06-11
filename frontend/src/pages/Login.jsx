@@ -37,9 +37,12 @@ const Login = () => {
       });
 
       // Agent login successful
+      console.log(agentResponse);
       localStorage.setItem('Token', agentResponse.data.token);
       localStorage.setItem('role', agentResponse.data.role);
       localStorage.setItem('agentID', agentResponse.data.agentID);
+      if(agentResponse.data.role != 'superadmin')
+      localStorage.setItem('username',agentResponse.data.agent.name);
 
       toast.success("Login successful!");
       reset();
@@ -50,7 +53,7 @@ const Login = () => {
           navigate(location?.state ? location.state : "/agent/dashboard");
           window.location.reload(true);
         }
-      }, 2000); // Shorter timeout for better UX
+      }, 2000);
 
     } catch (agentError) {
       // If agent login fails, attempt Customer Login
@@ -67,6 +70,7 @@ const Login = () => {
           localStorage.setItem("Token", customerResponse.data.token); // Store customer token
           localStorage.setItem("role", "customer");
           localStorage.setItem("customerID", customerResponse.data.customerID);
+          localStorage.setItem('username',customerResponse.data.name);
 
           toast.success("Login successful!");
           reset(); // Clear form fields

@@ -28,6 +28,8 @@ app.use("/api/agents", agentRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/generate-payment-link", paymentRoute);
+app.use('/api/posts', require('./routes/posts'));
+
 // app.use("/api/webhook", webhookRoute);
 // app.use('/api/admin', require('./routes/SuperAdminRoutes'));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
