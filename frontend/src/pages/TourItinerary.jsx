@@ -7,6 +7,7 @@ import { MdOutlineAccessTime } from 'react-icons/md';
 import { HiOutlineUserGroup } from 'react-icons/hi';
 import { SlCalender } from 'react-icons/sl';
 import { FaArrowLeft, FaMapMarkerAlt, FaHotel, FaUtensils, FaBus, FaHiking, FaCamera, FaChevronDown, FaChevronUp } from 'react-icons/fa';
+import { FaPrint } from 'react-icons/fa';
 import { FiX, FiUsers, FiUserCheck, FiCalendar, FiCheck } from 'react-icons/fi';
 import { FaRegMoneyBillAlt } from 'react-icons/fa';
 import axios from '../api';
@@ -135,6 +136,162 @@ const TourItinerary = () => {
         }, 1500); // Shorter timeout for better UX
     };
 
+    const handlePrint = () => {
+        // Create print content HTML with tables
+        const printContent = `
+        <html>
+            <head>
+                <title>${tour.name} - Itinerary</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .tour-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #222; }
+                    .tour-image { width: 100%; max-height: 300px; object-fit: cover; margin-bottom: 20px; }
+                    .section-title { font-size: 20px; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin: 25px 0 15px 0; }
+                    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    .info-table td { padding: 8px; border: 1px solid #ddd; }
+                    .info-table tr:nth-child(even) { background-color: #f9f9f9; }
+                    .highlight { background-color: #f0f0f0; padding: 2px 5px; border-radius: 3px; }
+                    .activity-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                    .activity-table th { background-color: #f5f5f5; text-align: left; padding: 10px; border: 1px solid #ddd; }
+                    .activity-table td { padding: 10px; border: 1px solid #ddd; vertical-align: top; }
+                    .price { font-weight: bold; color: #2a6496; }
+                    .footer { margin-top: 40px; font-size: 12px; color: #777; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1 class="tour-title">${tour.categoryType} | ${tour.country}</h1>
+                    <table class="info-table">
+                        <tr>
+                            <td width="25%">Location</td>
+                            <td>${tour.name}</td>
+                        </tr>
+                        <tr>
+                            <td>Duration</td>
+                            <td>${tour.duration} days</td>
+                        </tr>
+                        <tr>
+                            <td>Start Date</td>
+                            <td>${formatDateForDisplay(tour.startDate)}</td>
+                        </tr>
+                        <tr>
+                            <td>Tour Type</td>
+                            <td>${tour.tourType}</td>
+                        </tr>
+                        <tr>
+                            <td>Price</td>
+                            <td class="price">₹${tour.pricePerHead?.toLocaleString()} per person</td>
+                        </tr>
+                        <tr>
+                            <td>Available Spots</td>
+                            <td>${tour.remainingOccupancy}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                ${tour.image ? `<img src="${tour.image}" alt="${tour.name}" class="tour-image">` : ''}
+
+                <h2 class="section-title">Tour Description</h2>
+                <p>${tour.description}</p>
+
+                ${tour.highlights?.length > 0 ? `
+                    <h2 class="section-title">Tour Highlights</h2>
+                    <p>${tour.highlights.map(h => `<span class="highlight">${h}</span>`).join(' ')}</p>
+                ` : ''}
+
+                <h2 class="section-title">Inclusions & Exclusions</h2>
+                <table class="info-table">
+                    <tr>
+                        <td width="50%">
+                            <strong>Inclusions</strong>
+                            <ul style="margin-top: 5px; padding-left: 20px;">
+                                ${tour.inclusions?.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                        </td>
+                        <td>
+                            <strong>Exclusions</strong>
+                            <ul style="margin-top: 5px; padding-left: 20px;">
+                                ${tour.exclusions?.map(item => `<li>${item}</li>`).join('')}
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+
+                ${tour.thingsToPack?.length > 0 ? `
+                    <h2 class="section-title">Things to Pack</h2>
+                    <table class="info-table">
+                        <tr>
+                            <td>
+                                <ul style="margin: 0; padding-left: 20px; columns: 2;">
+                                    ${tour.thingsToPack.map(item => `<li>${item}</li>`).join('')}
+                                </ul>
+                            </td>
+                        </tr>
+                    </table>
+                ` : ''}
+
+                <h2 class="section-title">Daily Itinerary</h2>
+                ${tour.itinerary?.map((day, index) => `
+                    <h3 style="font-size: 16px; margin: 20px 0 10px 0; background-color: #f5f5f5; padding: 8px;">
+                        Day ${day.dayNumber || (index + 1)}: ${day.title}
+                    </h3>
+                    <p style="margin-bottom: 15px;">${day.description}</p>
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th width="20%">Time</th>
+                                <th width="30%">Activity</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${day.activities?.map(activity => `
+                                <tr>
+                                    <td>${activity.time || 'All day'}</td>
+                                    <td>${activity.title}</td>
+                                    <td>${activity.description || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `).join('')}
+
+                ${tour.gallery?.length > 0 ? `
+                    <h2 class="section-title">Photo Gallery</h2>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            ${tour.gallery.map((photo, i) => `
+                                <td style="padding: 5px; ${i % 4 === 3 ? '' : 'border-right: 1px solid #ddd;'}">
+                                    <img src="${photo}" style="width: 100%; height: 120px; object-fit: cover;" alt="Gallery image ${i + 1}">
+                                </td>
+                                ${i % 4 === 3 ? '</tr><tr>' : ''}
+                            `).join('')}
+                        </tr>
+                    </table>
+                ` : ''}
+
+                <div class="footer">
+                    <p>Generated on ${new Date().toLocaleDateString()} - For booking information, please contact our customer service.</p>
+                </div>
+            </body>
+        </html>
+    `;
+
+        // Open print window
+        const printWindow = window.open('', '_blank');
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+
+        // Wait for content to load before printing
+        printWindow.onload = function () {
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        };
+    };
 
     if (loading) {
         return (
@@ -471,19 +628,28 @@ const TourItinerary = () => {
                                 Available spots: <span className="font-medium">{tour.remainingOccupancy}</span>
                             </p>
                         </div>
-                        <button
-                            className="w-full sm:w-auto px-4 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-300 text-sm sm:text-base"
-                            onClick={() => {
-                                setSelectedTourDate(tour); // Pass the entire tour object
-                                setIsBookingModalOpen(true);
-                                setNumberOfPeople(1);
-                                setAgentReferralId('');
-                                setBookingError('');
-                                setBookingSuccessMessage('');
-                            }}
-                        >
-                            Book Now
-                        </button>
+                        <div className='flex gap-2'>
+                            <button
+                                onClick={handlePrint}
+                                className="w-full sm:w-auto px-4 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-300 text-sm sm:text-base"
+                            >
+                                <FaPrint className="inline mr-2" />
+                                Print Itinerary
+                            </button>
+                            <button
+                                className="w-full sm:w-auto px-4 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-300 text-sm sm:text-base"
+                                onClick={() => {
+                                    setSelectedTourDate(tour); // Pass the entire tour object
+                                    setIsBookingModalOpen(true);
+                                    setNumberOfPeople(1);
+                                    setAgentReferralId('');
+                                    setBookingError('');
+                                    setBookingSuccessMessage('');
+                                }}
+                            >
+                                Book Now
+                            </button>
+                        </div>
                     </div>
                 </div>
 
