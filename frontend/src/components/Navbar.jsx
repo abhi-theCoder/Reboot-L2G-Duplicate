@@ -7,22 +7,60 @@ import axios from '../api';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  // Initialize user with username from localStorage immediately
+  const [user, setUser] = useState(() => {
+    const username = localStorage.getItem("username");
+    return username ? { name: username } : null;
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(null); // Keep profile state if needed for other dashboard logic
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem("Token");
     const role = localStorage.getItem("role");
+    const username = localStorage.getItem("username"); // Get username from localStorage
 
-    if (token && token !== 'null' && token !== 'undefined') { // Crucial check!
-      fetchProfile(token, role);
+    // Set user state based on localStorage on initial mount
+    if (username && username !== 'null' && username !== 'undefined') {
+      setUser({ name: username });
     } else {
       setUser(null);
     }
-  }, []);
+
+    // Only fetch profile if a token exists and is valid
+    if (token && token !== 'null' && token !== 'undefined' && !profile) { // Prevent re-fetching if profile already exists
+      fetchProfile(token, role);
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
+  // This useEffect will listen for changes in localStorage 'username' or 'Token'
+  // to update the user state across tabs/pages without full refresh
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const username = localStorage.getItem("username");
+      const token = localStorage.getItem("Token");
+
+      if (username && username !== 'null' && username !== 'undefined') {
+        setUser({ name: username });
+      } else {
+        setUser(null);
+      }
+
+      // Re-fetch profile if token changes or becomes valid and profile is not set
+      if (token && token !== 'null' && token !== 'undefined' && !profile) {
+        const role = localStorage.getItem("role");
+        fetchProfile(token, role);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [profile]); // Depend on profile to avoid continuous fetching if profile is already loaded
 
 
   const fetchProfile = async (token, role) => {
@@ -30,7 +68,7 @@ const Navbar = () => {
       console.warn("Attempted to fetch profile with an invalid token string. Aborting.");
       setUser(null);
       setProfile(null);
-      return; // Exit early if token is invalid
+      return;
     }
 
     try {
@@ -43,13 +81,21 @@ const Navbar = () => {
           role,
         },
       });
-      console.log(res.data);
       setProfile(res.data);
-      setUser({ name: res.data.name });
+      // Ensure user name is set from fetched profile if available
+      if (res.data.name) {
+        setUser({ name: res.data.name });
+        localStorage.setItem("username", res.data.name); // Update localStorage with verified name
+      }
     } catch (err) {
-      // const message = 'Error: ' + (err.response?.data?.error || 'Failed to fetch profile');
-      // alert(message);
       console.log(err);
+      // If fetching profile fails, clear local storage and user state to reflect logged-out status
+      localStorage.removeItem("Token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("role");
+      setUser(null);
+      setProfile(null);
+      toast.error("Session expired or invalid. Please log in again.");
     }
   };
 
@@ -76,6 +122,7 @@ const Navbar = () => {
   const logout = () => {
     localStorage.clear();
     setUser(null);
+    setProfile(null); // Clear profile on logout
     toast.success("Logged out successfully");
     navigate("/login");
   };
@@ -115,7 +162,7 @@ const Navbar = () => {
       <div className="flex justify-between items-center px-4 sm:px-6 lg:px-12 py-3 relative z-50">
         <div className="flex-shrink-0">
           <Link to='/' className="block">
-            <img src={MainLogo} alt="Main Logo" className="h-12 sm:h-16" />
+            <img src={MainLogo} alt="Main Logo" className="h-12 lg:h-[100px]" />
           </Link>
         </div>
 
@@ -177,7 +224,6 @@ const Navbar = () => {
                         }
                         className="text-md text-[#113A5F] font-bold"
                         onClick={() => {
-                          // console.log('Navigating as role:', localStorage.getItem('role'));
                           setIsDropdownOpen(false);
                         }}
                       >
@@ -231,6 +277,9 @@ const Navbar = () => {
             ) : (
               <>
                 <li>
+                  {/* Assuming 'Track Your Booking' link might be dynamic based on role,
+                      you might want to adjust its path based on `localStorage.getItem('role')`
+                      similar to the dashboard link. For now, it points to '/'. */}
                   <Link to='/' className="text-white lg:text-xl text-md font-bold hover:!text-[#F4B41A]" onClick={() => setIsMobileMenuOpen(false)}>
                     Track Your Booking
                   </Link>
