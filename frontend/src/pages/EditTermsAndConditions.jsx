@@ -10,7 +10,10 @@ const TermsAndConditionsBuilder = () => {
             isEditing: false,
             isExpanded: true,
             hasTable: false,
-            tableData: []
+            tableData: [],
+            hasHeadingParagraph: false,
+            heading: '',
+            paragraph: ''
         }
     ]);
     const [deleteModal, setDeleteModal] = useState({ open: false, sectionId: null });
@@ -24,7 +27,10 @@ const TermsAndConditionsBuilder = () => {
             isEditing: true,
             isExpanded: true,
             hasTable: false,
-            tableData: []
+            tableData: [],
+            hasHeadingParagraph: false,
+            heading: '',
+            paragraph: ''
         };
         setSections([...sections, newSection]);
     };
@@ -70,6 +76,20 @@ const TermsAndConditionsBuilder = () => {
                     ...section,
                     hasTable: !section.hasTable,
                     tableData: !section.hasTable ? [{ id: Date.now(), key: '', value: '' }] : []
+                };
+            }
+            return section;
+        }));
+    };
+
+    const toggleHeadingParagraph = (sectionId) => {
+        setSections(sections.map(section => {
+            if (section.id === sectionId) {
+                return {
+                    ...section,
+                    hasHeadingParagraph: !section.hasHeadingParagraph,
+                    heading: !section.hasHeadingParagraph ? 'Heading' : '',
+                    paragraph: !section.hasHeadingParagraph ? 'Paragraph content...' : ''
                 };
             }
             return section;
@@ -181,101 +201,140 @@ const TermsAndConditionsBuilder = () => {
                                 {section.isExpanded && (
                                     <div className="px-5 pb-5">
                                         {section.isEditing ? (
-                                            <div className="space-y-4">
-                                                <input
-                                                    type="text"
-                                                    value={section.title}
-                                                    onChange={(e) => handleChange(section.id, 'title', e.target.value)}
-                                                    placeholder="Section Title"
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                />
-                                                <textarea
-                                                    value={section.content}
-                                                    onChange={(e) => handleChange(section.id, 'content', e.target.value)}
-                                                    placeholder="Section Content"
-                                                    rows="5"
-                                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                />
-                                                
-                                                <div className="mt-4">
+
+                                            <>
+                                                <div className="mt-4 space-y-4 my-4">
                                                     <label className="flex items-center space-x-2">
                                                         <input
                                                             type="checkbox"
-                                                            checked={section.hasTable}
-                                                            onChange={() => toggleTable(section.id)}
+                                                            checked={section.hasHeadingParagraph}
+                                                            onChange={() => toggleHeadingParagraph(section.id)}
                                                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                                                         />
-                                                        <span className="text-gray-700">Include a table in this section</span>
+                                                        <span className="text-gray-700">Include heading and paragraph before content</span>
                                                     </label>
+
+                                                    {section.hasHeadingParagraph && (
+                                                        <div className="space-y-4 ml-6 pl-4 border-l-2 border-gray-200">
+                                                            <input
+                                                                type="text"
+                                                                value={section.heading}
+                                                                onChange={(e) => handleChange(section.id, 'heading', e.target.value)}
+                                                                placeholder="Heading"
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                            />
+                                                            <textarea
+                                                                value={section.paragraph}
+                                                                onChange={(e) => handleChange(section.id, 'paragraph', e.target.value)}
+                                                                placeholder="Paragraph content"
+                                                                rows="3"
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {section.hasTable && (
-                                                    <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
-                                                        <div className="bg-gray-50 px-4 py-3 flex justify-between items-center">
-                                                            <h4 className="font-medium text-gray-700">Table Data</h4>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openTableModal(section.id, 'add');
-                                                                }}
-                                                                className="flex items-center px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm"
-                                                            >
-                                                                <FiPlus className="mr-1" /> Add Row
-                                                            </button>
-                                                        </div>
-                                                        
-                                                        {section.tableData.length > 0 ? (
-                                                            <div className="overflow-x-auto">
-                                                                <table className="min-w-full divide-y divide-gray-200">
-                                                                    <thead className="bg-gray-50">
-                                                                        <tr>
-                                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
-                                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                                                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody className="bg-white divide-y divide-gray-200">
-                                                                        {section.tableData.map((row, rowIndex) => (
-                                                                            <tr key={row.id}>
-                                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.key}</td>
-                                                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.value}</td>
-                                                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            openTableModal(section.id, 'edit', rowIndex);
-                                                                                        }}
-                                                                                        className="text-indigo-600 hover:text-indigo-900 mr-3"
-                                                                                    >
-                                                                                        <FiEdit2 />
-                                                                                    </button>
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            deleteTableRow(section.id, row.id);
-                                                                                        }}
-                                                                                        className="text-red-600 hover:text-red-900"
-                                                                                    >
-                                                                                        <FiTrash2 />
-                                                                                    </button>
-                                                                                </td>
+                                                <div className="space-y-4">
+                                                    <input
+                                                        type="text"
+                                                        value={section.title}
+                                                        onChange={(e) => handleChange(section.id, 'title', e.target.value)}
+                                                        placeholder="Section Title"
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                    />
+                                                    <textarea
+                                                        value={section.content}
+                                                        onChange={(e) => handleChange(section.id, 'content', e.target.value)}
+                                                        placeholder="Section Content"
+                                                        rows="5"
+                                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                                    />
+
+                                                    {section.hasTable && (
+                                                        <div className="mt-4 border border-gray-200 rounded-lg overflow-hidden">
+                                                            <div className="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                                                                <h4 className="font-medium text-gray-700">Table Data</h4>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openTableModal(section.id, 'add');
+                                                                    }}
+                                                                    className="flex items-center px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm"
+                                                                >
+                                                                    <FiPlus className="mr-1" /> Add Row
+                                                                </button>
+                                                            </div>
+
+                                                            {section.tableData.length > 0 ? (
+                                                                <div className="overflow-x-auto">
+                                                                    <table className="min-w-full divide-y divide-gray-200">
+                                                                        <thead className="bg-gray-50">
+                                                                            <tr>
+                                                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key</th>
+                                                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                                                             </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="px-4 py-6 text-center text-gray-500">
-                                                                No table rows added yet
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
+                                                                        </thead>
+                                                                        <tbody className="bg-white divide-y divide-gray-200">
+                                                                            {section.tableData.map((row, rowIndex) => (
+                                                                                <tr key={row.id}>
+                                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.key}</td>
+                                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.value}</td>
+                                                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                                                        <button
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                openTableModal(section.id, 'edit', rowIndex);
+                                                                                            }}
+                                                                                            className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                                                                        >
+                                                                                            <FiEdit2 />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                deleteTableRow(section.id, row.id);
+                                                                                            }}
+                                                                                            className="text-red-600 hover:text-red-900"
+                                                                                        >
+                                                                                            <FiTrash2 />
+                                                                                        </button>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="px-4 py-6 text-center text-gray-500">
+                                                                    No table rows added yet
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <label className="flex items-center space-x-2 my-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={section.hasTable}
+                                                        onChange={() => toggleTable(section.id)}
+                                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                                    />
+                                                    <span className="text-gray-700">Include a table in this section</span>
+                                                </label>
+                                            </>
                                         ) : (
                                             <div className="prose max-w-none text-gray-700 whitespace-pre-line pl-10">
+                                                {section.hasHeadingParagraph && (
+                                                    <div className="mb-4">
+                                                        {section.heading && <h4 className="text-lg font-medium text-gray-800 mb-2">{section.heading}</h4>}
+                                                        {section.paragraph && <p className="text-gray-600">{section.paragraph}</p>}
+                                                    </div>
+                                                )}
+
                                                 {section.content}
-                                                
+
                                                 {section.hasTable && section.tableData.length > 0 && (
                                                     <div className="mt-4 overflow-x-auto">
                                                         <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
@@ -343,9 +402,20 @@ const TermsAndConditionsBuilder = () => {
                             <div className="prose max-w-none">
                                 {sections.map((section, index) => (
                                     <div key={`preview-${section.id}`} className="mb-6">
+                                        {/* Heading and paragraph always at the top of each section if enabled */}
+                                        {section.hasHeadingParagraph && (
+                                            <div className="mb-4">
+                                                {section.heading && (
+                                                    <h4 className="text-md font-bold text-gray-800 text-2xl mb-2">{section.heading}</h4>
+                                                )}
+                                                {section.paragraph && (
+                                                    <p className="text-gray-600">{section.paragraph}</p>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <h3 className="text-lg font-medium text-gray-800">{index + 1}. {section.title}</h3>
                                         <p className="text-gray-600 mt-2 whitespace-pre-line">{section.content}</p>
-                                        
                                         {section.hasTable && section.tableData.length > 0 && (
                                             <div className="mt-4 overflow-x-auto">
                                                 <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
@@ -411,8 +481,8 @@ const TermsAndConditionsBuilder = () => {
                                         <FiX size={20} />
                                     </button>
                                 </div>
-                                
-                                <TableRowForm 
+
+                                <TableRowForm
                                     onSubmit={handleTableAction}
                                     onCancel={closeTableModal}
                                     initialData={
@@ -463,7 +533,7 @@ const TableRowForm = ({ onSubmit, onCancel, initialData }) => {
                     required
                 />
             </div>
-            
+
             <div>
                 <label htmlFor="value" className="block text-sm font-medium text-gray-700 mb-1">Value</label>
                 <textarea
@@ -476,7 +546,7 @@ const TableRowForm = ({ onSubmit, onCancel, initialData }) => {
                     required
                 />
             </div>
-            
+
             <div className="flex justify-end gap-3 pt-4">
                 <button
                     type="button"
