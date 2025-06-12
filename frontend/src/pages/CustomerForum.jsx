@@ -316,7 +316,7 @@ const ForumPage = () => {
             <div className="min-h-screen bg-gray-50">
                 <div className="container mx-auto px-4 py-8">
                     {!loggedInUser && (
-                        <div className="mb-8 p-6 bg-yellow-100 border border-yellow-200 text-yellow-800 rounded-lg text-center">
+                        <div className="mb-8 p-6 bg-red-100 border border-yellow-200 text-yellow-800 rounded-lg text-center">
                             <p className="font-semibold text-lg">You are not logged in.</p>
                             <p className="mt-2">Please <a href="/login" className="text-blue-600 hover:underline font-medium">log in</a> to create new posts, like, or reply to discussions.</p>
                         </div>

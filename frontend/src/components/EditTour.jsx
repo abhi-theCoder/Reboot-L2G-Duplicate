@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from '../api';
 import Swal from 'sweetalert2';
+import { FiTrash2, FiPlus, FiX, FiChevronDown, FiChevronUp, FiUpload, FiImage, FiCalendar, FiDollarSign, FiMapPin, FiTag, FiUsers, FiClock, FiInfo, FiCheckCircle, FiXCircle, FiArrowLeft } from 'react-icons/fi';
+import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import Footer from '../components/Footer';
 
 function EditTour() {
-    const { tourID } = useParams(); // Get tourID from URL
+    const { tourID } = useParams();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         tourID: '',
         name: '',
-        image: null, // Holds the File object for new main image upload
-        currentImage: '', // Holds the Base64 string (with 'data:image/...' prefix) for current main image display
+        image: null,
+        currentImage: '',
         categoryType: '',
         country: '',
         tourType: '',
@@ -26,13 +30,24 @@ function EditTour() {
         exclusions: [''],
         thingsToPack: [''],
         itinerary: [{ dayNumber: 1, title: '', description: '', activities: [{ type: '', title: '', description: '', time: '' }] }],
-        gallery: [], // Holds File objects for newly selected gallery image uploads
-        currentGallery: [], // Holds Base64 strings (with 'data:image/...' prefix) for existing gallery images
+        gallery: [],
+        currentGallery: [],
     });
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [errors, setErrors] = useState({});
+    const [expandedSections, setExpandedSections] = useState({
+        basicInfo: true,
+        pricing: true,
+        description: true,
+        highlights: true,
+        inclusions: true,
+        exclusions: true,
+        packing: true,
+        itinerary: true,
+        gallery: true
+    });
 
     const token = localStorage.getItem('Token');
     const role = localStorage.getItem('role');
@@ -84,6 +99,13 @@ function EditTour() {
         };
         fetchTourData();
     }, [tourID, token, role, error]);
+
+    const toggleSection = (section) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [section]: !prev[section]
+        }));
+    };
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -211,7 +233,6 @@ function EditTour() {
         if (!formData.image && !formData.currentImage) newErrors.image = 'Main tour image is required.';
         if (formData.gallery.length === 0 && formData.currentGallery.length === 0) newErrors.gallery = 'At least one gallery image is required.';
 
-
         ['highlights', 'inclusions', 'exclusions', 'thingsToPack'].forEach(field => {
             if (formData[field].some(item => !item.trim())) {
                 newErrors[field] = `Please fill all ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} fields or remove empty ones.`;
@@ -312,577 +333,870 @@ function EditTour() {
         }
     };
 
-    // Function to navigate back to dashboard
     const handleBackToDashboard = () => {
         navigate('/superadmin/dashboard');
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center min-h-screen text-gray-700">Loading tour data...</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-700">Loading tour data...</p>
+                </div>
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="flex justify-center items-center min-h-screen text-red-500">{error}</div>;
+        return (
+            <div className="flex justify-center items-center min-h-screen bg-gray-50">
+                <div className="max-w-md p-6 bg-white rounded-lg shadow-md">
+                    <div className="text-red-500 text-center">
+                        <FiXCircle className="mx-auto h-12 w-12" />
+                        <h3 className="mt-2 text-lg font-medium">{error}</h3>
+                        <button
+                            onClick={handleBackToDashboard}
+                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                        >
+                            <FiArrowLeft className="inline mr-2" />
+                            Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <>
-            <main className="p-4 sm:p-6 lg:p-8">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">Edit Tour: {formData.name}</h2>
-                <section className="text-gray-800">
-                    <div className="mx-auto max-w-6xl bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-200"> 
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"> 
-                            {/* Tour ID */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Tour ID</label>
-                                <input
-                                    type="text"
-                                    name="tourID"
-                                    value={formData.tourID}
-                                    onChange={handleChange}
-                                    placeholder="e.g., TOUR001"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 cursor-not-allowed"
-                                    readOnly // Tour ID is not editable
-                                />
-                                {errors.tourID && <p className="text-red-500 text-sm mt-1">{errors.tourID}</p>}
-                            </div>
+        <div className='bg-gray-50 py-6'>
+            <div className="min-h-screen bg-white max-w-[1120px] mx-auto rounded-2xl border-gray-200 shadow-lg">
+                <main className="container mx-auto px-4 py-8">
+                    <div className="flex items-center mb-6">
+                        <button
+                            onClick={handleBackToDashboard}
+                            className="flex items-center text-blue-600 hover:text-blue-800 mr-4"
+                        >
+                            <FiArrowLeft className="mr-2" />
+                            Back
+                        </button>
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
+                            Edit Tour: <span className="text-blue-600">{formData.name}</span>
+                        </h2>
+                    </div>
 
-                            {/* Tour Category */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Tour Category</label>
-                                <select
-                                    name="categoryType"
-                                    value={formData.categoryType}
-                                    onChange={handleChange}
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="">Select Category</option>
-                                    <option value="Low Budget Tour">Low Budget Tour</option>
-                                    <option value="Standard Tour">Standard Tour</option>
-                                    <option value="Premium Tour">Premium Tour</option>
-                                </select>
-                                {errors.categoryType && <p className="text-red-500 text-sm mt-1">{errors.categoryType}</p>}
+                    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md overflow-hidden">
+                        {/* Basic Information Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('basicInfo')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiInfo className="mr-2 text-blue-600" />
+                                    Basic Information
+                                </h3>
+                                {expandedSections.basicInfo ? <FiChevronUp /> : <FiChevronDown />}
                             </div>
-
-                            {/* Tour Name */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Tour Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    placeholder="e.g., Majestic Himalayas Adventure"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                            </div>
-
-                            {/* Country */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Country</label>
-                                <input
-                                    type="text"
-                                    name="country"
-                                    value={formData.country}
-                                    onChange={handleChange}
-                                    placeholder="e.g., India"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.country && <p className="text-red-500 text-sm mt-1">{errors.country}</p>}
-                            </div>
-
-                            {/* PricePerHead */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Price Per Head (₹)</label>
-                                <input
-                                    type="number"
-                                    name="pricePerHead"
-                                    value={formData.pricePerHead}
-                                    onChange={handleChange}
-                                    placeholder="e.g., 24999"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.pricePerHead && <p className="text-red-500 text-sm mt-1">{errors.pricePerHead}</p>}
-                            </div>
-
-                            {/* GST */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">GST (%)</label>
-                                <input
-                                    type="number"
-                                    name="GST"
-                                    value={formData.GST}
-                                    onChange={handleChange}
-                                    placeholder="e.g., 10"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.GST && <p className="text-red-500 text-sm mt-1">{errors.GST}</p>}
-                            </div>
-
-                            {/* Duration */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Duration (Days)</label>
-                                <input
-                                    type="number"
-                                    name="duration"
-                                    value={formData.duration}
-                                    onChange={handleChange}
-                                    placeholder="e.g., 7"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.duration && <p className="text-red-500 text-sm mt-1">{errors.duration}</p>}
-                            </div>
-
-                            {/* Occupancy */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Occupancy (Total People)</label>
-                                <input
-                                    type="number"
-                                    name="occupancy"
-                                    value={formData.occupancy}
-                                    onChange={handleChange}
-                                    placeholder="e.g., 20"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.occupancy && <p className="text-red-500 text-sm mt-1">{errors.occupancy}</p>}
-                            </div>
-
-                            {/* Remaining Occupancy */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Remaining Occupancy (Optional)</label>
-                                <input
-                                    type="number"
-                                    name="remainingOccupancy"
-                                    value={formData.remainingOccupancy}
-                                    onChange={handleChange}
-                                    placeholder="Defaults to total occupancy"
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.remainingOccupancy && <p className="text-red-500 text-sm mt-1">{errors.remainingOccupancy}</p>}
-                            </div>
-
-                            {/* Start Date */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Start Date</label>
-                                <input
-                                    type="date"
-                                    name="startDate"
-                                    value={formData.startDate}
-                                    onChange={handleChange}
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>}
-                            </div>
-
-                            {/* Tour Type */}
-                            <div>
-                                <label className="block font-medium mb-1 text-gray-700">Tour Type</label>
-                                <select
-                                    name="tourType"
-                                    value={formData.tourType}
-                                    onChange={handleChange}
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="">Select Tour Type</option>
-                                    <option value="Leisure Tour">Leisure Tour</option>
-                                    <option value="Religious Tour">Religious Tour</option>
-                                    <option value="Rural Tour">Rural Tour</option>
-                                    <option value="Heritage Tour">Heritage Tour</option>
-                                    <option value="Nursery Tour">Nursery Tour</option>
-                                    <option value="Eco Tour">Eco Tour</option>
-                                    <option value="Dark Tour">Dark Tour</option>
-                                    <option value="Food Tour">Food Tour</option>
-                                    <option value="Business Tour">Business Tour</option>
-                                </select>
-                                {errors.tourType && <p className="text-red-500 text-sm mt-1">{errors.tourType}</p>}
-                            </div>
-
-                            {/* Tour Image (Main) */}
-                            <div className="w-full col-span-1 md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Main Tour Image</label>
-                                {formData.currentImage && !formData.image && (
-                                    <div className="mt-2">
-                                        <p className="text-sm text-gray-600 mb-1">Current Image:</p>
-                                        <img
-                                            src={formData.currentImage}
-                                            alt="Current Main Tour"
-                                            className="mt-2 w-36 h-24 object-cover rounded-md border border-gray-300" // Adjusted size for better responsiveness
-                                        />
+                            {expandedSections.basicInfo && (
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Tour ID */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Tour ID
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                name="tourID"
+                                                value={formData.tourID}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-100"
+                                                readOnly
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiTag className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.tourID && <p className="mt-1 text-sm text-red-600">{errors.tourID}</p>}
                                     </div>
-                                )}
-                                <input
-                                    type="file"
-                                    accept='image/*'
-                                    name="image"
-                                    onChange={handleChange}
-                                    className="w-full border border-gray-300 rounded-md p-2 mt-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-                                {formData.image && (
-                                    <div className="mt-2">
-                                        <p className="text-sm text-gray-600 mb-1">New Selected Image:</p>
-                                        <img
-                                            src={URL.createObjectURL(formData.image)}
-                                            alt="New Main Tour"
-                                            className="mt-2 w-36 h-24 object-cover rounded-md border border-gray-300" // Adjusted size
-                                        />
+
+                                    {/* Tour Name */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Tour Name
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={formData.name}
+                                                onChange={handleChange}
+                                                placeholder="Majestic Himalayas Adventure"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiMapPin className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                                     </div>
-                                )}
-                                {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image}</p>}
-                            </div>
 
-                            {/* Description */}
-                            <div className="md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Description</label>
-                                <textarea
-                                    name="description"
-                                    value={formData.description}
-                                    onChange={handleChange}
-                                    rows={4}
-                                    placeholder="Experience the breathtaking beauty..."
-                                    className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                ></textarea>
-                                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
-                            </div>
-
-                            {/* Highlights */}
-                            <div className="md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Highlights</label>
-                                {formData.highlights.map((highlight, index) => (
-                                    <div key={index} className="flex items-center mb-2">
-                                        <input
-                                            type="text"
-                                            value={highlight}
-                                            onChange={(e) => handleArrayChange(e, index, 'highlights')}
-                                            placeholder="e.g., Trek to scenic viewpoints"
-                                            className="w-full border border-gray-300 rounded-md p-2 mr-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                        {formData.highlights.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeArrayItem(index, 'highlights')}
-                                                className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-200 text-sm"
+                                    {/* Tour Category */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Tour Category
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="categoryType"
+                                                value={formData.categoryType}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 appearance-none"
                                             >
-                                                Remove
-                                            </button>
-                                        )}
+                                                <option value="">Select Category</option>
+                                                <option value="Low Budget Tour">Low Budget Tour</option>
+                                                <option value="Standard Tour">Standard Tour</option>
+                                                <option value="Premium Tour">Premium Tour</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiTag className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.categoryType && <p className="mt-1 text-sm text-red-600">{errors.categoryType}</p>}
                                     </div>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={() => addArrayItem('highlights')}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 mt-2 text-sm"
-                                >
-                                    Add Highlight
-                                </button>
-                                {errors.highlights && <p className="text-red-500 text-sm mt-1">{errors.highlights}</p>}
-                            </div>
 
-                            {/* Inclusions */}
-                            <div className="md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Inclusions</label>
-                                {formData.inclusions.map((inclusion, index) => (
-                                    <div key={index} className="flex items-center mb-2">
-                                        <input
-                                            type="text"
-                                            value={inclusion}
-                                            onChange={(e) => handleArrayChange(e, index, 'inclusions')}
-                                            placeholder="e.g., Accommodation"
-                                            className="w-full border border-gray-300 rounded-md p-2 mr-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                        {formData.inclusions.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeArrayItem(index, 'inclusions')}
-                                                className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-200 text-sm"
+                                    {/* Country */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Country
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                name="country"
+                                                value={formData.country}
+                                                onChange={handleChange}
+                                                placeholder="e.g., India"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiMapPin className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.country && <p className="mt-1 text-sm text-red-600">{errors.country}</p>}
+                                    </div>
+
+                                    {/* Tour Type */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Tour Type
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                name="tourType"
+                                                value={formData.tourType}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 appearance-none"
                                             >
-                                                Remove
-                                            </button>
-                                        )}
+                                                <option value="">Select Tour Type</option>
+                                                <option value="Leisure Tour">Leisure Tour</option>
+                                                <option value="Religious Tour">Religious Tour</option>
+                                                <option value="Rural Tour">Rural Tour</option>
+                                                <option value="Heritage Tour">Heritage Tour</option>
+                                                <option value="Nursery Tour">Nursery Tour</option>
+                                                <option value="Eco Tour">Eco Tour</option>
+                                                <option value="Dark Tour">Dark Tour</option>
+                                                <option value="Food Tour">Food Tour</option>
+                                                <option value="Business Tour">Business Tour</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiTag className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.tourType && <p className="mt-1 text-sm text-red-600">{errors.tourType}</p>}
                                     </div>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={() => addArrayItem('inclusions')}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 mt-2 text-sm"
-                                >
-                                    Add Inclusion
-                                </button>
-                                {errors.inclusions && <p className="text-red-500 text-sm mt-1">{errors.inclusions}</p>}
-                            </div>
 
-                            {/* Exclusions */}
-                            <div className="md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Exclusions</label>
-                                {formData.exclusions.map((exclusion, index) => (
-                                    <div key={index} className="flex items-center mb-2">
-                                        <input
-                                            type="text"
-                                            value={exclusion}
-                                            onChange={(e) => handleArrayChange(e, index, 'exclusions')}
-                                            placeholder="e.g., International flights"
-                                            className="w-full border border-gray-300 rounded-md p-2 mr-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                        {formData.exclusions.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeArrayItem(index, 'exclusions')}
-                                                className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-200 text-sm"
-                                            >
-                                                Remove
-                                            </button>
-                                        )}
+                                    {/* Start Date */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Start Date
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="date"
+                                                name="startDate"
+                                                value={formData.startDate}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiCalendar className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.startDate && <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>}
                                     </div>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={() => addArrayItem('exclusions')}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 mt-2 text-sm"
-                                >
-                                    Add Exclusion
-                                </button>
-                                {errors.exclusions && <p className="text-red-500 text-sm mt-1">{errors.exclusions}</p>}
-                            </div>
 
-                            {/* Things To Pack */}
-                            <div className="md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Things To Pack</label>
-                                {formData.thingsToPack.map((item, index) => (
-                                    <div key={index} className="flex items-center mb-2">
-                                        <input
-                                            type="text"
-                                            value={item}
-                                            onChange={(e) => handleArrayChange(e, index, 'thingsToPack')}
-                                            placeholder="e.g., Hiking boots"
-                                            className="w-full border border-gray-300 rounded-md p-2 mr-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                        {formData.thingsToPack.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeArrayItem(index, 'thingsToPack')}
-                                                className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-200 text-sm"
-                                            >
-                                                Remove
-                                            </button>
-                                        )}
+                                    {/* Duration */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Duration (Days)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                name="duration"
+                                                value={formData.duration}
+                                                onChange={handleChange}
+                                                placeholder="e.g., 7"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiClock className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
                                     </div>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={() => addArrayItem('thingsToPack')}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 mt-2 text-sm"
-                                >
-                                    Add Item
-                                </button>
-                                {errors.thingsToPack && <p className="text-red-500 text-sm mt-1">{errors.thingsToPack}</p>}
-                            </div>
 
-                            {/* Itinerary */}
-                            <div className="md:col-span-2 border border-gray-300 p-4 rounded-md">
-                                <h3 className="text-lg font-semibold mb-3 text-gray-700">Itinerary</h3>
-                                {formData.itinerary.map((day, dayIndex) => (
-                                    <div key={dayIndex} className="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h4 className="font-medium text-gray-700">Day {day.dayNumber}</h4>
-                                            {formData.itinerary.length > 1 && (
+                                    {/* Main Tour Image */}
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Main Tour Image
+                                        </label>
+                                        <div className="space-y-4">
+                                            {formData.currentImage && !formData.image && (
+                                                <div>
+                                                    <p className="text-sm text-gray-500 mb-2">Current Image:</p>
+                                                    <div className="relative inline-block">
+                                                        <img
+                                                            src={formData.currentImage}
+                                                            alt="Current Main Tour"
+                                                            className="h-40 w-full object-cover rounded-lg border border-gray-300"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center">
+                                                <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed rounded-lg cursor-pointer border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <FiUpload className="w-8 h-8 text-gray-500 mb-2" />
+                                                        <p className="text-sm text-gray-500">
+                                                            <span className="font-semibold">Click to upload</span> or drag and drop
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">PNG, JPG, JPEG (Max 5MB)</p>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        name="image"
+                                                        onChange={handleChange}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            </div>
+                                            {formData.image && (
+                                                <div>
+                                                    <p className="text-sm text-gray-500 mb-2">New Selected Image:</p>
+                                                    <div className="relative inline-block">
+                                                        <img
+                                                            src={URL.createObjectURL(formData.image)}
+                                                            alt="New Main Tour"
+                                                            className="h-40 w-full object-cover rounded-lg border border-gray-300"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormData({ ...formData, image: null })}
+                                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                                        >
+                                                            <FiX className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image}</p>}
+                                    </div>
+
+                                    {/* Description */}
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Description
+                                        </label>
+                                        <textarea
+                                            name="description"
+                                            value={formData.description}
+                                            onChange={handleChange}
+                                            rows={4}
+                                            placeholder="Experience the breathtaking beauty..."
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                        ></textarea>
+                                        {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Pricing Information Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('pricing')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiDollarSign className="mr-2 text-blue-600" />
+                                    Pricing Information
+                                </h3>
+                                {expandedSections.pricing ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.pricing && (
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Price Per Head */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Price Per Head (₹)
+                                        </label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span className="text-gray-500">₹</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                name="pricePerHead"
+                                                value={formData.pricePerHead}
+                                                onChange={handleChange}
+                                                placeholder="e.g., 24999"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                        </div>
+                                        {errors.pricePerHead && <p className="mt-1 text-sm text-red-600">{errors.pricePerHead}</p>}
+                                    </div>
+
+                                    {/* GST */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            GST (%)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                name="GST"
+                                                value={formData.GST}
+                                                onChange={handleChange}
+                                                placeholder="e.g., 10"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span className="text-gray-500">%</span>
+                                            </div>
+                                        </div>
+                                        {errors.GST && <p className="mt-1 text-sm text-red-600">{errors.GST}</p>}
+                                    </div>
+
+                                    {/* Occupancy */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Occupancy (Total People)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                name="occupancy"
+                                                value={formData.occupancy}
+                                                onChange={handleChange}
+                                                placeholder="e.g., 20"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiUsers className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.occupancy && <p className="mt-1 text-sm text-red-600">{errors.occupancy}</p>}
+                                    </div>
+
+                                    {/* Remaining Occupancy */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Remaining Occupancy (Optional)
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                name="remainingOccupancy"
+                                                value={formData.remainingOccupancy}
+                                                onChange={handleChange}
+                                                placeholder="Defaults to total occupancy"
+                                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <FiUsers className="text-gray-400" />
+                                            </div>
+                                        </div>
+                                        {errors.remainingOccupancy && <p className="mt-1 text-sm text-red-600">{errors.remainingOccupancy}</p>}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Highlights Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('highlights')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiCheckCircle className="mr-2 text-blue-600" />
+                                    Tour Highlights
+                                </h3>
+                                {expandedSections.highlights ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.highlights && (
+                                <div className="p-6">
+                                    {formData.highlights.map((highlight, index) => (
+                                        <div key={index} className="flex items-center mb-3">
+                                            <div className="flex-grow relative">
+                                                <input
+                                                    type="text"
+                                                    value={highlight}
+                                                    onChange={(e) => handleArrayChange(e, index, 'highlights')}
+                                                    placeholder="e.g., Trek to scenic viewpoints"
+                                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span className="text-gray-500">{index + 1}.</span>
+                                                </div>
+                                            </div>
+                                            {formData.highlights.length > 1 && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeItineraryDay(dayIndex)}
-                                                    className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-200 text-sm"
+                                                    onClick={() => removeArrayItem(index, 'highlights')}
+                                                    className="ml-3 p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50"
                                                 >
-                                                    Remove Day
+                                                    <FiTrash2 />
                                                 </button>
                                             )}
                                         </div>
-                                        <div className="mb-3">
-                                            <label className="block text-sm font-medium mb-1 text-gray-700">Day Title</label>
-                                            <input
-                                                type="text"
-                                                value={day.title}
-                                                onChange={(e) => handleItineraryChange(e, dayIndex, 'title')}
-                                                placeholder="e.g., Arrival in Leh"
-                                                className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                            />
-                                            {errors[`itinerary[${dayIndex}].title`] && <p className="text-red-500 text-sm mt-1">{errors[`itinerary[${dayIndex}].title`]}</p>}
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => addArrayItem('highlights')}
+                                        className="mt-2 flex items-center text-blue-600 hover:text-blue-800"
+                                    >
+                                        <FiPlus className="mr-1" />
+                                        Add Highlight
+                                    </button>
+                                    {errors.highlights && <p className="mt-2 text-sm text-red-600">{errors.highlights}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Inclusions Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('inclusions')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiCheckCircle className="mr-2 text-blue-600" />
+                                    Inclusions
+                                </h3>
+                                {expandedSections.inclusions ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.inclusions && (
+                                <div className="p-6">
+                                    {formData.inclusions.map((inclusion, index) => (
+                                        <div key={index} className="flex items-center mb-3">
+                                            <div className="flex-grow relative">
+                                                <input
+                                                    type="text"
+                                                    value={inclusion}
+                                                    onChange={(e) => handleArrayChange(e, index, 'inclusions')}
+                                                    placeholder="e.g., Accommodation"
+                                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span className="text-gray-500">{index + 1}.</span>
+                                                </div>
+                                            </div>
+                                            {formData.inclusions.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeArrayItem(index, 'inclusions')}
+                                                    className="ml-3 p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50"
+                                                >
+                                                    <FiTrash2 />
+                                                </button>
+                                            )}
                                         </div>
-                                        <div className="mb-3">
-                                            <label className="block text-sm font-medium mb-1 text-gray-700">Day Description</label>
-                                            <textarea
-                                                value={day.description}
-                                                onChange={(e) => handleItineraryChange(e, dayIndex, 'description')}
-                                                rows={2}
-                                                placeholder="Upon arrival, transfer to hotel and relax..."
-                                                className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
-                                            ></textarea>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => addArrayItem('inclusions')}
+                                        className="mt-2 flex items-center text-blue-600 hover:text-blue-800"
+                                    >
+                                        <FiPlus className="mr-1" />
+                                        Add Inclusion
+                                    </button>
+                                    {errors.inclusions && <p className="mt-2 text-sm text-red-600">{errors.inclusions}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Exclusions Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('exclusions')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiXCircle className="mr-2 text-blue-600" />
+                                    Exclusions
+                                </h3>
+                                {expandedSections.exclusions ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.exclusions && (
+                                <div className="p-6">
+                                    {formData.exclusions.map((exclusion, index) => (
+                                        <div key={index} className="flex items-center mb-3">
+                                            <div className="flex-grow relative">
+                                                <input
+                                                    type="text"
+                                                    value={exclusion}
+                                                    onChange={(e) => handleArrayChange(e, index, 'exclusions')}
+                                                    placeholder="e.g., International flights"
+                                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span className="text-gray-500">{index + 1}.</span>
+                                                </div>
+                                            </div>
+                                            {formData.exclusions.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeArrayItem(index, 'exclusions')}
+                                                    className="ml-3 p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50"
+                                                >
+                                                    <FiTrash2 />
+                                                </button>
+                                            )}
                                         </div>
-                                        <h5 className="font-medium mt-4 mb-2 text-gray-700">Activities</h5>
-                                        {day.activities.map((activity, activityIndex) => (
-                                            <div key={activityIndex} className="mb-3 p-3 border border-gray-200 rounded-md bg-white">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <h6 className="text-sm font-medium text-gray-600">Activity {activityIndex + 1}</h6>
-                                                    {day.activities.length > 1 && (
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => addArrayItem('exclusions')}
+                                        className="mt-2 flex items-center text-blue-600 hover:text-blue-800"
+                                    >
+                                        <FiPlus className="mr-1" />
+                                        Add Exclusion
+                                    </button>
+                                    {errors.exclusions && <p className="mt-2 text-sm text-red-600">{errors.exclusions}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Things To Pack Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('packing')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiTag className="mr-2 text-blue-600" />
+                                    Things To Pack
+                                </h3>
+                                {expandedSections.packing ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.packing && (
+                                <div className="p-6">
+                                    {formData.thingsToPack.map((item, index) => (
+                                        <div key={index} className="flex items-center mb-3">
+                                            <div className="flex-grow relative">
+                                                <input
+                                                    type="text"
+                                                    value={item}
+                                                    onChange={(e) => handleArrayChange(e, index, 'thingsToPack')}
+                                                    placeholder="e.g., Hiking boots"
+                                                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                />
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                    <span className="text-gray-500">{index + 1}.</span>
+                                                </div>
+                                            </div>
+                                            {formData.thingsToPack.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeArrayItem(index, 'thingsToPack')}
+                                                    className="ml-3 p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50"
+                                                >
+                                                    <FiTrash2 />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => addArrayItem('thingsToPack')}
+                                        className="mt-2 flex items-center text-blue-600 hover:text-blue-800"
+                                    >
+                                        <FiPlus className="mr-1" />
+                                        Add Item
+                                    </button>
+                                    {errors.thingsToPack && <p className="mt-2 text-sm text-red-600">{errors.thingsToPack}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Itinerary Section */}
+                        <div className="border-b border-gray-200">
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('itinerary')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiCalendar className="mr-2 text-blue-600" />
+                                    Itinerary
+                                </h3>
+                                {expandedSections.itinerary ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.itinerary && (
+                                <div className="p-6 space-y-6">
+                                    {formData.itinerary.map((day, dayIndex) => (
+                                        <div key={dayIndex} className="border border-gray-200 rounded-lg overflow-hidden">
+                                            <div className="bg-gray-50 px-4 py-3 flex justify-between items-center">
+                                                <h4 className="font-medium text-gray-800">Day {day.dayNumber}</h4>
+                                                {formData.itinerary.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeItineraryDay(dayIndex)}
+                                                        className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50"
+                                                    >
+                                                        <FiTrash2 />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="p-4 space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Day Title</label>
+                                                    <input
+                                                        type="text"
+                                                        value={day.title}
+                                                        onChange={(e) => handleItineraryChange(e, dayIndex, 'title')}
+                                                        placeholder="e.g., Arrival in Leh"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                    />
+                                                    {errors[`itinerary[${dayIndex}].title`] && <p className="mt-1 text-sm text-red-600">{errors[`itinerary[${dayIndex}].title`]}</p>}
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Day Description</label>
+                                                    <textarea
+                                                        value={day.description}
+                                                        onChange={(e) => handleItineraryChange(e, dayIndex, 'description')}
+                                                        rows={2}
+                                                        placeholder="Upon arrival, transfer to hotel and relax..."
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                    ></textarea>
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="block text-sm font-medium text-gray-700">Activities</label>
                                                         <button
                                                             type="button"
-                                                            onClick={() => removeActivity(dayIndex, activityIndex)}
-                                                            className="bg-red-400 text-white px-2 py-0.5 rounded-md hover:bg-red-500 transition duration-200 text-xs"
+                                                            onClick={() => addActivity(dayIndex)}
+                                                            className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
                                                         >
-                                                            Remove
+                                                            <FiPlus className="mr-1" />
+                                                            Add Activity
                                                         </button>
-                                                    )}
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    <div>
-                                                        <label className="block text-xs font-medium mb-1 text-gray-600">Type (e.g., Sightseeing)</label>
-                                                        <input
-                                                            type="text"
-                                                            value={activity.type}
-                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'type')}
-                                                            placeholder="e.g., Sightseeing"
-                                                            className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                                                        />
-                                                        {errors[`itinerary[${dayIndex}].activities[${activityIndex}].type`] && <p className="text-red-500 text-xs mt-1">{errors[`itinerary[${dayIndex}].activities[${activityIndex}].type`]}</p>}
                                                     </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium mb-1 text-gray-600">Title</label>
-                                                        <input
-                                                            type="text"
-                                                            value={activity.title}
-                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'title')}
-                                                            placeholder="e.g., Shanti Stupa"
-                                                            className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                                                        />
-                                                        {errors[`itinerary[${dayIndex}].activities[${activityIndex}].title`] && <p className="text-red-500 text-xs mt-1">{errors[`itinerary[${dayIndex}].activities[${activityIndex}].title`]}</p>}
-                                                    </div>
-                                                    <div className="md:col-span-2">
-                                                        <label className="block text-xs font-medium mb-1 text-gray-600">Description</label>
-                                                        <textarea
-                                                            value={activity.description}
-                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'description')}
-                                                            rows={1}
-                                                            placeholder="Visit the iconic Shanti Stupa for panoramic views."
-                                                            className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                                                        ></textarea>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium mb-1 text-gray-600">Time (Optional)</label>
-                                                        <input
-                                                            type="text"
-                                                            value={activity.time}
-                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'time')}
-                                                            placeholder="e.g., Morning"
-                                                            className="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                                                        />
+                                                    <div className="space-y-3">
+                                                        {day.activities.map((activity, activityIndex) => (
+                                                            <div key={activityIndex} className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                                                                <div className="flex justify-between items-center mb-2">
+                                                                    <h5 className="text-sm font-medium text-gray-700">Activity {activityIndex + 1}</h5>
+                                                                    {day.activities.length > 1 && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => removeActivity(dayIndex, activityIndex)}
+                                                                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-50 text-xs"
+                                                                        >
+                                                                            <FiTrash2 />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={activity.type}
+                                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'type')}
+                                                                            placeholder="e.g., Sightseeing"
+                                                                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                                        />
+                                                                        {errors[`itinerary[${dayIndex}].activities[${activityIndex}].type`] && <p className="mt-1 text-xs text-red-600">{errors[`itinerary[${dayIndex}].activities[${activityIndex}].type`]}</p>}
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-xs font-medium text-gray-500 mb-1">Title</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={activity.title}
+                                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'title')}
+                                                                            placeholder="e.g., Shanti Stupa"
+                                                                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                                        />
+                                                                        {errors[`itinerary[${dayIndex}].activities[${activityIndex}].title`] && <p className="mt-1 text-xs text-red-600">{errors[`itinerary[${dayIndex}].activities[${activityIndex}].title`]}</p>}
+                                                                    </div>
+                                                                    <div className="md:col-span-2">
+                                                                        <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                                                                        <textarea
+                                                                            value={activity.description}
+                                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'description')}
+                                                                            rows={1}
+                                                                            placeholder="Visit the iconic Shanti Stupa for panoramic views."
+                                                                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                                        ></textarea>
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="block text-xs font-medium text-gray-500 mb-1">Time (Optional)</label>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={activity.time}
+                                                                            onChange={(e) => handleActivityChange(e, dayIndex, activityIndex, 'time')}
+                                                                            placeholder="e.g., Morning"
+                                                                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            onClick={() => addActivity(dayIndex)}
-                                            className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 transition duration-200 text-sm mt-2"
-                                        >
-                                            Add Activity
-                                        </button>
-                                    </div>
-                                ))}
-                                <button
-                                    type="button"
-                                    onClick={addItineraryDay}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 mt-2"
-                                >
-                                    Add Day
-                                </button>
-                            </div>
-
-                            {/* Gallery Images Section */}
-                            <div className="w-full col-span-1 md:col-span-2">
-                                <label className="block font-medium mb-1 text-gray-700">Gallery Images</label>
-
-                                {/* Display CURRENT Gallery Images */}
-                                {formData.currentGallery.length > 0 && (
-                                    <div className="mt-2 mb-4">
-                                        <p className="text-sm text-gray-600 mb-1">Existing Gallery Images:</p>
-                                        <div className="flex flex-wrap gap-2"> 
-                                            {formData.currentGallery.map((imgBase64, index) => (
-                                                <div key={`current-${index}`} className="relative group">
-                                                    <img
-                                                        src={imgBase64}
-                                                        alt={`Current Gallery ${index + 1}`}
-                                                        className="w-24 h-16 object-cover rounded-md border border-gray-300" 
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeCurrentGalleryImage(index)}
-                                                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                        title="Remove this image"
-                                                    >
-                                                        X
-                                                    </button>
-                                                </div>
-                                            ))}
                                         </div>
-                                    </div>
-                                )}
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={addItineraryDay}
+                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-blue-600 flex items-center justify-center"
+                                    >
+                                        <FiPlus className="mr-2" />
+                                        Add Day
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
-                                {/* Input for New Gallery Images */}
-                                <input
-                                    type="file"
-                                    accept='image/*'
-                                    multiple
-                                    name="galleryImages"
-                                    onChange={handleGalleryImageChange}
-                                    className="w-full border border-gray-300 rounded-md p-2 mt-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
-
-                                {/* Display PREVIEWS of NEWLY selected Gallery Images */}
-                                {formData.gallery.length > 0 && (
-                                    <div className="mt-2">
-                                        <p className="text-sm text-gray-600 mb-1">Newly Selected Images:</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {formData.gallery.map((file, index) => (
-                                                <div key={`new-${index}`} className="relative group">
-                                                    <img
-                                                        src={URL.createObjectURL(file)}
-                                                        alt={`New Gallery ${index + 1}`}
-                                                        className="w-24 h-16 object-cover rounded-md border border-gray-300"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeNewGalleryImage(index)}
-                                                        className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                                                        title="Remove this new image"
-                                                    >
-                                                        X
-                                                    </button>
-                                                </div>
-                                            ))}
+                        {/* Gallery Section */}
+                        <div>
+                            <div
+                                className="flex justify-between items-center p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+                                onClick={() => toggleSection('gallery')}
+                            >
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                                    <FiImage className="mr-2 text-blue-600" />
+                                    Gallery Images
+                                </h3>
+                                {expandedSections.gallery ? <FiChevronUp /> : <FiChevronDown />}
+                            </div>
+                            {expandedSections.gallery && (
+                                <div className="p-6">
+                                    {/* Current Gallery Images */}
+                                    {formData.currentGallery.length > 0 && (
+                                        <div className="mb-6">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3">Existing Gallery Images</h4>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                {formData.currentGallery.map((imgBase64, index) => (
+                                                    <div key={`current-${index}`} className="relative group">
+                                                        <img
+                                                            src={imgBase64}
+                                                            alt={`Current Gallery ${index + 1}`}
+                                                            className="w-full h-32 object-cover rounded-md border border-gray-300"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeCurrentGalleryImage(index)}
+                                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <FiX className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                {errors.gallery && <p className="text-red-500 text-sm mt-1">{errors.gallery}</p>}
-                            </div>
+                                    )}
 
-                            {/* Form Actions */}
-                            <div className="md:col-span-2 flex flex-col sm:flex-row justify-end gap-3 mt-6"> 
-                                <button
-                                    type="button"
-                                    onClick={handleBackToDashboard}
-                                    className="bg-gray-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-gray-700 transition duration-200 shadow-md text-sm sm:text-base w-full sm:w-auto"
-                                >
-                                    Back to Dashboard
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-md hover:bg-green-800 transition duration-200 shadow-md text-sm sm:text-base w-full sm:w-auto"
-                                >
-                                    Update Tour
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </section>
-            </main>
-        </>
+                                    {/* New Gallery Images Upload */}
+                                    <div className="mb-6">
+                                        <h4 className="text-sm font-medium text-gray-700 mb-3">Upload New Gallery Images</h4>
+                                        <label className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed rounded-lg cursor-pointer border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <FiUpload className="w-8 h-8 text-gray-500 mb-2" />
+                                                <p className="text-sm text-gray-500">
+                                                    <span className="font-semibold">Click to upload</span> or drag and drop
+                                                </p>
+                                                <p className="text-xs text-gray-500">PNG, JPG, JPEG (Max 5MB each)</p>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                name="galleryImages"
+                                                onChange={handleGalleryImageChange}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </div>
+
+                                    {/* Preview of Newly Selected Images */}
+                                    {formData.gallery.length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-medium text-gray-700 mb-3">Newly Selected Images</h4>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                                                {formData.gallery.map((file, index) => (
+                                                    <div key={`new-${index}`} className="relative group">
+                                                        <img
+                                                            src={URL.createObjectURL(file)}
+                                                            alt={`New Gallery ${index + 1}`}
+                                                            className="w-full h-32 object-cover rounded-md border border-gray-300"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeNewGalleryImage(index)}
+                                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                                        >
+                                                            <FiX className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {errors.gallery && <p className="mt-2 text-sm text-red-600">{errors.gallery}</p>}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Form Actions */}
+                        <div className="bg-gray-50 px-4 py-3 sm:px-6 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+                            <button
+                                type="button"
+                                onClick={handleBackToDashboard}
+                                className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <FiArrowLeft className="mr-2" />
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <FiCheckCircle className="mr-2" />
+                                Update Tour
+                            </button>
+                        </div>
+                    </form>
+                </main>
+            </div>
+        </div>
     );
 }
 
