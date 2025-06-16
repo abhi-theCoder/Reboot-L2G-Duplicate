@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const authenticateSuperAdmin = require('../middleware/authSuperadminMiddleware');
 const Agent = require('../models/Agent'); 
 const Transaction = require('../models/Transaction');
 const Superadmin = require('../models/Superadmin');
@@ -9,23 +10,6 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const upload = multer(); // Memory storage if you're using base64 directly
 
-const authenticateSuperAdmin = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) return res.status(401).json({ error: 'Unauthorized: No token provided' });
-
-  try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      if (decoded.role !== 'superadmin') {
-          return res.status(403).json({ error: 'Access denied: Not SuperAdmin' });
-      }
-      req.user = decoded;
-      next();
-  } catch (error) {
-    console.error("SuperAdmin Auth Error:", error);
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-}
-};
 
 function formatTourForResponse(tour) {
     return {

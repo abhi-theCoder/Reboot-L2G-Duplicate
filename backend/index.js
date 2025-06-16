@@ -3,6 +3,8 @@ const cors = require("cors");
 const path = require("path");
 const bodyParser = require("body-parser");
 const mongoose = require("./config/db");
+const bookingRoutes = require('./routes/BookingRoutes');
+
 const customerRoutes = require("./routes/customerRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 const adminRoutes = require("./routes/AdminRoutes");
@@ -27,6 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/agents", agentRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/bookings",bookingRoutes);
 app.use("/api/generate-payment-link", paymentRoute);
 app.use('/api/posts', require('./routes/posts'));
 

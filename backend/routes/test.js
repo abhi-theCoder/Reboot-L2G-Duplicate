@@ -2,7 +2,11 @@ const axios = require('axios');
 const crypto = require('crypto');
 require('dotenv').config();
 
-const webhookURL = 'http://localhost:5001/webhook'; 
+const webhookURL = 'http://localhost:5001/webhook';
+
+// --- IMPORTANT: REPLACE WITH AN ACTUAL BOOKING ID FROM YOUR DATABASE ---
+// This booking ID must exist in your MongoDB for the webhook to find and update it.
+const TEST_BOOKING_ID = 'BKG48020'; // <--- YOU MUST CHANGE THIS TO A REAL BOOKING ID
 
 const tourPricePerHead = 9000;
 const tourGivenOccupancy = 1 ;
@@ -18,44 +22,34 @@ const samplePayload = {
   payload: {
     payment: {
       entity: {
-        id: 'pay_MOCK123458',
-        amount: finalAmount * 100, // Corrected: Razorpay amount is in smallest unit (paise), so multiply by 100
-        currency: 'INR', // Added: Razorpay always includes currency
-        status: 'captured', // Added: Razorpay includes payment status
-        method: 'card', // Added: Example payment method
-        created_at: currentUnixTimestamp, // Corrected: Add created_at as Unix timestamp in seconds
+        id: 'pay_MOCK123458', // Unique transaction ID for this test
+        amount: finalAmount * 100, // Razorpay amount is in paisa
+        currency: 'INR',
+        status: 'captured',
+        method: 'card',
+        created_at: currentUnixTimestamp,
         email: 'testuser@example.com',
-        contact: '9876543210', // Added: Example contact number (often phone)
+        contact: '9876543210',
         notes: {
-          agentID: '',
-          tourID: '683ed99b3a44a7ade21e2d31', 
-          tourPricePerHead: String(tourPricePerHead), // Ensure these are strings if passed from notes as such
-          tourActualOccupancy: String(tourActualOccupancy), // String conversion for consistency with how notes might store numbers
+          bookingID: TEST_BOOKING_ID, // <--- ADDED THIS CRITICAL FIELD
+          agentID: '', // Keep empty for direct customer test, or put an existing agentID
+          tourID: '683ed99b3a44a7ade21e2d31', // <--- REPLACE WITH AN ACTUAL TOUR ID FROM YOUR DATABASE
+          tourName: 'Digha', // <--- ADDED THIS CRITICAL FIELD (match tourID's name)
+          tourPricePerHead: String(tourPricePerHead),
+          tourActualOccupancy: String(tourActualOccupancy),
           tourGivenOccupancy: String(tourGivenOccupancy),
-          tourStartDate: '2025-08-12T00:00:00.000Z',
-          GST: String(GST), // String conversion
-          finalAmount: String(finalAmount), // String conversion
-          customer: {
-            name: 'Rajesh Kumar',
-            email: 'rajeshghosh8292@gmail.com', // Corrected typo: .con -> .com
-            phone: '7890234590',
-            address: 'Sodpur, panihati'
-          },
-          // Corrected: Travelers gender to 'male' and 'female' (lowercase)
-          // Also, ensure `travelers` is stringified if the webhook expects a string.
-          // Based on your previous error, it seems to be expecting a JSON string for `travelers`.
-          
-          travelers: [
-            { name: 'Rajesh Ghosh', age: 20, gender: 'male' },
-            { name: 'Megha Ghosh', age: 32, gender: 'female' }
-          ]
-
-          // travelers: [{"name":"Rajesh Ghosh","age":25,"gender":"male"},{"name":"Megha Ghosh","age":27,"gender":"female"}]
+          tourStartDate: '2025-08-12T00:00:00.000Z', // Or '2025-08-12'
+          GST: String(GST),
+          finalAmount: String(finalAmount),
+          // Customer and Travelers details are usually part of the Booking document itself,
+          // but if your system passes them in notes for initial booking creation, keep them.
+          // For webhook updates, typically the bookingID is enough to find the associated data.
         }
       }
     }
   }
 };
+
 const generateSignature = (body, secret) => {
   return crypto.createHmac('sha256', secret)
     .update(body)
@@ -67,122 +61,41 @@ const generateSignature = (body, secret) => {
     const payloadStr = JSON.stringify(samplePayload);
     const signature = generateSignature(payloadStr, process.env.RAZORPAY_WEBHOOK_SECRET);
 
+    console.log('Sending webhook payload:', samplePayload);
+    console.log('Generated signature:', signature);
+
     const response = await axios.post(webhookURL, samplePayload, {
       headers: {
         'Content-Type': 'application/json',
         'x-razorpay-signature': signature
       },
       transformRequest: [(data) => {
-        // simulate rawBody for Express
+        // This simulates Express's `req.rawBody` for webhook signature verification.
+        // It ensures the exact stringified payload is used for signature generation.
         return JSON.stringify(data);
       }]
     });
 
-    console.log('Webhook response:', response.data);
+    console.log('\n--- Webhook Response ---');
+    console.log('Status:', response.status);
+    console.log('Data:', response.data);
+    console.log('------------------------');
+
   } catch (error) {
-    console.error('Error sending webhook:', error.response?.data || error.message);
+    console.error('\n--- Error Sending Webhook ---');
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('Status:', error.response.status);
+      console.error('Data:', error.response.data);
+      console.error('Headers:', error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received:', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Error message:', error.message);
+    }
+    console.error('----------------------------');
   }
 })();
-
-
-
-
-// const samplePayload = {
-//   event: 'payment.captured',
-//   payload: {
-//     payment: {
-//       entity: {
-//         id: 'pay_MOCK123458',
-//         email: 'testuser@example.com',
-//         notes: {
-//           agentID: '',
-//           tourID: '683ed99b3a44a7ade21e2d31', 
-//           tourPricePerHead,
-//           tourActualOccupancy,
-//           tourGivenOccupancy,
-//           tourStartDate: '2025-08-12T00:00:00.000Z',
-//           GST,
-//           finalAmount,
-//           customer: {
-//             name: 'Rajesh Kumar',
-//             email: 'rajeshghosh8292@gmail.con',
-//             phone: '7890234590',
-//             address: 'Sodpur, panihati'
-//           },
-//           travelers: [
-//             { name: 'Rajesh Ghosh', age: 20, gender: 'M' },
-//             { name: 'Megha Ghosh', age: 32, gender: 'F' }
-//           ]
-//         }
-//       }
-//     }
-//   }
-// };
-
-
-// const mongoose = require('mongoose');
-// require('dotenv').config();
-// const Agent = require('../models/Agent');
-// const dayjs = require('dayjs');
-// const customParseFormat = require('dayjs/plugin/customParseFormat');
-// mongoose.connect('mongodb+srv://abhishekkumarmahto2005:PmYyWbh3hjbs5f7H@cluster0.pcr8b.mongodb.net/agentDB?retryWrites=true&w=majority&appName=Cluster0')
-//   .then(async() => {
-//     console.log('MongoDB Connected');
-
-//     const agentID = "032-2025-000A";
-//     let agent = await Agent.findOne({ agentID: agentID });
-//     const agent_id = agent._id;
-//     const tourPrice = 90000; 
-//     tourActualOccupancy=50,
-//     tourGivenOccupancy=15,
-//     percentageOnboarded = (tourGivenOccupancy/tourActualOccupancy)*100 ;
-//     console.log(percentageOnboarded);
-//     transferCommission(agent_id, tourPrice, percentageOnboarded);
-//   })
-//   .catch(err => console.error(err));
-
-
-//   function getCommissionRate(percentageOnboarded, level) {
-//     if (percentageOnboarded >= 65) {
-//       return level === 1 ? 10 : 5;
-//     } else if (percentageOnboarded >= 45) {
-//       return level === 1 ? 8.5 : 3.5;
-//     } else {
-//       return level === 1 ? 7 : 2.5;
-//     }
-//   }
-
-  
-//   const transferCommission = async (agent_id, amount, percentageOnboarded, level = 1) => {
-//     try {
-//       const agent = await Agent.findById(agent_id);
-//       if (!agent) throw new Error("Agent not found: " + agent_id);
-  
-//       const commissionRate = getCommissionRate(percentageOnboarded, level);
-//       const commission = (amount * commissionRate) / 100;
-  
-//       agent.walletBalance += commission;
-//       // await agent.save();
-
-
-  
-//       console.log(`Level ${level}: ₹${commission} (${commissionRate}%) to ${agent.agentID} (${agent.name})`);
-  
-//       if (level === 1 && agent.parentAgent) {
-//         const remainingAmount = amount - commission;
-//         await transferCommission(agent.parentAgent, remainingAmount, percentageOnboarded, level + 1);
-//       }
-//     } catch (error) {
-//       console.error("Error transferring commission:", error.message);
-//     }
-//   };
-
-
-
-// dayjs.extend(customParseFormat);
-
-// const tourStartDate = "20%252F08%252F2025";
-// const rawDate = decodeURIComponent(decodeURIComponent(tourStartDate)); // "20/08/2025"
-// const formattedDate = dayjs(rawDate, 'DD/MM/YYYY').format('YYYY-MM-DD');
-
-// console.log(formattedDate);  // Output: "2025-08-20"

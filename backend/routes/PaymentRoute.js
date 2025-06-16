@@ -9,7 +9,7 @@ const razorpay = new Razorpay({
 
 router.post('/', async (req, res) => {
   try {
-    const { agentID, tourID, tourName, tourPricePerHead, tourActualOccupancy, tourGivenOccupancy, tourStartDate, GST, customer, travelers } = req.body;
+    const { bookingID, agentID, tourID, tourName, tourPricePerHead, tourActualOccupancy, tourGivenOccupancy, tourStartDate, GST } = req.body;
     console.log("Req body:", req.body);
     // console.log(req.body.tourSchema.itinerary);
     console.log(tourStartDate);
@@ -30,6 +30,7 @@ router.post('/', async (req, res) => {
         email: req.body.email || 'no-reply@example.com'
       },
       notes: {
+        bookingID,
         agentID,
         tourID,
         tourName,
@@ -39,8 +40,6 @@ router.post('/', async (req, res) => {
         tourStartDate,
         GST,
         finalAmount,
-        customer,
-        travelers
       },
       callback_url: `${req.headers.origin}/thank-you`,
       callback_method: 'get'
