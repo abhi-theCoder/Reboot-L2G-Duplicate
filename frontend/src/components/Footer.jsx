@@ -1,7 +1,7 @@
 import React from "react";
 import { FaPhone, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
 import { Link } from "react-router-dom"; // Make sure you have react-router-dom installed
-import MainLogo from '../../public/Images/main-logo-02-new.png'
+import MainLogo from '../../public/Images/main-logo-03.svg'
 
 const Footer = () => {
   return (

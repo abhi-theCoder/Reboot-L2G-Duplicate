@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactSwitch from 'react-switch';
 import axios from '../api';
-import { MessageSquare, Printer } from "lucide-react";
+import { MessageSquare, Printer, Search, Filter, User, Info, Home, Banknote, FileText, X, Save, Eye } from "lucide-react";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -12,14 +12,30 @@ import { ClipLoader } from 'react-spinners';
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center h-48">
     <ClipLoader
-      color="#4F46E5" // Indigo-600 color
+      color="#4F46E5"
       loading={true}
       size={50}
       aria-label="Loading Spinner"
       data-testid="loader"
     />
+    <span className="ml-3 text-indigo-600">Loading...</span>
   </div>
 );
+
+// --- Status Badge Component ---
+const StatusBadge = ({ status }) => {
+  const statusColors = {
+    active: 'bg-green-100 text-green-800',
+    inactive: 'bg-red-100 text-red-800',
+    pending: 'bg-yellow-100 text-yellow-800'
+  };
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
+      {status}
+    </span>
+  );
+};
 
 // --- Main AgentRequests Component ---
 const AgentRequests = () => {
@@ -36,6 +52,7 @@ const AgentRequests = () => {
   const [filterBy, setFilterBy] = useState('name');
   const [loading, setLoading] = useState(true);
   const [modalLoading, setModalLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
 
   const token = localStorage.getItem('Token');
 
@@ -63,13 +80,13 @@ const AgentRequests = () => {
   const showUserData = async (id) => {
     setModalLoading(true);
     setIsModalOpen(true);
+    setActiveTab('profile');
     try {
       const response = await axios.get(`/api/admin/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProfile(response.data);
 
-      // Fetch parent agent only if exists
       if (response.data.parentAgent) {
         const parentRes = await axios.get(`/api/admin/${response.data.parentAgent}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -93,6 +110,7 @@ const AgentRequests = () => {
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     toast.info(`Updating status to ${newStatus}...`);
+
     try {
       await axios.post(
         '/api/admin/update-status',
@@ -110,6 +128,12 @@ const AgentRequests = () => {
           user._id === id ? { ...user, status: newStatus } : user
         )
       );
+
+      // If the modal is open for this agent, update its status too
+      if (profile && profile._id === id) {
+        setProfile({ ...profile, status: newStatus });
+      }
+
       toast.success(`Status updated to ${newStatus} successfully!`);
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -193,7 +217,6 @@ const AgentRequests = () => {
 
   // --- Print to CSV Function ---
   const handlePrintToCSV = () => {
-    console.log(profile);
     if (!profile) {
       toast.error('No agent data to print.');
       return;
@@ -208,12 +231,11 @@ const AgentRequests = () => {
     };
 
     // Core Agent Details
-    addRow('Database ID (_id)', profile._id || ''); // Added _id
+    addRow('Database ID (_id)', profile._id || '');
     addRow('Agent ID', profile.agentID || '');
     addRow('Name', profile.name || '');
     addRow('Gender', profile.gender || '');
     addRow('Date of Birth', profile.dob ? new Date(profile.dob).toLocaleDateString() : '');
-    console.log( profile.age || '');
     addRow('Age', profile.age || '');
     addRow('Phone (Calling)', profile.phone_calling || '');
     addRow('Phone (WhatsApp)', profile.phone_whatsapp || '');
@@ -224,9 +246,9 @@ const AgentRequests = () => {
     addRow('Wallet Balance', profile.walletBalance || 0);
     addRow('Status', profile.status || '');
     addRow('Remarks', profile.remarks || '');
-    addRow('Office Address', profile.office_address || ''); // Added Office Address
+    addRow('Office Address', profile.office_address || '');
     addRow('Created At', getReadableDate(profile.createdAt)?.customFormat || '');
-    addRow('Last Updated At', getReadableDate(profile.updatedAt)?.customFormat || ''); // Added Updated At
+    addRow('Last Updated At', getReadableDate(profile.updatedAt)?.customFormat || '');
 
     // Parent Agent Details
     if (parentAgentprofile) {
@@ -266,18 +288,14 @@ const AgentRequests = () => {
     addRow('IFSC Code', profile.banking_details?.ifsc_code || '');
     addRow('Branch Name', profile.banking_details?.branch_name || '');
 
-    // Documents (IDs & URLs)
+    // Documents
     addRow('--- Document Details ---', '');
-    addRow('Aadhaar Card Number', profile.aadhar_card || ''); // Added Aadhaar Card Number
-    addRow('PAN Card Number', profile.pan_card || '');       // Added PAN Card Number
-
-    // Note: The following photo URLs seem to be missing from your profile object based on your console.log.
-    // Ensure your API returns these fields if you want them exported.
+    addRow('Aadhaar Card Number', profile.aadhar_card || '');
+    addRow('PAN Card Number', profile.pan_card || '');
     addRow('Aadhaar Front Photo URL', profile.aadhaarPhotoFront || '');
     addRow('Aadhaar Back Photo URL', profile.aadhaarPhotoBack || '');
     addRow('PAN Card Photo URL', profile.panCardPhoto || '');
     addRow('Agent Photo URL', profile.photo || '');
-
 
     const csvString = csvRows.join('\n');
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
@@ -288,43 +306,241 @@ const AgentRequests = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url); // Clean up
+    URL.revokeObjectURL(url);
     toast.success('Agent data exported to CSV!');
   };
 
+  // --- Tab Content Components ---
+  const ProfileTab = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col items-center mb-6">
+        <img
+          src={profile.photo || 'https://via.placeholder.com/150'}
+          alt="Profile"
+          className="w-32 h-32 rounded-full mb-4 object-cover border-4 border-indigo-100"
+        />
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-gray-800">{profile.name || 'N/A'}</h3>
+          <p className="text-indigo-600 font-medium">{profile.agentID || 'N/A'}</p>
+          <div className="mt-2">
+            <StatusBadge status={profile.status} />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+            <User className="mr-2" size={18} /> Personal Information
+          </h4>
+          <div className="space-y-2">
+            <p><span className="font-medium">Gender:</span> {profile.gender || 'N/A'}</p>
+            <p><span className="font-medium">Date of Birth:</span> {profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}</p>
+            <p><span className="font-medium">Age:</span> {profile.age || 'N/A'}</p>
+            <p><span className="font-medium">Phone (Calling):</span> {profile.phone_calling || 'N/A'}</p>
+            <p><span className="font-medium">Phone (WhatsApp):</span> {profile.phone_whatsapp || 'N/A'}</p>
+            <p><span className="font-medium">Email:</span> {profile.email || 'N/A'}</p>
+            <p><span className="font-medium">Profession:</span> {profile.profession || 'N/A'}</p>
+            <p><span className="font-medium">Income:</span> {profile.income || 'N/A'}</p>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+            <Info className="mr-2" size={18} /> Account Details
+          </h4>
+          <div className="space-y-2">
+            <p><span className="font-medium">Wallet ID:</span> {profile.walletID || 'N/A'}</p>
+            <p><span className="font-medium">Wallet Balance:</span> {profile.walletBalance || 'N/A'}</p>
+            <p><span className="font-medium">Created At:</span> {getReadableDate(profile.createdAt)?.customFormat || 'N/A'}</p>
+            <p><span className="font-medium">Remarks:</span> {profile.remarks || 'N/A'}</p>
+            <p><span className="font-medium">Referral (Parent Agent ID):</span> {parentAgentprofile?.agentID || 'N/A'}</p>
+            {parentAgentprofile && (
+              <div className="mt-3 p-3 bg-indigo-50 rounded-md">
+                <h5 className="font-medium text-indigo-700">Parent Agent Details</h5>
+                <p><span className="font-medium">Name:</span> {parentAgentprofile?.name || 'N/A'}</p>
+                <p><span className="font-medium">Phone:</span> {parentAgentprofile?.phone_calling || 'N/A'}</p>
+                <p><span className="font-medium">Email:</span> {parentAgentprofile?.email || 'N/A'}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const AddressTab = () => (
+    <div className="space-y-6">
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+          <Home className="mr-2" size={18} /> Permanent Address
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <p><span className="font-medium">House No:</span> {profile.permanent_address?.house_no || 'N/A'}</p>
+          <p><span className="font-medium">Road No:</span> {profile.permanent_address?.road_no || 'N/A'}</p>
+          <p><span className="font-medium">Flat Name:</span> {profile.permanent_address?.flat_name || 'N/A'}</p>
+          <p><span className="font-medium">Pincode:</span> {profile.permanent_address?.pincode || 'N/A'}</p>
+          <p><span className="font-medium">Village:</span> {profile.permanent_address?.village || 'N/A'}</p>
+          <p><span className="font-medium">District:</span> {profile.permanent_address?.district || 'N/A'}</p>
+          <p><span className="font-medium">State:</span> {profile.permanent_address?.state || 'N/A'}</p>
+          <p><span className="font-medium">Thana:</span> {profile.permanent_address?.thana || 'N/A'}</p>
+          <p><span className="font-medium">Post Office:</span> {profile.permanent_address?.post_office || 'N/A'}</p>
+        </div>
+      </div>
+
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+          <Home className="mr-2" size={18} /> Office Address
+        </h4>
+        <p>{profile.office_address || 'N/A'}</p>
+      </div>
+
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+          <Home className="mr-2" size={18} /> Exclusive Zones
+        </h4>
+        {profile.exclusive_zone && profile.exclusive_zone.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {profile.exclusive_zone.map((zone, index) => (
+              <div key={index} className="p-3 bg-white rounded shadow-sm">
+                <p className="font-medium">Zone {index + 1}</p>
+                <p><span className="font-medium">Pincode:</span> {zone.pincode || 'N/A'}</p>
+                <p><span className="font-medium">Village Preference:</span> {zone.village_preference?.join(', ') || 'N/A'}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No exclusive zones defined.</p>
+        )}
+      </div>
+    </div>
+  );
+
+  const BankingTab = () => (
+    <div className="bg-gray-50 p-4 rounded-lg">
+      <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+        <Banknote className="mr-2" size={18} /> Banking Details
+      </h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p><span className="font-medium">Bank Name:</span> {profile.banking_details?.bank_name || 'N/A'}</p>
+        <p><span className="font-medium">Account Holder:</span> {profile.banking_details?.acc_holder_name || 'N/A'}</p>
+        <p><span className="font-medium">Account Number:</span> {profile.banking_details?.acc_number || 'N/A'}</p>
+        <p><span className="font-medium">IFSC Code:</span> {profile.banking_details?.ifsc_code || 'N/A'}</p>
+        <p><span className="font-medium">Branch Name:</span> {profile.banking_details?.branch_name || 'N/A'}</p>
+      </div>
+    </div>
+  );
+
+  const DocumentsTab = () => (
+    <div className="space-y-6">
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+          <FileText className="mr-2" size={18} /> Document Details
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <p><span className="font-medium">Aadhaar Card Number:</span> {profile.aadhar_card || 'N/A'}</p>
+          <p><span className="font-medium">PAN Card Number:</span> {profile.pan_card || 'N/A'}</p>
+        </div>
+      </div>
+
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3 flex items-center">
+          <FileText className="mr-2" size={18} /> Document Images
+        </h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center">
+            <p className="text-sm font-medium mb-2">Profile Photo</p>
+            <img
+              src={profile.photo || 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=No+Image'}
+              alt="Profile"
+              className="w-full h-40 object-contain rounded border border-gray-200"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium mb-2">Aadhaar Front</p>
+            <img
+              src={profile.aadhaarPhotoFront || 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=No+Image'}
+              alt="Aadhaar Front"
+              className="w-full h-40 object-contain rounded border border-gray-200"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium mb-2">Aadhaar Back</p>
+            <img
+              src={profile.aadhaarPhotoBack || 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=No+Image'}
+              alt="Aadhaar Back"
+              className="w-full h-40 object-contain rounded border border-gray-200"
+            />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium mb-2">PAN Card</p>
+            <img
+              src={profile.panCardPhoto || 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=No+Image'}
+              alt="PAN Card"
+              className="w-full h-40 object-contain rounded border border-gray-200"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <main className="p-6 flex-1">
-      <div className="flex justify-between items-center mb-6">
+    <main className="p-4 md:p-6 flex-1">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <h2 className="text-2xl font-bold text-gray-800">Agent Requests</h2>
+        <div className="flex items-center text-sm text-gray-600">
+          <span className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full mr-2">
+            {users.length} agents
+          </span>
+          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full mr-2">
+            {users.filter(u => u.status === 'active').length} active
+          </span>
+          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+            {users.filter(u => u.status === 'inactive').length} inactive
+          </span>
+        </div>
       </div>
 
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
 
       <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="bg-[rgb(30,58,138)] p-4 text-white font-semibold text-lg flex items-center">
-          <i className="fas fa-list mr-2"></i> Request List
+        <div className="bg-indigo-800 p-4 text-white font-semibold text-lg flex items-center">
+          <User className="mr-2" size={20} /> Agent List
         </div>
-        <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <input
-            type="text"
-            placeholder={
-              filterBy === 'location'
-                ? `Search by ${filterBy}: village, district, state`
-                : `Search by ${filterBy}`
-            }
-            className="border rounded-md p-2 w-full md:w-1/2"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            value={filterBy}
-            onChange={(e) => setFilterBy(e.target.value)}
-            className="border rounded-md p-2 w-full md:w-1/4"
-          >
-            <option value="name">Name</option>
-            <option value="location">Location</option>
-            <option value="phone">Phone</option>
-          </select>
+
+        <div className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gray-50">
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="text-gray-400" size={18} />
+            </div>
+            <input
+              type="text"
+              placeholder={
+                filterBy === 'location'
+                  ? `Search by ${filterBy}: village, district, state`
+                  : `Search by ${filterBy}`
+              }
+              className="border rounded-md pl-10 pr-4 py-2 w-full focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <div className="relative w-full md:w-auto">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Filter className="text-gray-400" size={18} />
+            </div>
+            <select
+              value={filterBy}
+              onChange={(e) => setFilterBy(e.target.value)}
+              className="border rounded-md pl-10 pr-8 py-2 w-full appearance-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="name">Name</option>
+              <option value="location">Location</option>
+              <option value="phone">Phone</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -332,7 +548,13 @@ const AgentRequests = () => {
         ) : (
           <div className="divide-y divide-gray-200">
             {users.length === 0 ? (
-              <p className="p-4 text-gray-500 text-center">No agents found.</p>
+              <div className="p-8 text-center">
+                <div className="text-gray-400 mb-2">
+                  <User size={48} className="mx-auto" />
+                </div>
+                <p className="text-gray-500">No agents found.</p>
+                <p className="text-sm text-gray-400">Try adjusting your search criteria</p>
+              </div>
             ) : (
               users
                 .filter((user) => {
@@ -358,21 +580,94 @@ const AgentRequests = () => {
                 .map((user) => (
                   <div
                     key={user._id}
-                    className="flex justify-between items-center p-4 hover:bg-gray-50 transition"
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 hover:bg-gray-50 transition cursor-pointer"
+                    onClick={() => showUserData(user._id)}
                   >
-                    <div className="flex items-center space-x-4">
-                      <i className="fas fa-user text-indigo-700 text-xl"></i>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="relative">
+                        <img
+                          src={user.photo || 'https://via.placeholder.com/40'}
+                          alt="Profile"
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                        <div className="absolute -bottom-1 -right-1">
+                          <StatusBadge status={user.status} />
+                        </div>
+                      </div>
                       <div>
                         <p className="text-gray-800 font-semibold">{user.name}</p>
                         <p className="text-gray-500 text-sm">
-                          Requested: {getReadableDate(user.createdAt)?.customFormat || 'N/A'}
+                          {user.phone_calling} • {user.email}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-normal">
+                      <div className="text-right sm:text-left">
+                        <p className="text-sm text-gray-600">
+                          {user.permanent_address?.district || 'Location not set'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Joined: {getReadableDate(user.createdAt)?.customFormat || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            showUserData(user._id);
+                          }}
+                        >
+                          <Eye size={16} className="mr-1" />
+                          View
+                        </button>
+                        <MessageSquare
+                          className="text-gray-500 hover:text-indigo-600 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openRemarksModal(user._id, user.remarks || '');
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Agent Details Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-auto p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-xl">
+            <button
+              onClick={() => {
+                setIsModalOpen(false);
+                setProfile(null);
+                setParentAgentProfile(null);
+              }}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition"
+            >
+              <X size={24} />
+            </button>
+
+            {modalLoading ? (
+              <LoadingSpinner />
+            ) : profile ? (
+              <>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <h3 className="text-2xl font-bold text-indigo-700">
+                      Agent Details: {profile.name}
+                    </h3>
+                    <div className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
+                      <span className="text-sm font-medium capitalize">
+                        {profile.status}
+                      </span>
                       <ReactSwitch
-                        checked={user.status === 'active'}
-                        onChange={() => toggleStatus(user._id, user.status)}
+                        checked={profile.status === 'active'}
+                        onChange={() => toggleStatus(profile._id, profile.status)}
                         offColor="#888"
                         onColor="#4CAF50"
                         offHandleColor="#fff"
@@ -382,293 +677,110 @@ const AgentRequests = () => {
                         height={20}
                         width={50}
                       />
-                      <span className="ml-2 text-sm text-gray-600 capitalize">
-                        {user.status}
-                      </span>
-                      <button
-                        onClick={() => showUserData(user._id)}
-                        type="button"
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md shadow-md transition-transform transform hover:scale-105 duration-300 cursor-pointer"
-                      >
-                        View
-                      </button>
-                      <MessageSquare
-                        className="text-gray-500 hover:text-indigo-600 cursor-pointer"
-                        onClick={() => openRemarksModal(user._id, user.remarks || '')}
-                      />
                     </div>
                   </div>
-                ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 overflow-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto relative m-4">
-            <button
-              onClick={() => {
-                setIsModalOpen(false);
-                setProfile(null);
-                setParentAgentProfile(null);
-              }}
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
-            >
-              ×
-            </button>
-
-            <h3 className="text-2xl font-bold mb-4 text-indigo-700 text-center">
-              Agent Full Details
-            </h3>
-
-            {modalLoading ? (
-              <LoadingSpinner />
-            ) : profile ? (
-              <>
-                {/* Print Button */}
-                <div className="flex justify-end mb-4">
                   <button
                     onClick={handlePrintToCSV}
                     className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md shadow-md flex items-center gap-2"
                   >
-                    <Printer size={18} /> Print to CSV
+                    <Printer size={18} /> Export to CSV
                   </button>
                 </div>
-
-                {/* Profile Section */}
-                <div className="flex flex-col items-center mb-6">
-                  <img
-                    src={profile.photo || 'https://via.placeholder.com/150'}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full mb-4 object-cover"
-                  />
-                  <div className="text-center">
-                    <p>
-                      <strong>Agent ID:</strong> {profile.agentID || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Name:</strong> {profile.name || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Gender:</strong> {profile.gender || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Date of Birth:</strong>{' '}
-                      {profile.dob ? new Date(profile.dob).toLocaleDateString() : 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Age:</strong> {profile.age || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Phone (Calling):</strong> {profile.phone_calling || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Phone (WhatsApp):</strong> {profile.phone_whatsapp || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Email:</strong> {profile.email || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Profession:</strong> {profile.profession || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Income:</strong> {profile.income || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Wallet ID:</strong> {profile.walletID || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Wallet Balance:</strong> {profile.walletBalance || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Status:</strong> {profile.status || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Remarks:</strong> {profile.remarks || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Created At:</strong>{' '}
-                      {getReadableDate(profile.createdAt)?.customFormat || 'N/A'}
-                    </p>
-                    <p>
-                      <strong>Referral (Parent Agent ID):</strong>{' '}
-                      {parentAgentprofile?.agentID || 'N/A'}
-                    </p>
-                    {parentAgentprofile && (
-                      <div className="mt-2 text-sm text-gray-700 bg-gray-100 p-3 rounded-md">
-                        <p>
-                          <strong>Parent Name:</strong> {parentAgentprofile?.name || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Parent Phone:</strong> {parentAgentprofile?.phone_calling || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Parent Email:</strong> {parentAgentprofile?.email || 'N/A'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                {/* Tabs */}
+                <div className="border-b border-gray-200 mb-6">
+                  <nav className="-mb-px flex space-x-8">
+                    <button
+                      onClick={() => setActiveTab('profile')}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                      <User className="inline mr-2" size={16} />
+                      Profile
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('address')}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'address' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                      <Home className="inline mr-2" size={16} />
+                      Address
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('banking')}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'banking' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                      <Banknote className="inline mr-2" size={16} />
+                      Banking
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('documents')}
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'documents' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                      <FileText className="inline mr-2" size={16} />
+                      Documents
+                    </button>
+                  </nav>
                 </div>
 
-                <hr className="my-4" />
-
-                {/* Address Section */}
-                <h4 className="text-lg font-semibold text-gray-700 mb-2">
-                  Permanent Address
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                  <p>
-                    <strong>House No:</strong> {profile.permanent_address?.house_no || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Road No:</strong> {profile.permanent_address?.road_no || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Flat Name:</strong> {profile.permanent_address?.flat_name || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Pincode:</strong> {profile.permanent_address?.pincode || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Village:</strong> {profile.permanent_address?.village || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>District:</strong> {profile.permanent_address?.district || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>State:</strong> {profile.permanent_address?.state || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Thana:</strong> {profile.permanent_address?.thana || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Post Office:</strong> {profile.permanent_address?.post_office || 'N/A'}
-                  </p>
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Exclusive Zones */}
-                <h4 className="text-lg font-semibold text-gray-700 mb-2">
-                  Exclusive Zones
-                </h4>
-                <div className="space-y-3 mb-4">
-                  {profile.exclusive_zone && profile.exclusive_zone.length > 0 ? (
-                    profile.exclusive_zone.map((zone, index) => (
-                      <div key={index} className="p-2 bg-gray-100 rounded">
-                        <p>
-                          <strong>Pincode:</strong> {zone.pincode || 'N/A'}
-                        </p>
-                        <p>
-                          <strong>Village Preference:</strong>{' '}
-                          {zone.village_preference?.join(', ') || 'N/A'}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-500">No exclusive zones defined.</p>
-                  )}
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Banking Details */}
-                <h4 className="text-lg font-semibold text-gray-700 mb-2">
-                  Banking Details
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                  <p>
-                    <strong>Bank Name:</strong> {profile.banking_details?.bank_name || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Account Holder:</strong>{' '}
-                    {profile.banking_details?.acc_holder_name || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Account Number:</strong>{' '}
-                    {profile.banking_details?.acc_number || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>IFSC Code:</strong> {profile.banking_details?.ifsc_code || 'N/A'}
-                  </p>
-                  <p>
-                    <strong>Branch Name:</strong> {profile.banking_details?.branch_name || 'N/A'}
-                  </p>
-                </div>
-
-                <hr className="my-4" />
-
-                {/* Documents */}
-                <h4 className="text-lg font-semibold text-gray-700 mb-2">Documents</h4>
-                <div className="flex flex-wrap justify-center gap-4">
-                  <div className="text-center">
-                    <p className="text-sm font-semibold">Aadhaar Front</p>
-                    <img
-                      src={profile.aadhaarPhotoFront || 'https://via.placeholder.com/100/CCCCCC/FFFFFF?text=No+Image'}
-                      alt="Aadhaar Front"
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold">Aadhaar Back</p>
-                    <img
-                      src={profile.aadhaarPhotoBack || 'https://via.placeholder.com/100/CCCCCC/FFFFFF?text=No+Image'}
-                      alt="Aadhaar Back"
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-semibold">PAN Card</p>
-                    <img
-                      src={profile.panCardPhoto || 'https://via.placeholder.com/100/CCCCCC/FFFFFF?text=No+Image'}
-                      alt="PAN Card"
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  </div>
+                {/* Tab Content */}
+                <div className="min-h-[400px]">
+                  {activeTab === 'profile' && <ProfileTab />}
+                  {activeTab === 'address' && <AddressTab />}
+                  {activeTab === 'banking' && <BankingTab />}
+                  {activeTab === 'documents' && <DocumentsTab />}
                 </div>
               </>
             ) : (
-              <p className="text-center text-gray-500">No agent details available.</p>
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <User size={48} className="mx-auto" />
+                </div>
+                <p className="text-gray-500">No agent details available.</p>
+              </div>
             )}
           </div>
         </div>
       )}
 
+      {/* Remarks Modal */}
       {remarksModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
           <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg relative">
             <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl"
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition"
               onClick={() => setRemarksModalOpen(false)}
             >
-              ×
+              <X size={24} />
             </button>
-            <h3 className="text-xl font-bold mb-4 text-indigo-700">Agent Remarks</h3>
+
+            <div className="flex items-center mb-4">
+              <MessageSquare className="text-indigo-600 mr-2" size={20} />
+              <h3 className="text-xl font-bold text-gray-800">Agent Remarks</h3>
+            </div>
+
             <textarea
               value={currentRemarks}
               onChange={(e) => setCurrentRemarks(e.target.value)}
               rows={5}
-              className="w-full border border-gray-300 rounded-md p-2 resize-none"
+              className="w-full border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Write your remarks here..."
             />
-            <div className="flex justify-end mt-4 space-x-8">
+
+            <div className="flex justify-end mt-6 space-x-3">
               <button
                 onClick={() => {
                   setRemarksModalOpen(false);
                   setRemarksAgentId(null);
                   setCurrentRemarks('');
                 }}
-                className="text-gray-600 hover:text-gray-800 font-medium"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition"
               >
                 Cancel
               </button>
-
               <button
                 onClick={saveRemarks}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-semibold"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md flex items-center transition"
               >
-                Save
+                <Save className="mr-2" size={16} />
+                Save Remarks
               </button>
             </div>
           </div>

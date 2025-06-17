@@ -23,6 +23,12 @@ import TravelExperience from './pages/TravelExperience';
 import EditTour from './components/EditTour';
 import CustomerForum from './pages/CustomerForum';
 import TermsAndConditionsNew from './pages/EditTermsAndConditions';
+import L2gServices from './pages/L2gServices';
+import CommunityServices from './pages/CommunityServices';
+import ConnectUs from './pages/ContactForm';
+import About from './pages/About'; 
+import SuperAdminLogin from './pages/SuperAdminLogin';
+
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -93,15 +99,17 @@ function App() {
             </SuperadminProtectedRoute>
           }
         />
-
         <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-
         <Route path="/travel-experience" element={<TravelExperience />} />
-
         <Route path="/customer-forum" element={<CustomerForum />} />
-
         <Route path="/terms-and-conditions-new" element={<TermsAndConditionsNew />} />
+        <Route path="/l2g-services" element={<L2gServices />} />
+        <Route path="/community-services" element={<CommunityServices />} />
+        <Route path="/connect-us" element={<ConnectUs />} />
+        <Route path="/About" element={<About />} />
+        <Route  path="/superadmin-login" element={<SuperAdminLogin />} />
 
+        {/* Login Page */}
       </Routes>
     </BrowserRouter>
   );

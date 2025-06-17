@@ -116,8 +116,8 @@ const Login = () => {
 
           {/* Right Side Form */}
           <div className="w-full md:w-1/2 p-8 lg:p-12">
-            <h2 className="lg:text-6xl text-3xl font-bold text-[#113A5F] mb-2">Welcome Back!</h2>
-            <p className="text-black text-lg mb-6">Sign in to continue your booking journey</p>
+            <h2 className="lg:text-5xl text-3xl font-bold text-[#113A5F] mb-10">Sign In to Your Account</h2>
+            {/* <p className="text-black text-lg mb-6">Sign in to continue your booking journey</p> */}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* Email or Phone */}

@@ -201,6 +201,21 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
                 {!collapsed && <span>Check Booking</span>}
               </div>
             )}
+            {/* Forum Moderation tab for superadmin only */}
+            {role === 'superadmin' && (
+              <div
+                onClick={() => {
+                  setActiveView('forumModeration');
+                  setView?.('forumModeration');
+                }}
+                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative cursor-pointer ${activeView === 'forumModeration' ? 'active-menu-item' : ''}`}
+              >
+                <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
+                  <FontAwesomeIcon icon={faUsers} />
+                </div>
+                {!collapsed && <span>Forum Moderation</span>}
+              </div>
+            )}
           </div>
 
           {!collapsed && (
