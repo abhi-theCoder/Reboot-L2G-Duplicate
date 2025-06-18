@@ -10,6 +10,8 @@ import Account from '../components/Account';
 import CancellationRequests from '../components/CancellationRequests';
 import TermsAndConditionsNew from '../pages/EditTermsAndConditions';
 import CheckBooking from '../components/CheckBooking';
+import ForumModeration from '../pages/ForumModeration';
+import MasterDataDashboard from '../pages/MasterDataDashboard';
 
 function Dashboard() {
   const [view, setView] = useState('dashboard');
@@ -35,6 +37,10 @@ function Dashboard() {
         return <TermsAndConditionsNew />;
       case 'checkBooking':
         return <CheckBooking />;
+      case 'forumModeration':
+        return <ForumModeration />;
+      case 'masterDataDashboard':
+        return <MasterDataDashboard />;
       default:
         return <MainContent />;
     }

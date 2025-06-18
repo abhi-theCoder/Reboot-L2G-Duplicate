@@ -13,6 +13,7 @@ import Swal from "sweetalert2";
 import { useLocation } from "react-router-dom";
 import InnerBanner from "../components/InnerBanner";
 import LoginPrompt from "../components/LoginPrompt";
+import NoToursFound from "../components/NoToursFound";
 
 // Helper function to format date
 const formatDateForDisplay = (isoDateString) => {
@@ -245,10 +246,14 @@ const TourPrograms = () => {
               <p className="ml-4 text-lg text-blue-600">Loading available tour dates...</p>
             </div>
           )}
-          {error && (
-            <div className="text-center text-lg text-red-500 bg-red-100 p-4 rounded-md border border-red-200">
-              {error}
-            </div>
+          {error && typeof error === 'string' && error.includes('No tours found for type') ? (
+            <NoToursFound tourType={tourTypeFromUrl} />
+          ) : (
+            error && (
+              <div className="text-center text-lg text-red-500 bg-red-100 p-4 rounded-md border border-red-200">
+                {error}
+              </div>
+            )
           )}
 
           {!loading && !error && (

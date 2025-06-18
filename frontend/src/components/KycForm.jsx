@@ -91,8 +91,8 @@ const CustomerForm = () => {
         // Section B
         tourType: '',
         throughAgent: 'no',
-        agentName: '',
-        agentId: '',
+        // agentName: '',
+        agentID: '',
         selectedTrip: '',
         country: '',
 
@@ -118,8 +118,9 @@ const CustomerForm = () => {
     const token = localStorage.getItem('Token');
     const role = localStorage.getItem('role');
     const tourID = searchParams.get('t');
-
+    const agentIDFromURL = searchParams.get('a') || ''; 
     // Initialize passengers and childPassengers arrays based on numPersons/numChildren
+
     useEffect(() => {
         const numAdults = Number(formData.numPersons);
         const numKids = Number(formData.numChildren);
@@ -177,6 +178,14 @@ const CustomerForm = () => {
         }
     }, [tourID, token, role]);
 
+    useEffect(() => {
+        // Set agentID from URL when the component mounts or when the URL changes
+        setFormData(prev => ({
+            ...prev,
+            agentID: agentIDFromURL,
+        }));
+    }, [agentIDFromURL]);
+
     const getBooking = async() =>{
         try{
             console.log(tourID);
@@ -209,8 +218,8 @@ const CustomerForm = () => {
 //             selectedTrip: data.tour?.name || '',
 //             tourType: tour?.tourType || '', // Already fetched from getTourDetails
 //             country: tour?.country || '',
-//             throughAgent: data.agent?.agentId ? 'yes' : 'no',
-//             agentId: data.agent?.agentId || '',
+//             throughAgent: data.agent?.agentID ? 'yes' : 'no',
+//             agentID: data.agent?.agentID || '',
 //             agentName: data.agent?.name || '',
 
 //             // Section C
@@ -266,9 +275,9 @@ useEffect(() => {
             selectedTrip: data.tour?.name || '',
             tourType: tour?.tourType || '',
             country: tour?.country || '',
-            throughAgent: data.agent?.agentId ? 'yes' : 'no',
-            agentId: data.agent?.agentId || '',
-            agentName: data.agent?.name || '',
+            throughAgent: agentIDFromURL ? 'yes' : 'no',
+            agentID: agentIDFromURL || '',
+            // agentName: data.agent?.name || '',
 
             // Section C
             numPersons: `${adults.length || 1}`, // Ensure at least 1 adult
@@ -337,8 +346,8 @@ useEffect(() => {
                 },
                 travelers: allTravelers, // Send all travelers
                 agent: formData.throughAgent === 'yes' ? {
-                    agentId: formData.agentId,
-                    name: formData.agentName,
+                    agentID: formData.agentID,
+                    // name: formData.agentName,
                 } : null,
             };
 
@@ -369,7 +378,8 @@ useEffect(() => {
             await saveBooking();
 
             const givenOccupancy = searchParams.get('p');
-            const agentID = searchParams.get('a') || '';
+            // const agentID = searchParams.get('a') || '';
+            // const agentID = formData.throughAgent === 'yes' ? formData.agentID : '';
             const tourName = tour.name;
             const tourPricePerHead = tour.pricePerHead;
             const tourActualOccupancy = tour.occupancy;
@@ -383,7 +393,7 @@ useEffect(() => {
             const response = await axios.post(
                 '/api/generate-payment-link',
                 {   bookingID,
-                    agentID,
+                    agentID: formData.throughAgent === 'yes' ? formData.agentID : '',
                     tourID,
                     tourName,
                     tourPricePerHead,
@@ -611,6 +621,14 @@ useEffect(() => {
     </div>
     );
     
+    // Redirect to login if not authenticatedAdd commentMore actions
+    useEffect(() => {
+        const token = localStorage.getItem('Token');
+        if (!token) {
+            navigate('/login', { state: { from: location.pathname + location.search } });
+        }
+    }, [navigate, location]);
+    
     return (
         <div className="container mx-auto px-4 py-8 max-w-5xl">
             <div className="bg-white rounded-lg shadow-lg p-6">
@@ -800,7 +818,7 @@ useEffect(() => {
                     )}
 
                     {/* Section B: Package Details */}
-                    {currentSection === 'B' && (
+                    {/* {currentSection === 'B' && (
                         <motion.div
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: 1, x: 0 }}
@@ -866,14 +884,115 @@ useEffect(() => {
                                             <input type="text" id="agentName" name="agentName" value={formData.agentName} onChange={handleChange} placeholder="Enter agent's full name" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
                                         </div>
                                         <div>
-                                            <label htmlFor="agentId" className="block text-sm font-medium text-gray-700 mb-1">Agent ID</label>
-                                            <input type="text" id="agentId" name="agentId" value={formData.agentId} onChange={handleChange} placeholder="Enter agent's ID" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+                                            <label htmlFor="agentID" className="block text-sm font-medium text-gray-700 mb-1">Agent ID</label>
+                                            <input type="text" id="agentID" name="agentID" value={formData.agentID} onChange={handleChange} placeholder="Enter agent's ID" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
                                         </div>
                                     </>
                                 )}
                             </div>
                         </motion.div>
-                    )}
+                    )} */}
+{/* Section B: Package Details */}
+{currentSection === 'B' && (
+    <motion.div
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 50 }}
+        transition={{ duration: 0.3 }}
+    >
+        <h2 className="text-2xl font-semibold mb-6 text-gray-700">Section B: Package Details</h2>
+        <p className="text-gray-500 mb-6">Information about your selected package and trip. These fields are pre-filled.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label htmlFor="tourType" className="block text-sm font-medium text-gray-700 mb-1">Tour Type<span className="text-red-500">*</span></label>
+                <input
+                    type="text"
+                    id="tourType"
+                    name="tourType"
+                    value={formData.tourType}
+                    readOnly // Make non-editable
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
+                />
+                {errors.tourType && <p className="text-red-500 text-xs mt-1">{errors.tourType}</p>}
+            </div>
+            <div>
+                <label htmlFor="selectedTrip" className="block text-sm font-medium text-gray-700 mb-1">Selected Trip<span className="text-red-500">*</span></label>
+                <input
+                    type="text"
+                    id="selectedTrip"
+                    name="selectedTrip"
+                    value={formData.selectedTrip}
+                    readOnly // Make non-editable
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
+                />
+                {errors.selectedTrip && <p className="text-red-500 text-xs mt-1">{errors.selectedTrip}</p>}
+            </div>
+            <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                <input
+                    type="text"
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    readOnly // Make non-editable
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
+                />
+                {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Through Agent?</label>
+                <div className="flex items-center space-x-4">
+                    <label className="inline-flex items-center">
+                        <input
+                            type="radio"
+                            name="throughAgent"
+                            value="yes"
+                            // If agentIDFromURL exists, force "yes" and make it readOnly
+                            checked={formData.throughAgent === 'yes' || !!agentIDFromURL}
+                            onChange={handleChange}
+                            className="form-radio text-blue-600"
+                            disabled={!!agentIDFromURL} // Disable if agentID from URL is present
+                        />
+                        <span className="ml-2 text-gray-700">Yes</span>
+                    </label>
+                    <label className="inline-flex items-center">
+                        <input
+                            type="radio"
+                            name="throughAgent"
+                            value="no"
+                            // If agentIDFromURL exists, force "yes" and make this "no" unchecked and disabled
+                            checked={formData.throughAgent === 'no' && !agentIDFromURL}
+                            onChange={handleChange}
+                            className="form-radio text-blue-600"
+                            disabled={!!agentIDFromURL} // Disable if agentID from URL is present
+                        />
+                        <span className="ml-2 text-gray-700">No</span>
+                    </label>
+                </div>
+            </div>
+            {/* Display agentID field if throughAgent is 'yes' OR if agentIDFromURL is present */}
+            {(formData.throughAgent === 'yes' || !!agentIDFromURL) && (
+                <div>
+                    <label htmlFor="agentID" className="block text-sm font-medium text-gray-700 mb-1">Agent ID</label>
+                    <input
+                        type="text"
+                        id="agentID"
+                        name="agentID"
+                        value={formData.agentID}
+                        // Make it read-only if the value comes from the URL, otherwise it's editable
+                        readOnly={!!agentIDFromURL}
+                        // Apply disabled styling if read-only
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm ${!!agentIDFromURL ? 'bg-gray-100 cursor-not-allowed' : 'focus:ring-blue-500 focus:border-blue-500'}`}
+                        // Only allow changes if not from URL
+                        onChange={!agentIDFromURL ? handleChange : undefined}
+                        placeholder="Enter agent's ID"
+                    />
+                </div>
+            )}
+            {/* Removed the agentName field completely  */}
+        </div>
+    </motion.div>
+)}
 
                     {/* Section C: Passenger Details */}
                     {currentSection === 'C' && (
@@ -1091,8 +1210,8 @@ useEffect(() => {
                                     <Info label="Through Agent" value={formData.throughAgent === 'yes' ? 'Yes' : 'No'} />
                                     {formData.throughAgent === 'yes' && (
                                         <>
-                                        <Info label="Agent Name" value={formData.agentName} />
-                                        <Info label="Agent ID" value={formData.agentId} />
+                                        {/* <Info label="Agent Name" value={formData.agentName} /> */}
+                                        <Info label="Agent ID" value={formData.agentID} />
                                         </>
                                     )}
                                     </div>

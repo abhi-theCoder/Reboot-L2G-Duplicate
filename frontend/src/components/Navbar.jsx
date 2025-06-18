@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import MainLogo from '../../public/Images/main-logo-02-new.png';
+import MainLogo from '../../public/Images/main-logo-03.svg';
 import { FaUser, FaBars, FaTimes } from "react-icons/fa";
 import axios from '../api';
 
@@ -162,15 +162,27 @@ const Navbar = () => {
       <div className="flex justify-between items-center px-4 sm:px-6 lg:px-12 py-3 relative z-50">
         <div className="flex-shrink-0">
           <Link to='/' className="block">
-            <img src={MainLogo} alt="Main Logo" className="h-12 lg:h-[100px]" />
+            <img src={MainLogo} alt="Main Logo" className="h-12 lg:h-[120px]" />
           </Link>
         </div>
 
-        <div className="flex-grow flex justify-center mx-4">
-          <p className="bg-[#011A4D] max-w-[800px] w-full py-3 lg:py-4 lg:px-4 px-2 sm:py-2 text-center text-white font-bold text-md sm:text-lg lg:text-3xl rounded-t-2xl shadow-lg hidden md:block">
-            L2g Cruise & Cure Travel Management Pvt. Ltd.
+        <div className="relative flex-grow flex justify-center mx-4 overflow-hidden max-w-[800px]">
+          <svg
+            className="absolute inset-0 w-full h-full rounded-t-2xl bg-[#98ae2a]"
+            viewBox="0 0 800 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0,100 C200,0 600,0 800,100 L800,0 L0,0 Z"
+              fill="#AAC236"
+            />
+          </svg>
+
+          <p className="relative max-w-[800px] w-full py-4 px-2 lg:py-6 lg:px-6 text-center text-white font-bold text-md sm:text-lg lg:text-3xl rounded-t-2xl shadow-lg hidden md:block">
+            L2G Cruise & Cure Travel Management Pvt. Ltd.
           </p>
         </div>
+
 
         <div className="flex-shrink-0 flex items-center gap-4">
           <div className="lg:hidden">

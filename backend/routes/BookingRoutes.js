@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const Tour = require('../models/Tour');
+const Agent = require('../models/Agent');
 const authenticate = require('../middleware/authMiddleware');
 const authenticateSuperAdmin = require('../middleware/authSuperadminMiddleware');
 const express = require('express');
@@ -12,6 +13,13 @@ const createBooking = async (req, res) => {
     console.log(req.body);
     if ( !bookingID || !tour || !customer || !customer.name || !customer.email || !req.user || !req.user.id || !travelers || !Array.isArray(travelers) || travelers.length === 0) {
       return res.status(400).json({ error: 'Missing required booking fields.' });
+    }
+
+    if(agent){
+      agentDetails = await Agent.findOne({agentID : agent.agentID});
+      if(!agentDetails){
+        return res.status(400).json({ error: 'Invalid AgentID entered.' });
+      }
     }
 
     // Validate individual travelers
