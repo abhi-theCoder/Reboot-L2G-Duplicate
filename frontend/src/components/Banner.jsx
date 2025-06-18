@@ -33,7 +33,7 @@ const Banner = () => {
             <div className="absolute inset-0 bg-black/40"></div>
             <div className="w-full flex justify-center items-center h-full relative z-10">
               <div className="border-0 text-center flex flex-col gap-5 justify-center items-center w-full px-4 sm:px-8 md:px-16 lg:px-0 max-w-4xl mx-auto">
-                <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-white leading-tight">
+                <h1 className="font-bold text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[50px] text-white leading-tight">
                   Exclusive Leisure and Medical Tours for Your Ultimate Well-Being
                 </h1>
                 <p className="text-sm sm:text-base md:text-lg text-gray-50 my-6 sm:my-8">

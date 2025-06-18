@@ -1,31 +1,28 @@
+// Sidebar.js
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-import MainLogo from '../../public/main-logo.png';
-import axios from '../api';
-
 import {
+  faSignOutAlt,
   faThLarge,
   faTasks,
   faChartBar,
   faUsers,
-  faBullhorn,
-  faUserTie,
   faPaperPlane,
   faCog,
   faUser,
   faChevronLeft,
   faChevronRight,
-  faFileContract, // Add this icon for Terms & Conditions
+  faFileContract
 } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
-import AgentRequests from './AgentRequest';
+import MainLogo from '../../public/main-logo.png';
+import axios from '../api';
 
 const Sidebar = ({ collapsed, setCollapsed, setView }) => {
   const [activeView, setActiveView] = useState('dashboard');
   const [inactiveCount, setInactiveCount] = useState(0);
   const token = localStorage.getItem('Token');
-  const role = localStorage.getItem('role'); // Get user role
+  const role = localStorage.getItem('role');
 
   useEffect(() => {
     const fetchInactiveUsers = async () => {
@@ -45,210 +42,117 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const toggleSidebar = () => {
-    setCollapsed(prev => !prev);
-  };
-
-  const handleItemClick = (view) => {
-    if (view) {
-      setActiveView(view);
-      setView?.(view);
-    }
-  };
-
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = '/';
   };
 
+  const handleItemClick = (view) => {
+    setActiveView(view);
+    setView?.(view);
+  };
+
+  const toggleSidebar = () => {
+    setCollapsed(prev => !prev);
+  };
+
+  const commonMenu = [
+    { icon: faThLarge, label: 'Dashboard', view: 'dashboard' },
+    { icon: faTasks, label: 'Add Tour', view: 'addTour' },
+    { icon: faChartBar, label: 'View Tours', view: 'FetchTours' },
+    { icon: faChartBar, label: 'Edit Tours', view: 'EditTours' }
+  ];
+
+  const businessMenu = [
+    { icon: faPaperPlane, label: 'Requests', view: 'requests', badge: inactiveCount },
+    { icon: faTasks, label: 'Cancellations', view: 'cancellations' }
+  ];
+
+  const superAdminMenu = [
+    { icon: faFileContract, label: 'Terms & Conditions', view: 'terms' },
+    { icon: faChartBar, label: 'Check Booking', view: 'checkBooking' },
+    { icon: faUsers, label: 'Forum Moderation', view: 'forumModeration' },
+    { icon: faUsers, label: 'Master Data Dashboard', view: 'masterDataDashboard' }
+  ];
+
+  const accountMenu = [
+    { icon: faCog, label: 'Settings' },
+    { icon: faUser, label: 'Account', view: 'account' },
+    { icon: faSignOutAlt, label: 'Logout', action: handleLogout }
+  ];
+
   return (
-    <div
-      className={`fixed inset-y-0 left-0 ${collapsed ? 'w-20' : 'w-64'
-        } bg-blue-900 text-white z-10 transition-all duration-300 ease-in-out hidden md:block`}
-    >
-      {/* Top Section */}
+    <div className={`fixed inset-y-0 left-0 ${collapsed ? 'w-20' : 'w-66'} bg-blue-900 text-white z-10 transition-all duration-300 ease-in-out hidden md:block`}>
+      {/* Header */}
       <div className="p-5 flex items-center justify-between border-b border-indigo-400 border-opacity-30 relative">
-        <div className="flex items-center">
-          <Link to="/" className='flex items-center'>
-            <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-3">
-              {!collapsed ? (
-                <span className="text-indigo-600 font-bold text-xl p-1">
-                  <img src={MainLogo} alt="Home" />
-                </span>
-              ) : (
-                <span className="text-indigo-600 font-bold text-xl">
-                  <img src={MainLogo} alt="Home" />
-                </span>
-              )}
-            </div>
-            {!collapsed && (
-              <span className="text-white font-bold text-xl sidebar-text">L2G Cruise</span>
-            )}
-          </Link>
-        </div>
-        <button
-          onClick={toggleSidebar}
-          className="text-white focus:outline-none h-8 w-8 flex items-center justify-center rounded-full bg-black hover:bg-opacity-50 transition-all absolute -right-4"
-        >
-          <FontAwesomeIcon icon={collapsed ? faChevronRight : faChevronLeft} className="text-sm" />
+        <Link to="/" className="flex items-center">
+          <div className="h-10 w-10 rounded-lg bg-white flex items-center justify-center mr-3">
+            <img src={MainLogo} alt="Home" />
+          </div>
+          {!collapsed && <span className="text-white font-bold text-xl">L2G Cruise</span>}
+        </Link>
+        <button onClick={toggleSidebar} className="absolute -right-4 h-8 w-8 bg-black rounded-full flex items-center justify-center hover:bg-opacity-50">
+          <FontAwesomeIcon icon={collapsed ? faChevronRight : faChevronLeft} />
         </button>
       </div>
 
-      {/* Menu */}
-      <div className="overflow-y-auto h-[74vh] scrollbar">
-        <nav className="mt-4 px-3">
-          {!collapsed && (
-            <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider px-3 mb-2">
-              Main Menu
-            </p>
-          )}
+      {/* Menu Section */}
+      <div className="overflow-y-auto h-[74vh] px-3 pt-4 scrollbar">
+        {!collapsed && <p className="text-indigo-200 text-xs font-medium uppercase mb-2">Main Menu</p>}
 
-          {[
-            { icon: faThLarge, label: 'Dashboard', view: 'dashboard' },
-            { icon: faTasks, label: 'Add Tour', view: 'addTour' },
-            { icon: faChartBar, label: 'View Tours', view: 'FetchTours' },
-            { icon: faChartBar, label: 'Edit Tours', view: 'EditTours' },
-            // { icon: faChartBar, label: 'Analytics', view: 'analytics' },
-            // { icon: faUsers, label: 'Teams' },
-          ].map(item => (
-            <Link
-              to={item.path} // Use Link for navigation
-              key={item.label}
-              onClick={() => {
-                if (item.view) {
-                  setActiveView(item.view); // Set active view
-                  setView?.(item.view); // Call parent setView if provided
-                }
-              }}
-              className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative ${activeView === item.view ? 'active-menu-item' : ''
-                }`}
-            >
-              <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
-                <FontAwesomeIcon icon={item.icon} />
-              </div>
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          ))}
+        {[...commonMenu, ...businessMenu].map(item => (
+          <div
+            key={item.label}
+            onClick={() => handleItemClick(item.view)}
+            className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''}`}
+          >
+            <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
+              <FontAwesomeIcon icon={item.icon} />
+            </div>
+            {!collapsed && (
+              <>
+                <span>{item.label}</span>
+                {item.badge !== undefined && (
+                  <span className="ml-auto bg-red-400 text-xs px-2 py-1 rounded-full">{item.badge}</span>
+                )}
+              </>
+            )}
+          </div>
+        ))}
 
-          {!collapsed && (
-            <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider px-3 mb-2 mt-6">
-              Business
-            </p>
-          )}
-
-          <div className="space-y-2">
-            {[
-              // { icon: faBullhorn, label: 'Campaigns', view: 'campaigns', path: '/campaigns' },
-              // { icon: faUserTie, label: 'Clients', view: 'clients', path: '/clients' },
-              { icon: faPaperPlane, label: 'Requests', view: 'requests' },
-              { icon: faTasks, label: 'Cancellations', view: 'cancellations' },
-            ].map(item => (
-              <Link
-                to={item.path}
+        {/* Super Admin Section */}
+        {role === 'superadmin' && (
+          <>
+            {!collapsed && <p className="text-indigo-200 text-xs font-medium uppercase mb-2 mt-6">Admin Only</p>}
+            {superAdminMenu.map(item => (
+              <div
                 key={item.label}
-                onClick={() => {
-                  if (item.view) {
-                    setActiveView(item.view);
-                    setView?.(item.view);
-                  }
-                }}
-                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] hover:bg-opacity-10 rounded-xl cursor-pointer relative ${activeView === item.view ? 'active-menu-item' : ''
-                  }`}
+                onClick={() => handleItemClick(item.view)}
+                className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''}`}
               >
                 <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
                   <FontAwesomeIcon icon={item.icon} />
                 </div>
-                {!collapsed && (
-                  <>
-                    <span>{item.label}</span>
-                    {/* {item.label === 'Campaigns' && (
-                      <span className="ml-auto bg-indigo-500 text-xs px-2 py-1 rounded-full">3</span>
-                    )} */}
-                    {item.label === 'Requests' && (
-                      <span className="ml-auto bg-red-400 text-xs px-2 py-1 rounded-full">{inactiveCount}</span>
-                    )}
-                  </>
-                )}
-              </Link>
+                {!collapsed && <span>{item.label}</span>}
+              </div>
             ))}
-            {/* Terms & Conditions tab for superadmin only */}
-            {role === 'superadmin' && (
-              <div
-                onClick={() => {
-                  setActiveView('terms');
-                  setView?.('terms');
-                }}
-                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative cursor-pointer ${activeView === 'terms' ? 'active-menu-item' : ''}`}
-              >
-                <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
-                  <FontAwesomeIcon icon={faFileContract} />
-                </div>
-                {!collapsed && <span>Terms & Conditions</span>}
-              </div>
-            )}
-            {/* Check Booking tab for superadmin only */}
-            {role === 'superadmin' && (
-              <div
-                onClick={() => {
-                  setActiveView('checkBooking');
-                  setView?.('checkBooking');
-                }}
-                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative cursor-pointer ${activeView === 'checkBooking' ? 'active-menu-item' : ''}`}
-              >
-                <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
-                  <FontAwesomeIcon icon={faChartBar} />
-                </div>
-                {!collapsed && <span>Check Booking</span>}
-              </div>
-            )}
-            {/* Forum Moderation tab for superadmin only */}
-            {role === 'superadmin' && (
-              <div
-                onClick={() => {
-                  setActiveView('forumModeration');
-                  setView?.('forumModeration');
-                }}
-                className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 w-full relative cursor-pointer ${activeView === 'forumModeration' ? 'active-menu-item' : ''}`}
-              >
-                <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
-                  <FontAwesomeIcon icon={faUsers} />
-                </div>
-                {!collapsed && <span>Forum Moderation</span>}
-              </div>
-            )}
-          </div>
+          </>
+        )}
 
-          {!collapsed && (
-            <p className="text-indigo-200 text-xs font-medium uppercase tracking-wider px-3 mb-2 mt-6">
-              Account
-            </p>
-          )}
-
-          {[
-            { icon: faCog, label: 'Settings' }, // You can add view later if needed
-            { icon: faUser, label: 'Account', view: 'account' },
-            { icon: faSignOutAlt, label: 'Logout', action: handleLogout }
-          ].map(item => (
-            <div
-              key={item.label}
-              onClick={() => {
-                if (item.view) {
-                  setActiveView(item.view);
-                  setView?.(item.view);
-                } else if (item.action) {
-                  item.action();
-                }
-              }}
-              className={`sidebar-item px-2 py-2 text-white flex items-center hover:bg-[#ffffff29] hover:bg-opacity-10 rounded-xl cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''
-                }`}
-            >
-              <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
-                <FontAwesomeIcon icon={item.icon} />
-              </div>
-              {!collapsed && <span>{item.label}</span>}
+        {/* Account Section */}
+        {!collapsed && <p className="text-indigo-200 text-xs font-medium uppercase mb-2 mt-6">Account</p>}
+        {accountMenu.map(item => (
+          <div
+            key={item.label}
+            onClick={() => item.action ? item.action() : handleItemClick(item.view)}
+            className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''}`}
+          >
+            <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
+              <FontAwesomeIcon icon={item.icon} />
             </div>
-          ))}
-        </nav>
+            {!collapsed && <span>{item.label}</span>}
+          </div>
+        ))}
       </div>
 
       {/* Footer */}

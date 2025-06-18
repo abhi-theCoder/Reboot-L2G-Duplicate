@@ -304,6 +304,14 @@ const CustomerForm = () => {
         }
     };
 
+    // Redirect to login if not authenticated
+    useEffect(() => {
+        const token = localStorage.getItem('Token');
+        if (!token) {
+            navigate('/login', { state: { from: location.pathname + location.search } });
+        }
+    }, [navigate, location]);
+
     return (
         <div className="container mx-auto px-4 py-8 max-w-5xl">
             <div className="bg-white rounded-lg shadow-lg p-6">

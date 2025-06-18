@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { FaLock, FaUserShield, FaEye, FaEyeSlash, FaSignInAlt, FaSpinner } from 'react-icons/fa';
+import axios from 'axios';
+import { toast, ToastContainer } from "react-toastify";
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -9,29 +12,46 @@ const LoginPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const [loading, setLoading] = useState(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
+        setLoading(true);
         setError('');
-
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            // Only superadmin login API
+            const response = await axios.post("/api/agents/login", {
+                email,
+                password,
+            }, {
+                headers: { "Content-Type": "application/json" }
+            });
 
-            // Replace with actual authentication logic
-            console.log('Login attempt with:', { email, password, rememberMe });
+            console.log(agentResponse);
+            localStorage.setItem('Token', agentResponse.data.token);
+            localStorage.setItem('role', agentResponse.data.role);
+            localStorage.setItem('agentID', agentResponse.data.agentID);
 
-            // On successful login, you would typically redirect
-            // navigate('/dashboard');
+            toast.success("Superadmin login successful!");
+
+            // ✅ Navigate to dashboard
+            navigate("/superadmin/dashboard");
         } catch (err) {
-            setError('Invalid credentials. Please try again.');
+            setError(err.response?.data?.message || "Superadmin login failed!");
+            toast.error(err.response?.data?.message || "Superadmin login failed!");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
+
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <ToastContainer />
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
                     <FaUserShield className="h-16 w-16 text-indigo-600" />

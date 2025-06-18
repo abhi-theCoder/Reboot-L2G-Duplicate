@@ -22,65 +22,68 @@ const Login = () => {
   } = useForm();
 
   const onSubmit = async (data) => {
-    setLoading(true); // Start loading
-    setErrorMessage(''); // Clear previous errors
+    setLoading(true);
+    setErrorMessage("");
 
     const payload = {
       identifier: data.identifier,
       password: data.password,
     };
 
+    // Determine where to go after login
+    const redirectPath = location.state?.from?.pathname || "/";
+
     try {
-      // Attempt Agent Login first
+      // Try agent login first
       const agentResponse = await axios.post("api/agents/login", payload, {
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       });
 
-      // Agent login successful
-      console.log(agentResponse);
-      localStorage.setItem('Token', agentResponse.data.token);
-      localStorage.setItem('role', agentResponse.data.role);
-      localStorage.setItem('agentID', agentResponse.data.agentID);
-      if(agentResponse.data.role != 'superadmin')
-      localStorage.setItem('username',agentResponse.data.agent.name);
+      // Agent login success
+      localStorage.setItem("Token", agentResponse.data.token);
+      localStorage.setItem("role", agentResponse.data.role);
+      localStorage.setItem("agentID", agentResponse.data.agentID);
+      if (agentResponse.data.role !== "superadmin") {
+        localStorage.setItem("username", agentResponse.data.agent.name);
+      }
 
       toast.success("Login successful!");
       reset();
+
       setTimeout(() => {
         if (agentResponse.data.role === 'superadmin') {
           navigate("/superadmin/dashboard");
         } else {
-          navigate(location?.state ? location.state : "/agent/dashboard");
+          const redirectTo = location?.state?.from || "/agent/dashboard";
+          navigate(redirectTo);
           window.location.reload(true);
         }
       }, 2000);
-
     } catch (agentError) {
-      // If agent login fails, attempt Customer Login
-      console.log(agentError.response.data.error)
-      if (agentError.response.data.error !== 'User not found!') {
-        toast.error(agentError.response.data.error);
-      } else if (agentError.response.data.error === 'User not found!') {
+      // If agent not found, try customer login
+      if (agentError.response?.data?.error !== "User not found!") {
+        toast.error(agentError.response?.data?.error || "Agent login failed.");
+      } else {
         try {
           const customerResponse = await axios.post("/api/customer/login", payload, {
-            headers: { "Content-Type": "application/json" }
+            headers: { "Content-Type": "application/json" },
           });
 
-          // Customer login successful
-          localStorage.setItem("Token", customerResponse.data.token); // Store customer token
+          // Customer login success
+          localStorage.setItem("Token", customerResponse.data.token);
           localStorage.setItem("role", "customer");
           localStorage.setItem("customerID", customerResponse.data.customerID);
-          localStorage.setItem('username',customerResponse.data.name);
+          localStorage.setItem("username", customerResponse.data.name);
 
           toast.success("Login successful!");
-          reset(); // Clear form fields
+          reset();
+
           setTimeout(() => {
-            navigate("/customer-dashboard"); // Navigate to customer dashboard or home
+            const redirectTo = location?.state?.from || "/customer-dashboard";
+            navigate(redirectTo);
             window.location.reload(true);
           }, 2000);
-
         } catch (customerError) {
-          // Both agent and customer login failed
           const errorMsg = customerError.response?.data?.error || "Login failed! Please check your credentials.";
           setErrorMessage(errorMsg);
           toast.error(errorMsg);
@@ -91,8 +94,13 @@ const Login = () => {
     }
   };
 
+
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    console.log("Redirected from:", location.state?.from?.pathname);
   }, []);
 
   return (

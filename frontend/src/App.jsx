@@ -28,6 +28,8 @@ import CommunityServices from './pages/CommunityServices';
 import ConnectUs from './pages/ContactForm';
 import About from './pages/About'; 
 import SuperAdminLogin from './pages/SuperAdminLogin';
+import MasterDataDashboard from './pages/MasterDataDashboard';
+import PrivateRoute from './components/PrivateRoute';
 
 
 function App() {
@@ -62,7 +64,14 @@ function App() {
 
         <Route path="thank-you" element={<ThankYou />} />
         <Route path="cancel" element={<PaymentCancelled />} />
-        <Route path="kyc" element={<KycForm />} />
+        <Route 
+          path="/kyc" 
+          element={
+            <PrivateRoute>
+              <KycForm />
+            </PrivateRoute>
+          } 
+        />
         <Route path="terms/:id" element={<TermsAndConditions />} />
 
         {/* Protected Routes */}
@@ -108,6 +117,7 @@ function App() {
         <Route path="/connect-us" element={<ConnectUs />} />
         <Route path="/About" element={<About />} />
         <Route  path="/superadmin-login" element={<SuperAdminLogin />} />
+        <Route path="/master-data-dashboard" element={<MasterDataDashboard />} />
 
         {/* Login Page */}
       </Routes>
