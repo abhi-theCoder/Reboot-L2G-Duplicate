@@ -178,12 +178,16 @@ const CustomerForm = () => {
         }
     }, [tourID, token, role]);
 
-    useEffect(() => {
+        useEffect(() => {
         // Set agentID from URL when the component mounts or when the URL changes
-        setFormData(prev => ({
-            ...prev,
-            agentID: agentIDFromURL,
-        }));
+        setFormData(prev => {
+            const newFormData = { ...prev };
+            if (agentIDFromURL) {
+                newFormData.agentID = agentIDFromURL;
+                newFormData.throughAgent = 'yes'; // Crucial: Explicitly set throughAgent to 'yes'
+            }
+            return newFormData;
+        });
     }, [agentIDFromURL]);
 
     const getBooking = async() =>{
@@ -892,107 +896,108 @@ useEffect(() => {
                             </div>
                         </motion.div>
                     )} */}
-{/* Section B: Package Details */}
-{currentSection === 'B' && (
-    <motion.div
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 50 }}
-        transition={{ duration: 0.3 }}
-    >
-        <h2 className="text-2xl font-semibold mb-6 text-gray-700">Section B: Package Details</h2>
-        <p className="text-gray-500 mb-6">Information about your selected package and trip. These fields are pre-filled.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label htmlFor="tourType" className="block text-sm font-medium text-gray-700 mb-1">Tour Type<span className="text-red-500">*</span></label>
-                <input
-                    type="text"
-                    id="tourType"
-                    name="tourType"
-                    value={formData.tourType}
-                    readOnly // Make non-editable
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
-                />
-                {errors.tourType && <p className="text-red-500 text-xs mt-1">{errors.tourType}</p>}
-            </div>
-            <div>
-                <label htmlFor="selectedTrip" className="block text-sm font-medium text-gray-700 mb-1">Selected Trip<span className="text-red-500">*</span></label>
-                <input
-                    type="text"
-                    id="selectedTrip"
-                    name="selectedTrip"
-                    value={formData.selectedTrip}
-                    readOnly // Make non-editable
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
-                />
-                {errors.selectedTrip && <p className="text-red-500 text-xs mt-1">{errors.selectedTrip}</p>}
-            </div>
-            <div>
-                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-                <input
-                    type="text"
-                    id="country"
-                    name="country"
-                    value={formData.country}
-                    readOnly // Make non-editable
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
-                />
-                {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Through Agent?</label>
-                <div className="flex items-center space-x-4">
-                    <label className="inline-flex items-center">
-                        <input
-                            type="radio"
-                            name="throughAgent"
-                            value="yes"
-                            // If agentIDFromURL exists, force "yes" and make it readOnly
-                            checked={formData.throughAgent === 'yes' || !!agentIDFromURL}
-                            onChange={handleChange}
-                            className="form-radio text-blue-600"
-                            disabled={!!agentIDFromURL} // Disable if agentID from URL is present
-                        />
-                        <span className="ml-2 text-gray-700">Yes</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                        <input
-                            type="radio"
-                            name="throughAgent"
-                            value="no"
-                            // If agentIDFromURL exists, force "yes" and make this "no" unchecked and disabled
-                            checked={formData.throughAgent === 'no' && !agentIDFromURL}
-                            onChange={handleChange}
-                            className="form-radio text-blue-600"
-                            disabled={!!agentIDFromURL} // Disable if agentID from URL is present
-                        />
-                        <span className="ml-2 text-gray-700">No</span>
-                    </label>
-                </div>
-            </div>
-            {/* Display agentID field if throughAgent is 'yes' OR if agentIDFromURL is present */}
-            {(formData.throughAgent === 'yes' || !!agentIDFromURL) && (
-                <div>
-                    <label htmlFor="agentID" className="block text-sm font-medium text-gray-700 mb-1">Agent ID</label>
-                    <input
-                        type="text"
-                        id="agentID"
-                        name="agentID"
-                        value={formData.agentID}
-                        // Make it read-only if the value comes from the URL, otherwise it's editable
-                        readOnly={!!agentIDFromURL}
-                        // Apply disabled styling if read-only
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm ${!!agentIDFromURL ? 'bg-gray-100 cursor-not-allowed' : 'focus:ring-blue-500 focus:border-blue-500'}`}
-                        // Only allow changes if not from URL
-                        onChange={!agentIDFromURL ? handleChange : undefined}
-                        placeholder="Enter agent's ID"
-                    />
-                </div>
-            )}
-            {/* Removed the agentName field completely  */}
-        </div>
-    </motion.div>
-)}
+
+                    {/* Section B: Package Details */}
+                    {currentSection === 'B' && (
+                        <motion.div
+                            initial={{ opacity: 0, x: -50 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 50 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <h2 className="text-2xl font-semibold mb-6 text-gray-700">Section B: Package Details</h2>
+                            <p className="text-gray-500 mb-6">Information about your selected package and trip. These fields are pre-filled.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label htmlFor="tourType" className="block text-sm font-medium text-gray-700 mb-1">Tour Type<span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        id="tourType"
+                                        name="tourType"
+                                        value={formData.tourType}
+                                        readOnly // Make non-editable
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
+                                    />
+                                    {errors.tourType && <p className="text-red-500 text-xs mt-1">{errors.tourType}</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="selectedTrip" className="block text-sm font-medium text-gray-700 mb-1">Selected Trip<span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        id="selectedTrip"
+                                        name="selectedTrip"
+                                        value={formData.selectedTrip}
+                                        readOnly // Make non-editable
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
+                                    />
+                                    {errors.selectedTrip && <p className="text-red-500 text-xs mt-1">{errors.selectedTrip}</p>}
+                                </div>
+                                <div>
+                                    <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
+                                    <input
+                                        type="text"
+                                        id="country"
+                                        name="country"
+                                        value={formData.country}
+                                        readOnly // Make non-editable
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 cursor-not-allowed"
+                                    />
+                                    {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Through Agent?</label>
+                                    <div className="flex items-center space-x-4">
+                                        <label className="inline-flex items-center">
+                                            <input
+                                                type="radio"
+                                                name="throughAgent"
+                                                value="yes"
+                                                // If agentIDFromURL exists, force "yes" and make it readOnly
+                                                checked={formData.throughAgent === 'yes' || !!agentIDFromURL}
+                                                onChange={handleChange}
+                                                className="form-radio text-blue-600"
+                                                disabled={!!agentIDFromURL} // Disable if agentID from URL is present
+                                            />
+                                            <span className="ml-2 text-gray-700">Yes</span>
+                                        </label>
+                                        <label className="inline-flex items-center">
+                                            <input
+                                                type="radio"
+                                                name="throughAgent"
+                                                value="no"
+                                                // If agentIDFromURL exists, force "yes" and make this "no" unchecked and disabled
+                                                checked={formData.throughAgent === 'no' && !agentIDFromURL}
+                                                onChange={handleChange}
+                                                className="form-radio text-blue-600"
+                                                disabled={!!agentIDFromURL} // Disable if agentID from URL is present
+                                            />
+                                            <span className="ml-2 text-gray-700">No</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                {/* Display agentID field if throughAgent is 'yes' OR if agentIDFromURL is present */}
+                                {(formData.throughAgent === 'yes' || !!agentIDFromURL) && (
+                                    <div>
+                                        <label htmlFor="agentID" className="block text-sm font-medium text-gray-700 mb-1">Agent ID</label>
+                                        <input
+                                            type="text"
+                                            id="agentID"
+                                            name="agentID"
+                                            value={formData.agentID}
+                                            // Make it read-only if the value comes from the URL, otherwise it's editable
+                                            readOnly={!!agentIDFromURL}
+                                            // Apply disabled styling if read-only
+                                            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm ${!!agentIDFromURL ? 'bg-gray-100 cursor-not-allowed' : 'focus:ring-blue-500 focus:border-blue-500'}`}
+                                            // Only allow changes if not from URL
+                                            onChange={!agentIDFromURL ? handleChange : undefined}
+                                            placeholder="Enter agent's ID"
+                                        />
+                                    </div>
+                                )}
+                                {/* Removed the agentName field completely  */}
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* Section C: Passenger Details */}
                     {currentSection === 'C' && (

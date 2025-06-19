@@ -79,7 +79,7 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
     const razorpaySignature = req.headers['x-razorpay-signature'];
     const payload = req.rawBody.toString(); // Convert buffer to string for HMAC
 
-    // console.log("Received payload:", payload); // Log full payload for debugging
+    console.log("Received payload:", payload); // Log full payload for debugging
     // console.log("Received signature:", razorpaySignature);
 
     const expectedSignature = crypto
@@ -150,6 +150,10 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                     { item: 'GST', amount: parseFloat(GST) }
                 ]
             };
+
+            if (!existingBooking.tour) existingBooking.tour = {};
+            existingBooking.tour.tourID = tourID;
+
             await existingBooking.save();
             console.log("Existing booking updated successfully:", existingBooking.bookingID);
 
@@ -186,7 +190,18 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                     console.error(`Agent with agentID ${agentID} not found.`);
                 } else {
                     const agent_db_id = agent._id; // Mongoose _id
+                    // __________________
+                        // let check1 = await AgentTourStats.findOne({agentID: agent.agentID});
+                        // let check2 = await AgentTourStats.findOne({tourStartDate: formattedTourStartDate});
+                        // let check3 = await AgentTourStats.findOne({tourID});
 
+                        // if(check1)
+                        // console.log("object1");
+                        // if(check2)
+                        // console.log("object2");
+                        // if(check3)
+                        // console.log("object3");
+                    // __________________
                     let stats = await AgentTourStats.findOne({ agentID: agent.agentID, tourStartDate: formattedTourStartDate, tourID }); // Use agent.agentID for stats lookup
                     if (!stats) {
                         stats = new AgentTourStats({
@@ -206,9 +221,11 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                     const updatedPercentage = (newCustomerGiven / parseFloat(tourActualOccupancy)) * 100;
 
                     const newTotalAmountForStats = stats.finalAmount + addedAmountToStats; // Cumulative amount for stats
+                    console.log(newTotalAmountForStats, stats.finalAmount, addedAmountToStats)
                     const newCommissionRateForStats = getCommissionRate(updatedPercentage, 1); // Rate for the direct agent based on *new* cumulative percentage
                     const newTotalEligibleCommissionForStats = (newTotalAmountForStats * newCommissionRateForStats) / 100; // New cumulative eligible commission
 
+                    // console.log(newTotalAmountForStats, newCommissionRateForStats);
                     // This is the actual commission to *add* to the direct agent's wallet for *this* payment
                     const commissionDelta = newTotalEligibleCommissionForStats - stats.commissionReceived;
 
@@ -218,6 +235,8 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                     directAgentCommissionAmount = commissionDelta; // Store for the transaction model
 
                     // Update and save agent stats
+
+                    console.log(newTotalEligibleCommissionForStats)
                     stats.customerGiven = newCustomerGiven;
                     stats.finalAmount = newTotalAmountForStats;
                     stats.commissionReceived = newTotalEligibleCommissionForStats;

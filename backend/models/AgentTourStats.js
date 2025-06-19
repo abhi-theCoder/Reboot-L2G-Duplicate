@@ -5,7 +5,7 @@ const agentTourStatsSchema = new mongoose.Schema({
   agentID: String,
   tourStartDate: String,
   customerGiven: { type: Number, default: 0 },
-  totalAmount: { type: Number, default: 0 },
+  finalAmount: { type: Number, default: 0 },
   commissionReceived: { type: Number, default: 0 },
 });
 

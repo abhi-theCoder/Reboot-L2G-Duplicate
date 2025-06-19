@@ -8,11 +8,11 @@ const webhookURL = 'http://localhost:5001/webhook';
 // This booking ID must exist in your MongoDB for the webhook to find and update it.
 const TEST_BOOKING_ID = 'BKG48020'; // <--- MUST CHANGE THIS TO A REAL BOOKING ID
 
-const tourPricePerHead = 9000;
-const tourGivenOccupancy = 1 ;
+const tourPricePerHead = 2000;
+const tourGivenOccupancy = 15 ;
 const tourActualOccupancy = 50;
 const totalAmount = tourPricePerHead * Number(tourGivenOccupancy); // in ₹
-const GST = 18;
+const GST = 10;
 const gstAmount = (totalAmount * GST) / 100;
 const finalAmount = totalAmount + gstAmount;
 const currentUnixTimestamp = Math.floor(Date.now() / 1000);
@@ -22,7 +22,7 @@ const samplePayload = {
   payload: {
     payment: {
       entity: {
-        id: 'pay_MOCK123458', // Unique transaction ID for this test
+        id: 'pay_MOCK123455', // Unique transaction ID for this test
         amount: finalAmount * 100, // Razorpay amount is in paisa
         currency: 'INR',
         status: 'captured',
@@ -32,9 +32,9 @@ const samplePayload = {
         contact: '9876543210',
         notes: {
           bookingID: TEST_BOOKING_ID, // <--- ADDED THIS CRITICAL FIELD
-          agentID: '', // Keep empty for direct customer test, or put an existing agentID
-          tourID: '683ed99b3a44a7ade21e2d31', // <--- REPLACE WITH AN ACTUAL TOUR ID FROM YOUR DATABASE
-          tourName: 'Digha', // <--- ADDED THIS CRITICAL FIELD (match tourID's name)
+          agentID: '000A-032-2025-000L', // Keep empty for direct customer test, or put an existing agentID
+          tourID: '683e211c6ec96af47df5b96f', // <--- REPLACE WITH AN ACTUAL TOUR ID 
+          tourName: 'Varanasi', // <--- ADDED THIS CRITICAL FIELD (match tourID's name)
           tourPricePerHead: String(tourPricePerHead),
           tourActualOccupancy: String(tourActualOccupancy),
           tourGivenOccupancy: String(tourGivenOccupancy),
