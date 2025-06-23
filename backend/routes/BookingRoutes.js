@@ -73,7 +73,7 @@ const createBooking = async (req, res) => {
       console.log("Submitted a new booking data:",req.body);
       console.log("Saved new booking data");
       console.log(bookingID);
-      console.log(savedBooking.travelers);
+      console.log("travellers:",savedBooking.travelers);
       return res.status(201).json(savedBooking);
       
     }
