@@ -51,7 +51,7 @@ const createBooking = async (req, res) => {
       console.log("Updated booking data:",req.body);
       console.log("Updated a existing booking data");
       console.log(bookingID);
-      console.log(savedBooking.travelers);
+      console.log("travellers:",updatedBooking.travelers);
       return res.status(200).json(updatedBooking);
     } else {
       const newBooking = new Booking({
