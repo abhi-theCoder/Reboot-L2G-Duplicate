@@ -455,8 +455,9 @@ const CustomerForm = () => {
         }
 
         try {
-            await saveBooking();
-
+            const saveBookingResponse = await saveBooking();
+            console.log(saveBookingResponse.bookingID);
+            const bookingID = saveBookingResponse.bookingID;
             const givenOccupancy = searchParams.get('p');
             // const agentID = searchParams.get('a') || '';
             // const agentID = formData.throughAgent === 'yes' ? formData.agentID : '';
@@ -1113,23 +1114,6 @@ const CustomerForm = () => {
 
                                     <div className="space-y-4">
                                         <div className="relative">
-                                            <label htmlFor="homeAddress" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                                Complete Address <span className="text-red-500 ml-1">*</span>
-                                                {errors.homeAddress && <FaExclamationCircle className="ml-2 text-red-500 text-xs" />}
-                                            </label>
-                                            <textarea
-                                                id="homeAddress"
-                                                name="homeAddress"
-                                                value={formData.homeAddress}
-                                                onChange={handleChange}
-                                                rows="4"
-                                                placeholder="Your full residential address"
-                                                className={`w-full px-4 py-2 border ${errors.homeAddress ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500`}
-                                            ></textarea>
-                                            {errors.homeAddress && <p className="text-red-500 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.homeAddress}</p>}
-                                        </div>
-
-                                        <div className="relative">
                                             <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                                                 PIN Code <span className="text-red-500 ml-1">*</span>
                                                 {errors.pin && <FaExclamationCircle className="ml-2 text-red-500 text-xs" />}
@@ -1147,6 +1131,23 @@ const CustomerForm = () => {
                                                 <FaHome className="absolute left-3 top-3 text-gray-400" />
                                             </div>
                                             {errors.pin && <p className="text-red-500 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.pin}</p>}
+                                        </div>
+                                        
+                                        <div className="relative">
+                                            <label htmlFor="homeAddress" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                                                Complete Address <span className="text-red-500 ml-1">*</span>
+                                                {errors.homeAddress && <FaExclamationCircle className="ml-2 text-red-500 text-xs" />}
+                                            </label>
+                                            <textarea
+                                                id="homeAddress"
+                                                name="homeAddress"
+                                                value={formData.homeAddress}
+                                                onChange={handleChange}
+                                                rows="4"
+                                                placeholder="Your full residential address"
+                                                className={`w-full px-4 py-2 border ${errors.homeAddress ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500`}
+                                            ></textarea>
+                                            {errors.homeAddress && <p className="text-red-500 text-xs mt-1 flex items-center"><FaInfoCircle className="mr-1" /> {errors.homeAddress}</p>}
                                         </div>
                                     </div>
                                 </div>

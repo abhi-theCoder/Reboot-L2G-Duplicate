@@ -18,30 +18,73 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
         setLoading(true);
-        setError('');
+        setErrorMessage("");
+
+        const payload = {
+            identifier: data.identifier,
+            password: data.password,
+        };
+
+        // Determine where to go after login
+        const redirectPath = location.state?.from?.pathname || "/";
+
         try {
-            // Only superadmin login API
-            const response = await axios.post("/api/agents/login", {
-                email,
-                password,
-            }, {
-                headers: { "Content-Type": "application/json" }
+            // Try agent login first
+            const agentResponse = await axios.post("api/agents/login", payload, {
+                headers: { "Content-Type": "application/json" },
             });
 
-            console.log(agentResponse);
-            localStorage.setItem('Token', agentResponse.data.token);
-            localStorage.setItem('role', agentResponse.data.role);
-            localStorage.setItem('agentID', agentResponse.data.agentID);
+            // Agent login success
+            localStorage.setItem("Token", agentResponse.data.token);
+            localStorage.setItem("role", agentResponse.data.role);
+            localStorage.setItem("agentID", agentResponse.data.agentID);
+            if (agentResponse.data.role !== "superadmin") {
+                localStorage.setItem("username", agentResponse.data.agent.name);
+            }
 
-            toast.success("Superadmin login successful!");
+            toast.success("Login successful!");
+            reset();
 
-            // ✅ Navigate to dashboard
-            navigate("/superadmin/dashboard");
-        } catch (err) {
-            setError(err.response?.data?.message || "Superadmin login failed!");
-            toast.error(err.response?.data?.message || "Superadmin login failed!");
+            setTimeout(() => {
+                if (agentResponse.data.role === 'superadmin') {
+                    navigate("/superadmin/dashboard");
+                } else {
+                    const redirectTo = location?.state?.from || "/agent/dashboard";
+                    navigate(redirectTo);
+                    window.location.reload(true);
+                }
+            }, 2000);
+        } catch (agentError) {
+            // If agent not found, try customer login
+            if (agentError.response?.data?.error !== "User not found!") {
+                toast.error(agentError.response?.data?.error || "Agent login failed.");
+            } else {
+                try {
+                    const customerResponse = await axios.post("/api/customer/login", payload, {
+                        headers: { "Content-Type": "application/json" },
+                    });
+
+                    // Customer login success
+                    localStorage.setItem("Token", customerResponse.data.token);
+                    localStorage.setItem("role", "customer");
+                    localStorage.setItem("customerID", customerResponse.data.customerID);
+                    localStorage.setItem("username", customerResponse.data.name);
+
+                    toast.success("Login successful!");
+                    reset();
+
+                    setTimeout(() => {
+                        const redirectTo = location?.state?.from || "/customer-dashboard";
+                        navigate(redirectTo);
+                        window.location.reload(true);
+                    }, 2000);
+                } catch (customerError) {
+                    const errorMsg = customerError.response?.data?.error || "Login failed! Please check your credentials.";
+                    setErrorMessage(errorMsg);
+                    toast.error(errorMsg);
+                }
+            }
         } finally {
             setLoading(false);
         }

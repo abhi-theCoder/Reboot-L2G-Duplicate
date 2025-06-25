@@ -231,7 +231,7 @@ const AgentRequests = () => {
     };
 
     // Core Agent Details
-    addRow('Database ID (_id)', profile._id || '');
+    addRow('Referral ID', profile._id || '');
     addRow('Agent ID', profile.agentID || '');
     addRow('Name', profile.name || '');
     addRow('Gender', profile.gender || '');
@@ -247,8 +247,8 @@ const AgentRequests = () => {
     addRow('Status', profile.status || '');
     addRow('Remarks', profile.remarks || '');
     addRow('Office Address', profile.office_address || '');
-    addRow('Created At', getReadableDate(profile.createdAt)?.customFormat || '');
-    addRow('Last Updated At', getReadableDate(profile.updatedAt)?.customFormat || '');
+    // addRow('Created At', getReadableDate(profile.createdAt)?.customFormat || '');
+    // addRow('Last Updated At', getReadableDate(profile.updatedAt)?.customFormat || '');
 
     // Parent Agent Details
     if (parentAgentprofile) {
@@ -350,11 +350,11 @@ const AgentRequests = () => {
             <Info className="mr-2" size={18} /> Account Details
           </h4>
           <div className="space-y-2">
-            <p><span className="font-medium">Wallet ID:</span> {profile.walletID || 'N/A'}</p>
+            {/* <p><span className="font-medium">Wallet ID:</span> {profile.walletID || 'N/A'}</p> */}
             <p><span className="font-medium">Wallet Balance:</span> {profile.walletBalance || 'N/A'}</p>
             <p><span className="font-medium">Created At:</span> {getReadableDate(profile.createdAt)?.customFormat || 'N/A'}</p>
             <p><span className="font-medium">Remarks:</span> {profile.remarks || 'N/A'}</p>
-            <p><span className="font-medium">Referral (Parent Agent ID):</span> {parentAgentprofile?.agentID || 'N/A'}</p>
+            <p><span className="font-medium">Parent Agent ID:</span> {parentAgentprofile?.agentID || 'N/A'}</p>
             {parentAgentprofile && (
               <div className="mt-3 p-3 bg-indigo-50 rounded-md">
                 <h5 className="font-medium text-indigo-700">Parent Agent Details</h5>
