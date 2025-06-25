@@ -110,8 +110,8 @@ const NoToursFound = ({ tourType }) => {
     }
 
     const icon = getTourTypeIcon(tourType);
-    const tourTypeName = tourType || "Adventure";
-    const tourCategoryName = categoryType || "Adventure";
+    const tourTypeName = tourType;
+    const tourCategoryName = categoryType;
 
     return (
         <motion.div
@@ -132,15 +132,22 @@ const NoToursFound = ({ tourType }) => {
                         <h1 className="text-4xl md:text-4xl font-bold mb-3">
                             No {tourTypeName} Available 
                         </h1>
-                        <p className="text-xl md:text-2xl mb-2 font-light">
+                        {tourCategoryName ? (
+                            <p className="text-xl md:text-2xl mb-2 font-light">
                             Currently, there are no {tourTypeName} available in "{tourCategoryName}" category.<br />
                             Please explore our other tour options or discover {tourTypeName} in different categories.
-                        </p>
+                            </p>
+                        ) : (
+                            <p className="text-xl md:text-2xl mb-2 font-light">
+                                We're working diligently on it, and it's coming soon.
+                                Meanwhile you can explore our other tours.
+                            </p>
+                        )}
                         <div className="mt-6">
                             <motion.button
                                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl transition-all font-semibold text-lg shadow-md hover:shadow-lg"
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate(`/travel-experience/${encodeURIComponent(tourCategoryName)}`)}
+                                onClick={() => {navigate(`/`);}} 
                             >
                                 Show Other Tours
                             </motion.button>
