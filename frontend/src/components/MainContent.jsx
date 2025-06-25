@@ -4,6 +4,7 @@ import Chart from './Chart';
 import PieChart from './PieChart';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendarAlt, faPlus, faSearch, faUsers, faUserCheck, faUserTimes, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
+import { Link } from 'react-router-dom';
 
 function MainContent({ collapsed }) {
   // Example stats, replace with real data from your backend if available
@@ -36,10 +37,13 @@ function MainContent({ collapsed }) {
             <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-indigo-600" />
             June 2025
           </button>
-          <button className="bg-gradient-to-r from-indigo-600 to-green-600 text-white rounded-lg px-4 py-2 flex items-center hover:opacity-90 transition-opacity">
+          <Link
+            to="/agent-register"
+            className="bg-gradient-to-r from-indigo-600 to-green-600 text-white rounded-lg px-4 py-2 flex items-center hover:opacity-90 transition-opacity"
+          >
             <FontAwesomeIcon icon={faPlus} className="mr-2" />
             Add Agent
-          </button>
+          </Link>
         </div>
       </div>
 

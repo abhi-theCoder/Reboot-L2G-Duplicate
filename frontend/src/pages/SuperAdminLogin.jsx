@@ -1,79 +1,96 @@
 import { useState } from 'react';
 import { FaLock, FaUserShield, FaEye, FaEyeSlash, FaSignInAlt, FaSpinner } from 'react-icons/fa';
-import axios from 'axios';
+import axios from '../api';
 import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const LoginPage = () => {
+    // State variables for form inputs and UI feedback
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
 
+    // React Router hooks
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [loading, setLoading] = useState(false);
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
+
+        setIsLoading(true);
+        setErrorMessage("");
+
+        const payload = {
+            identifier: email,
+            password: password,
+        };
+
         try {
-            // Only superadmin login API
-            const response = await axios.post("/api/agents/login", {
-                email,
-                password,
-            }, {
-                headers: { "Content-Type": "application/json" }
+            // Attempt to login as an agent (which includes superadmins)
+            const response = await axios.post("/api/agents/login", payload, {
+                headers: { "Content-Type": "application/json" },
             });
 
-            console.log(agentResponse);
-            localStorage.setItem('Token', agentResponse.data.token);
-            localStorage.setItem('role', agentResponse.data.role);
-            localStorage.setItem('agentID', agentResponse.data.agentID);
+            // Check if the logged-in user's role is 'superadmin'
+            if (response.data.role === "superadmin") {
+                localStorage.setItem("Token", response.data.token);
+                localStorage.setItem("role", response.data.role);
+                localStorage.setItem("agentID", response.data.agentID);
 
-            toast.success("Superadmin login successful!");
+                toast.success("Superadmin login successful!");
 
-            // ✅ Navigate to dashboard
-            navigate("/superadmin/dashboard");
-        } catch (err) {
-            setError(err.response?.data?.message || "Superadmin login failed!");
-            toast.error(err.response?.data?.message || "Superadmin login failed!");
+                setTimeout(() => {
+                    navigate("/superadmin/dashboard");
+                }, 500);
+            } else {
+                // If login was successful but the role is NOT superadmin, deny access.
+                setErrorMessage("Access denied! Only superadmins can log in here.");
+                toast.error("Access denied! Only superadmins can log in here.");
+                // Optionally clear local storage if any token/role was set by mistake
+                localStorage.removeItem("Token");
+                localStorage.removeItem("role");
+                localStorage.removeItem("agentID");
+            }
+
+        } catch (error) {
+            // Handle any login errors
+            const errorMsg = error.response?.data?.error || "Login failed! Please check your credentials.";
+            setErrorMessage(errorMsg);
+            toast.error(errorMsg);
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
-
-
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <ToastContainer />
+            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
                     <FaUserShield className="h-16 w-16 text-indigo-600" />
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Super Admin Portal
+                    Superadmin Login
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Enter your credentials to access the administration panel
+                    Enter your superadmin credentials to access your account
                 </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    {error && (
+                    {errorMessage && (
                         <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
                             <div className="flex">
                                 <div className="flex-shrink-0">
                                     <FaLock className="h-5 w-5 text-red-500" />
                                 </div>
                                 <div className="ml-3">
-                                    <p className="text-sm text-red-700">{error}</p>
+                                    <p className="text-sm text-red-700">{errorMessage}</p>
                                 </div>
                             </div>
                         </div>
@@ -82,7 +99,7 @@ const LoginPage = () => {
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Admin Email
+                                Email Address
                             </label>
                             <div className="mt-1 relative rounded-md shadow-sm">
                                 <input
@@ -94,7 +111,7 @@ const LoginPage = () => {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    placeholder="admin@example.com"
+                                    placeholder="your@example.com"
                                 />
                             </div>
                         </div>

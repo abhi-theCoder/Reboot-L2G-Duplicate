@@ -3,7 +3,6 @@ import axios from '../api';
 import {
     FiUsers,
     FiUserCheck,
-    FiDollarSign,
     FiSearch,
     FiFilter,
     FiRefreshCw,
@@ -11,6 +10,7 @@ import {
     FiChevronRight,
     FiDownload
 } from 'react-icons/fi';
+import { FaRupeeSign } from 'react-icons/fa'; // Add this line
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -75,13 +75,13 @@ const MasterDataDashboard = () => {
         const fetchAgents = async () => {
             try {
                 setLoadingAgents(true);
-                // Use the correct API endpoint from index.js
-                const response = await axios.get('/api/admin/all-users',{
+                const response = await axios.get('/api/admin/all-users', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setAgents(response.data);
+                setAgents(Array.isArray(response.data) ? response.data : []);
             } catch (err) {
                 setErrorAgents('Failed to fetch agents.');
+                setAgents([]); // Ensure it's always an array
                 console.error('Error fetching agents:', err);
             } finally {
                 setLoadingAgents(false);
@@ -95,11 +95,11 @@ const MasterDataDashboard = () => {
         const fetchCustomers = async () => {
             try {
                 setLoadingCustomers(true);
-                // Use the correct API endpoint from index.js
                 const response = await axios.get('/api/customer');
-                setCustomers(response.data);
+                setCustomers(Array.isArray(response.data) ? response.data : []);
             } catch (err) {
                 setErrorCustomers('Failed to fetch customers.');
+                setCustomers([]); // Ensure it's always an array
                 console.error('Error fetching customers:', err);
             } finally {
                 setLoadingCustomers(false);
@@ -113,11 +113,11 @@ const MasterDataDashboard = () => {
         const fetchPayments = async () => {
             try {
                 setLoadingPayments(true);
-                // Use the correct API endpoint from index.js (located in BookingRoutes)
                 const response = await axios.get('/api/bookings/payments-overview');
-                setPayments(response.data);
+                setPayments(Array.isArray(response.data) ? response.data : []);
             } catch (err) {
                 setErrorPayments('Failed to fetch payments.');
+                setPayments([]); // Ensure it's always an array
                 console.error('Error fetching payments:', err);
             } finally {
                 setLoadingPayments(false);
@@ -231,7 +231,7 @@ const MasterDataDashboard = () => {
 
                 <div className="bg-white rounded-lg shadow p-4 flex items-center">
                     <div className="bg-yellow-100 p-3 rounded-full mr-4">
-                        <FiDollarSign className="text-yellow-600 text-xl" />
+                        <FaRupeeSign className="text-yellow-600 text-xl" />
                     </div>
                     <div>
                         <p className="text-gray-500 text-sm">Pending Payments</p>
@@ -242,11 +242,11 @@ const MasterDataDashboard = () => {
 
                 <div className="bg-white rounded-lg shadow p-4 flex items-center">
                     <div className="bg-purple-100 p-3 rounded-full mr-4">
-                        <FiDollarSign className="text-purple-600 text-xl" />
+                        <FaRupeeSign className="text-purple-600 text-xl" />
                     </div>
                     <div>
                         <p className="text-gray-500 text-sm">Total Commission</p>
-                        {loadingAgents ? <p className="text-2xl font-bold">Loading...</p> : <p className="text-2xl font-bold">${totalCommissionEarned.toLocaleString()}</p>}
+                        {loadingAgents ? <p className="text-2xl font-bold">Loading...</p> : <p className="text-2xl font-bold flex items-center gap-1"> <FaRupeeSign className='text-base'/> {totalCommissionEarned.toLocaleString()}</p>}
                         {errorAgents && <p className="text-red-500 text-xs">{errorAgents}</p>}
                     </div>
                 </div>
@@ -415,7 +415,7 @@ const MasterDataDashboard = () => {
                                         <div className="bg-white rounded-lg shadow p-4">
                                             <div className="flex items-center">
                                                 <div className="bg-green-100 p-3 rounded-full mr-4">
-                                                    <FiDollarSign className="text-green-600 text-xl" />
+                                                    <FaRupeeSign className="text-green-600 text-xl" />
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-500 text-sm">Received Amount</p>
@@ -427,7 +427,7 @@ const MasterDataDashboard = () => {
                                         <div className="bg-white rounded-lg shadow p-4">
                                             <div className="flex items-center">
                                                 <div className="bg-yellow-100 p-3 rounded-full mr-4">
-                                                    <FiDollarSign className="text-yellow-600 text-xl" />
+                                                    <FaRupeeSign className="text-yellow-600 text-xl" />
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-500 text-sm">Pending Amount</p>
@@ -439,7 +439,7 @@ const MasterDataDashboard = () => {
                                         <div className="bg-white rounded-lg shadow p-4">
                                             <div className="flex items-center">
                                                 <div className="bg-blue-100 p-3 rounded-full mr-4">
-                                                    <FiDollarSign className="text-blue-600 text-xl" />
+                                                    <FaRupeeSign className="text-blue-600 text-xl" />
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-500 text-sm">Total Commission</p>

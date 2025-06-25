@@ -162,11 +162,14 @@ const Navbar = () => {
       <div className="flex justify-between items-center px-4 sm:px-6 lg:px-12 py-3 relative z-50">
         <div className="flex-shrink-0">
           <Link to='/' className="block">
-            <img src={MainLogo} alt="Main Logo" className="h-12 lg:h-[120px]" />
+            <span className="flex items-start text-[10px]">
+              <img src={MainLogo} alt="Main Logo" className="h-12 xl:h-[150px] lg:h-[120px]" />
+              TM
+            </span>
           </Link>
         </div>
 
-        <div className="relative flex-grow flex justify-center mx-4 overflow-hidden max-w-[800px]">
+        {/* <div className="relative flex-grow flex justify-center mx-4 overflow-hidden max-w-[800px]">
           <svg
             className="absolute inset-0 w-full h-full rounded-t-2xl bg-[#98ae2a]"
             viewBox="0 0 800 100"
@@ -180,6 +183,12 @@ const Navbar = () => {
 
           <p className="relative max-w-[800px] w-full py-4 px-2 lg:py-6 lg:px-6 text-center text-white font-bold text-md sm:text-lg lg:text-3xl rounded-t-2xl shadow-lg hidden md:block">
             L2G Cruise & Cure Travel Management Pvt. Ltd.
+          </p>
+        </div> */}
+
+        <div className="relative flex-grow flex justify-center mx-4 overflow-hidden max-w-[850px]">
+          <p className="relative max-w-[800px] w-full py-4 px-2 lg:py-6 lg:px-6 text-center text-[#011A4D] font-bold text-md sm:text-lg lg:text-[35px] xl:text-[46px] rounded-t-2xl  hidden md:block uppercase leading-tight">
+            <span className="block">L2G Cruise & Cure</span> <span>Travel Management Pvt. Ltd.</span>
           </p>
         </div>
 
