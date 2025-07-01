@@ -14,6 +14,7 @@ import {
   FaExclamationCircle,
   FaSync,
   FaLock,
+  FaKey
 } from 'react-icons/fa';
 
 function EditAnyTour() {
@@ -239,6 +240,11 @@ function EditAnyTour() {
                                 </div>
                                 <div className="p-4">
                                     <h2 className="text-xl font-semibold text-gray-800 mb-2">{tour.name}</h2>
+
+                                    {/* <div className="flex items-center text-gray-600 mb-2">
+                                        <FaKey className="mr-2 text-gray-400" />
+                                        <span>TourID: {tour.tourID}</span>
+                                    </div> */}
 
                                     <div className="flex items-center text-gray-600 mb-2">
                                         <FaMapMarkerAlt className="mr-2 text-gray-400" />
