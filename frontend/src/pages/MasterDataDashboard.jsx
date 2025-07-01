@@ -75,10 +75,11 @@ const MasterDataDashboard = () => {
         const fetchAgents = async () => {
             try {
                 setLoadingAgents(true);
-                const response = await axios.get('/api/admin/all-users', {
+                const response = await axios.get('/api/admin/all-agents', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setAgents(Array.isArray(response.data) ? response.data : []);
+                setAgents(Array.isArray(response.data.agents) ? response.data.agents : []);
+                // console.log(response.data)
             } catch (err) {
                 setErrorAgents('Failed to fetch agents.');
                 setAgents([]); // Ensure it's always an array
@@ -95,8 +96,10 @@ const MasterDataDashboard = () => {
         const fetchCustomers = async () => {
             try {
                 setLoadingCustomers(true);
-                const response = await axios.get('/api/customer');
-                setCustomers(Array.isArray(response.data) ? response.data : []);
+                const response = await axios.get('/api/admin/all-customers',{
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setCustomers(Array.isArray(response.data.customers) ? response.data.customers : []);
             } catch (err) {
                 setErrorCustomers('Failed to fetch customers.');
                 setCustomers([]); // Ensure it's always an array
@@ -113,8 +116,11 @@ const MasterDataDashboard = () => {
         const fetchPayments = async () => {
             try {
                 setLoadingPayments(true);
-                const response = await axios.get('/api/bookings/payments-overview');
-                setPayments(Array.isArray(response.data) ? response.data : []);
+                const response = await axios.get('/api/admin/booking-payments-overview',{
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setPayments(Array.isArray(response.data.bookings) ? response.data.bookings : []);
+                console.log(response.data);
             } catch (err) {
                 setErrorPayments('Failed to fetch payments.');
                 setPayments([]); // Ensure it's always an array
@@ -141,26 +147,26 @@ const MasterDataDashboard = () => {
     );
 
     const filteredPayments = payments.filter(payment => {
-        const matchesSearch =
-            (payment.agentName && payment.agentName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (payment.customerName && payment.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (payment.tourName && payment.tourName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (payment.paymentStatus && payment.paymentStatus.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch =
+        (payment.agentName && payment.agentName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (payment.customerName && payment.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (payment.tourName && payment.tourName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (payment.paymentStatus && payment.paymentStatus.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1;
-        const currentYear = currentDate.getFullYear();
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
 
-        const paymentDate = payment.paymentDate ? new Date(payment.paymentDate) : null;
-        const paymentMonth = paymentDate ? paymentDate.getMonth() + 1 : null;
-        const paymentYear = paymentDate ? paymentDate.getFullYear() : null;
+    const paymentDate = payment.paymentDate ? new Date(payment.paymentDate) : null;
+    const paymentMonth = paymentDate ? paymentDate.getMonth() + 1 : null;
+    const paymentYear = paymentDate ? paymentDate.getFullYear() : null;
 
-        const matchesTimeFilter =
-            timeFilter === 'all' ||
-            (paymentMonth === currentMonth && paymentYear === currentYear);
+    const matchesTimeFilter =
+        timeFilter === 'all' ||
+        (paymentMonth === currentMonth && paymentYear === currentYear);
 
-        return matchesSearch && matchesTimeFilter;
-    });
+    return matchesSearch && matchesTimeFilter;
+});
 
 
     // Pagination logic
@@ -323,7 +329,7 @@ const MasterDataDashboard = () => {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Commission</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Pending</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         </tr>
                                     </thead>
