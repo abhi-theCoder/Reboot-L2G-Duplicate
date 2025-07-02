@@ -10,7 +10,7 @@ import {
     FiChevronRight,
     FiDownload
 } from 'react-icons/fi';
-import { FaRupeeSign } from 'react-icons/fa'; // Add this line
+import { FaRupeeSign } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -65,6 +65,9 @@ const MasterDataDashboard = () => {
     const [errorPayments, setErrorPayments] = useState(null);
 
     const [activeTab, setActiveTab] = useState('agents');
+    // New state for agent sub-tabs
+    const [agentSubTab, setAgentSubTab] = useState('all'); // 'all', 'active', 'inactive', 'rejected'
+
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [timeFilter, setTimeFilter] = useState('currentMonth');
@@ -79,10 +82,9 @@ const MasterDataDashboard = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setAgents(Array.isArray(response.data.agents) ? response.data.agents : []);
-                // console.log(response.data)
             } catch (err) {
                 setErrorAgents('Failed to fetch agents.');
-                setAgents([]); // Ensure it's always an array
+                setAgents([]);
                 console.error('Error fetching agents:', err);
             } finally {
                 setLoadingAgents(false);
@@ -102,7 +104,7 @@ const MasterDataDashboard = () => {
                 setCustomers(Array.isArray(response.data.customers) ? response.data.customers : []);
             } catch (err) {
                 setErrorCustomers('Failed to fetch customers.');
-                setCustomers([]); // Ensure it's always an array
+                setCustomers([]);
                 console.error('Error fetching customers:', err);
             } finally {
                 setLoadingCustomers(false);
@@ -120,10 +122,9 @@ const MasterDataDashboard = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setPayments(Array.isArray(response.data.bookings) ? response.data.bookings : []);
-                console.log(response.data);
             } catch (err) {
                 setErrorPayments('Failed to fetch payments.');
-                setPayments([]); // Ensure it's always an array
+                setPayments([]);
                 console.error('Error fetching payments:', err);
             } finally {
                 setLoadingPayments(false);
@@ -133,12 +134,22 @@ const MasterDataDashboard = () => {
     }, []);
 
 
-    // Filter data based on search term
-    const filteredAgents = agents.filter(agent =>
-        agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        agent.phone_calling.includes(searchTerm) // Using phone_calling from Agent model
-    );
+    // Filter data based on search term and agent sub-tab
+    const filteredAgents = agents.filter(agent => {
+        const matchesSearch =
+            agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            agent.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            agent.phone_calling.includes(searchTerm);
+
+        const matchesSubTab =
+            agentSubTab === 'all' ||
+            (agentSubTab === 'active' && agent.status === 'active') ||
+            (agentSubTab === 'inactive' && agent.status === 'inactive') ||
+            (agentSubTab === 'rejected' && agent.status === 'rejected');
+
+        return matchesSearch && matchesSubTab;
+    });
+
 
     const filteredCustomers = customers.filter(customer =>
         customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -184,8 +195,8 @@ const MasterDataDashboard = () => {
     const totalAgents = agents.length;
     const totalCustomers = customers.length;
 
-    const totalPendingPaymentsCount = payments.filter(p => p.paymentStatus === 'Pending').length; // Corrected property to paymentStatus
-    const totalCommissionEarned = agents.reduce((sum, agent) => sum + (agent.walletBalance || 0), 0); // Using walletBalance for total commission
+    const totalPendingPaymentsCount = payments.filter(p => p.paymentStatus === 'Pending').length;
+    const totalCommissionEarned = agents.reduce((sum, agent) => sum + (agent.walletBalance || 0), 0);
 
     // Calculate payment summaries
     const totalReceivedAmount = filteredPayments.filter(p => p.paymentStatus === 'Paid').reduce((sum, payment) => sum + (payment.amount || 0), 0);
@@ -263,7 +274,7 @@ const MasterDataDashboard = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border-b">
                     <div className="flex space-x-2 mb-4 md:mb-0">
                         <button
-                            onClick={() => { setActiveTab('agents'); setCurrentPage(1); }}
+                            onClick={() => { setActiveTab('agents'); setAgentSubTab('all'); setCurrentPage(1); }}
                             className={`px-4 py-2 rounded-md ${activeTab === 'agents' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
                         >
                             Agents
@@ -317,6 +328,33 @@ const MasterDataDashboard = () => {
                 <div className="p-4 overflow-x-auto">
                     {activeTab === 'agents' && (
                         <>
+                            {/* Agent Sub-Tabs */}
+                            <div className="flex space-x-2 mb-4">
+                                <button
+                                    onClick={() => { setAgentSubTab('all'); setCurrentPage(1); }}
+                                    className={`px-4 py-2 rounded-md ${agentSubTab === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                                >
+                                    All Agents
+                                </button>
+                                <button
+                                    onClick={() => { setAgentSubTab('active'); setCurrentPage(1); }}
+                                    className={`px-4 py-2 rounded-md ${agentSubTab === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                                >
+                                    Active Agents
+                                </button>
+                                <button
+                                    onClick={() => { setAgentSubTab('inactive'); setCurrentPage(1); }}
+                                    className={`px-4 py-2 rounded-md ${agentSubTab === 'inactive' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                                >
+                                    Inactive Agents
+                                </button>
+                                <button
+                                    onClick={() => { setAgentSubTab('rejected'); setCurrentPage(1); }}
+                                    className={`px-4 py-2 rounded-md ${agentSubTab === 'rejected' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                                >
+                                    Rejected Agents
+                                </button>
+                            </div>
                             {loadingAgents ? (
                                 <div className="text-center py-8">Loading agents...</div>
                             ) : errorAgents ? (
@@ -347,7 +385,7 @@ const MasterDataDashboard = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">${(agent.walletBalance || 0).toLocaleString()}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                            ${agent.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                            ${agent.status === 'active' ? 'bg-green-100 text-green-800' : agent.status === 'inactive' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                                             {agent.status}
                                                         </span>
                                                     </td>
@@ -376,7 +414,6 @@ const MasterDataDashboard = () => {
                                 <table className="min-w-full divide-y divide-gray-200">
                                     <thead className="bg-gray-50">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration Date</th>
@@ -386,7 +423,6 @@ const MasterDataDashboard = () => {
                                         {currentCustomers.length > 0 ? (
                                             currentCustomers.map(customer => (
                                                 <tr key={customer._id}>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{customer._id}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="text-sm font-medium text-gray-900">{customer.name}</div>
                                                         <div className="text-sm text-gray-500">{customer.email}</div>
@@ -492,7 +528,7 @@ const MasterDataDashboard = () => {
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{payment.bookingID || payment.transactionId}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className="text-sm font-medium text-gray-900">{payment.agent?.name || 'N/A'}</div>
-                                                            <div className="text-sm text-gray-500">ID: #{payment.agent?.agentID || 'N/A'}</div> {/* Corrected to agentID */}
+                                                            <div className="text-sm text-gray-500">ID: #{payment.agent?.agentID || 'N/A'}</div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className="text-sm font-medium text-gray-900">{payment.customer?.name || 'N/A'}</div>
@@ -501,11 +537,11 @@ const MasterDataDashboard = () => {
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.tour?.name || 'N/A'}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">${(payment.payment?.totalAmount || 0).toLocaleString()}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                            ${(payment.commissionAmount || 0).toLocaleString()} {/* Use commissionAmount from the mapped data */}
+                                                            ${(payment.commissionAmount || 0).toLocaleString()}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                ${payment.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}> {/* Corrected to paymentStatus */}
+                                                                ${payment.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                                                 {payment.paymentStatus || 'N/A'}
                                                             </span>
                                                         </td>
@@ -529,63 +565,47 @@ const MasterDataDashboard = () => {
                     )}
 
                     {/* Pagination */}
-                    <div className="flex justify-between items-center mt-4">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="px-3 py-1 bg-gray-100 rounded-md flex items-center disabled:opacity-50"
-                        >
-                            <FiChevronLeft className="mr-1" />
-                            Previous
-                        </button>
-
-                        <div className="flex space-x-1">
-                            {Array.from({
-                                length: Math.ceil(
-                                    activeTab === 'agents' ? filteredAgents.length / itemsPerPage :
-                                        activeTab === 'customers' ? filteredCustomers.length / itemsPerPage :
-                                            filteredPayments.length / itemsPerPage
-                                )
-                            }).map((_, index) => (
+                    {(activeTab === 'agents' && filteredAgents.length > itemsPerPage) ||
+                     (activeTab === 'customers' && filteredCustomers.length > itemsPerPage) ||
+                     (activeTab === 'payments' && filteredPayments.length > itemsPerPage) ? (
+                        <div className="flex justify-center items-center space-x-2 mt-6">
+                            <button
+                                onClick={() => paginate(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="p-2 border rounded-md bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                <FiChevronLeft />
+                            </button>
+                            {Array.from({ length: Math.ceil(
+                                activeTab === 'agents' ? filteredAgents.length / itemsPerPage :
+                                activeTab === 'customers' ? filteredCustomers.length / itemsPerPage :
+                                filteredPayments.length / itemsPerPage
+                            )}, (_, i) => (
                                 <button
-                                    key={index}
-                                    onClick={() => paginate(index + 1)}
-                                    className={`w-8 h-8 rounded-md ${currentPage === index + 1 ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+                                    key={i + 1}
+                                    onClick={() => paginate(i + 1)}
+                                    className={`px-3 py-1 rounded-md ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
                                 >
-                                    {index + 1}
+                                    {i + 1}
                                 </button>
                             ))}
+                            <button
+                                onClick={() => paginate(currentPage + 1)}
+                                disabled={currentPage === Math.ceil(
+                                    activeTab === 'agents' ? filteredAgents.length / itemsPerPage :
+                                    activeTab === 'customers' ? filteredCustomers.length / itemsPerPage :
+                                    filteredPayments.length / itemsPerPage
+                                )}
+                                className="p-2 border rounded-md bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                <FiChevronRight />
+                            </button>
                         </div>
-
-                        <button
-                            onClick={() => setCurrentPage(prev => {
-                                const totalPages = Math.ceil(
-                                    activeTab === 'agents' ? filteredAgents.length / itemsPerPage :
-                                        activeTab === 'customers' ? filteredCustomers.length / itemsPerPage :
-                                            filteredPayments.length / itemsPerPage
-                                );
-                                return Math.min(prev + 1, totalPages);
-                            })}
-                            disabled={
-                                currentPage === Math.ceil(
-                                    activeTab === 'agents' ? filteredAgents.length / itemsPerPage :
-                                        activeTab === 'customers' ? filteredCustomers.length / itemsPerPage :
-                                            filteredPayments.length / itemsPerPage
-                                ) ||
-                                (activeTab === 'agents' && filteredAgents.length === 0) ||
-                                (activeTab === 'customers' && filteredCustomers.length === 0) ||
-                                (activeTab === 'payments' && filteredPayments.length === 0)
-                            }
-                            className="px-3 py-1 bg-gray-100 rounded-md flex items-center disabled:opacity-50"
-                        >
-                            Next
-                            <FiChevronRight className="ml-1" />
-                        </button>
-                    </div>
+                    ) : null}
                 </div>
             </div>
-            {/* <Navbar /> */}
-            {/* <Footer /> */}
+            {/* <Footer />
+            <Navbar /> */}
         </div>
     );
 };
