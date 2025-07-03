@@ -83,7 +83,7 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
   ];
 
   return (
-    <div className={`fixed inset-y-0 left-0 ${collapsed ? 'w-20' : 'w-66'} bg-blue-900 text-white z-10 transition-all duration-300 ease-in-out hidden md:block`}>
+    <div className={`fixed inset-y-0 left-0 ${collapsed ? 'w-20' : 'w-[270px]'} bg-blue-900 text-white z-10 transition-all duration-300 ease-in-out hidden md:block`}>
       {/* Header */}
       <div className="p-5 flex items-center justify-between border-b border-indigo-400 border-opacity-30 relative">
         <Link to="/" className="flex items-center">

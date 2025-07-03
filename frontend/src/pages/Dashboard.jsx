@@ -52,7 +52,7 @@ function Dashboard() {
   return (
     <div className="flex">
       <Sidebar setView={setView} collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out bg- ${collapsed ? 'md:ml-20' : 'md:ml-64'
+      <div className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out bg- ${collapsed ? 'md:ml-20' : 'md:ml-[273px]'
         }`}>
         <TopNav />
         {renderView()}
