@@ -134,7 +134,7 @@ router.get('/pending-count',authenticateSuperAdmin, async (req, res) => {
     const count = await Agent.countDocuments({ status: 'pending' });
     res.json({ count });
   } catch (err) {
-    console.error("Error:",err);
+    console.error("Error:",err); 
     res.status(500).json({ error: 'Server error' });
   }
 }); 
@@ -156,6 +156,7 @@ router.post('/update-status', authenticateSuperAdmin, async (req, res) => {
 
 router.get('/booking-payments-overview', authenticateSuperAdmin, async(req,res)=>{ 
   try{
+    // const Agent = await Agent.find().lean({});
     const bookings = await Booking.find().lean({});
     // Map the bookings to the desired frontend format
         const transformedBookings = bookings.map(booking => ({

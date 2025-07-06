@@ -130,14 +130,17 @@ function TopNav({ collapsed }) {
           )}
         </div>
         <div className="flex items-center space-x-4">
-          <button 
-            onClick={() => setShowWalletModal(true)}
-            className="text-lg font-bold text-gray-800 bg-gray-100 rounded p-2 hover:bg-gray-200 transition-colors duration-200 flex items-center cursor-pointer"
-          >
-            {/*  wallet: {profile?.walletBalance || 0} */}
-            <span className='mb-1 me-2'>💳</span> Commision
+          {profile?._id && role !== 'superadmin' && (
+            <button 
+              onClick={() => setShowWalletModal(true)}
+              className="text-lg font-bold text-gray-800 bg-gray-100 rounded p-2 hover:bg-gray-200 transition-colors duration-200 flex items-center cursor-pointer"
+            >
+              {/* wallet: {profile?.walletBalance || 0} */}
+              <span className='mb-1 me-2'>💳</span> Commision
+            </button>
+          )}
 
-          </button>
+
           <button className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors duration-200">
             <FontAwesomeIcon icon={faMoonRegular} />
           </button>
@@ -181,13 +184,13 @@ function TopNav({ collapsed }) {
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Last updated: {new Date().toLocaleDateString()}</span>
-                <button 
+                {/* <button 
                   onClick={copyToClipboard}
                   className="text-blue-500 hover:text-blue-700 flex items-center"
                 >
                   <FontAwesomeIcon icon={faCopy} className="mr-1" />
                   Copy ID
-                </button>
+                </button> */}
               </div>
             </div>
             

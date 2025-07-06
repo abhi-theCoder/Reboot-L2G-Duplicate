@@ -129,6 +129,15 @@ const ForumPage = () => {
 
     const [loggedInUser, setLoggedInUser] = useState(null);
 
+    const [complaintSubject, setComplaintSubject] = useState('');
+    const [complaintType, setComplaintType] = useState('');
+    const [complaintDescription, setComplaintDescription] = useState('');
+    const [preferredResolution, setPreferredResolution] = useState('');
+
+    const [agentId, setAgentId] = useState('');
+    const [agentName, setAgentName] = useState('');
+    const [agentLocation, setAgentLocation] = useState('');
+
     const token = localStorage.getItem('Token');
     const username = localStorage.getItem('username');
     const role = localStorage.getItem('role');
@@ -142,6 +151,93 @@ const ForumPage = () => {
         'Travel Stories',
         'Questions'
     ];
+
+    // const handleComplaintSubmit = (e) => {
+    //     e.preventDefault();
+    //     // Handle complaint submission logic here
+    //     console.log({
+    //         subject: complaintSubject,
+    //         type: complaintType,
+    //         description: complaintDescription,
+    //         resolution: preferredResolution,
+    //         agentInfo: {
+    //             id: agentId,
+    //             name: agentName,
+    //             location: agentLocation
+    //         }
+    //     });
+        
+    //     // Reset form
+    //     setComplaintSubject('');
+    //     setComplaintType('');
+    //     setComplaintDescription('');
+    //     setPreferredResolution('');
+    //     setAgentId('');
+    //     setAgentName('');
+    //     setAgentLocation('');
+    // };
+
+    const handleComplaintSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!loggedInUser) {
+            const response = window.confirm('Please log in to file a complaint. Do you want to go to the login page?');
+            if (response) {
+                navigate('/login');
+            }
+            return;
+        }
+
+        try {
+            const complaintData = {
+                subject: complaintSubject,
+                type: complaintType,
+                description: complaintDescription,
+                preferredResolution: preferredResolution,
+                agentInfo: { // Ensure agentInfo matches your schema
+                    id: agentId || undefined, // Send undefined if empty to avoid empty string for ObjectId
+                    name: agentName || undefined,
+                    location: agentLocation || undefined
+                }
+            };
+
+            const currentToken = localStorage.getItem('Token');
+
+            // POST request to your backend complaints endpoint
+            const res = await axios.post('/api/complaints', complaintData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}` // Send token for authentication
+                }
+            });
+            
+            console.log('Complaint submitted:', res.data);
+            window.alert('Your complaint has been submitted successfully!');
+
+            // Reset form
+            setComplaintSubject('');
+            setComplaintType('');
+            setComplaintDescription('');
+            setPreferredResolution('');
+            setAgentId('');
+            setAgentName('');
+            setAgentLocation('');
+
+        } catch (error) {
+            console.error('Error submitting complaint:', error);
+            // More specific error message if available from backend
+            const errorMessage = error.response?.data?.error || 'Failed to submit complaint. Please try again.';
+            window.alert(errorMessage);
+        }
+    };
+
+    useEffect(() => {
+        if (token && username) {
+            setLoggedInUser(username);
+        } else {
+            setLoggedInUser(null);
+        }
+    }, [token, username]);
 
     useEffect(() => {
         if (token && username) {
@@ -363,6 +459,14 @@ const ForumPage = () => {
                                             </button>
                                         </li>
                                     ))}
+                                    <li>
+                                        <button
+                                            onClick={() => setActiveCategory('Complaint Management')}
+                                            className={`w-full text-left px-3 py-2 rounded-md transition-colors ${activeCategory === 'Complaint Management' ? 'bg-blue-100 text-blue-700 font-medium' : 'hover:bg-gray-100'}`}
+                                        >
+                                            Complaint Management
+                                        </button>
+                                    </li>
                                 </ul>
 
                                 <div className="mt-8">
@@ -387,28 +491,130 @@ const ForumPage = () => {
                             <div className="bg-white rounded-lg shadow-md p-6 mb-6">
                                 <h1 className="text-3xl font-bold text-gray-800 mb-6">Travel Community Forum</h1>
 
-                                <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
-                                    <div className="relative flex-1">
-                                        <FiSearch className="absolute left-3 top-3 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search forum posts..."
-                                            className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                        />
+                                {activeCategory !== 'Complaint Management' && (
+                                    <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                                        <div className="relative flex-1">
+                                            <FiSearch className="absolute left-3 top-3 text-gray-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search forum posts..."
+                                                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                            />
+                                        </div>
+                                        {loggedInUser && (
+                                            <button
+                                                onClick={() => setShowNewPostForm(true)}
+                                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                            >
+                                                <FiPlusCircle /> New Post
+                                            </button>
+                                        )}
                                     </div>
-                                    {loggedInUser && (
-                                        <button
-                                            onClick={() => setShowNewPostForm(true)}
-                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-                                        >
-                                            <FiPlusCircle /> New Post
-                                        </button>
-                                    )}
-                                </div>
+                                )}
 
-                                {showNewPostForm && loggedInUser && (
+                                {activeCategory === 'Complaint Management' ? (
+                                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                                        <h3 className="text-lg font-semibold mb-3">File a Complaint</h3>
+                                        <form onSubmit={handleComplaintSubmit}>
+                                            <div className="mb-3">
+                                                <label className="block text-gray-700 mb-1">Subject</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    value={complaintSubject}
+                                                    onChange={(e) => setComplaintSubject(e.target.value)}
+                                                    required
+                                                    placeholder="Brief description of your complaint"
+                                                />
+                                            </div>
+
+                                            {/* New Agent Complaint Section */}
+                                            <div className="mb-4 p-3 bg-gray-100 rounded-md">
+                                                <h4 className="font-medium text-gray-700 mb-2">Complaint About Agent (Optional)</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                    <div>
+                                                        <label className="block text-gray-600 text-sm mb-1">Agent ID</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2 border border-gray-300 rounded text-sm"
+                                                            value={agentId}
+                                                            onChange={(e) => setAgentId(e.target.value)}
+                                                            placeholder="Agent ID if applicable"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-gray-600 text-sm mb-1">Agent Name</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2 border border-gray-300 rounded text-sm"
+                                                            value={agentName}
+                                                            onChange={(e) => setAgentName(e.target.value)}
+                                                            placeholder="Agent name if known"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-gray-600 text-sm mb-1">Agent Location</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2 border border-gray-300 rounded text-sm"
+                                                            value={agentLocation}
+                                                            onChange={(e) => setAgentLocation(e.target.value)}
+                                                            placeholder="Location if applicable"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-3">
+                                                <label className="block text-gray-700 mb-1">Complaint Type</label>
+                                                <select
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    value={complaintType}
+                                                    onChange={(e) => setComplaintType(e.target.value)}
+                                                    required
+                                                >
+                                                    <option value="">Select complaint type</option>
+                                                    <option value="Service Issue">Service Issue</option>
+                                                    <option value="Billing Problem">Billing Problem</option>
+                                                    <option value="Staff Behavior">Staff Behavior</option>
+                                                    <option value="Facility Problem">Facility Problem</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="block text-gray-700 mb-1">Detailed Description</label>
+                                                <textarea
+                                                    rows="4"
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    value={complaintDescription}
+                                                    onChange={(e) => setComplaintDescription(e.target.value)}
+                                                    required
+                                                    placeholder="Please provide detailed information about your complaint"
+                                                ></textarea>
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="block text-gray-700 mb-1">Preferred Resolution</label>
+                                                <textarea
+                                                    rows="2"
+                                                    className="w-full p-2 border border-gray-300 rounded"
+                                                    value={preferredResolution}
+                                                    onChange={(e) => setPreferredResolution(e.target.value)}
+                                                    placeholder="How would you like this issue to be resolved?"
+                                                ></textarea>
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    type="submit"
+                                                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                                                >
+                                                    Submit Complaint
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                ) : showNewPostForm && loggedInUser && (
                                     <div className="bg-gray-50 p-4 rounded-lg mb-6">
                                         <h3 className="text-lg font-semibold mb-3">Create New Post</h3>
                                         <form onSubmit={handleNewPostSubmit}>
@@ -429,7 +635,7 @@ const ForumPage = () => {
                                                     value={newPostCategory}
                                                     onChange={(e) => setNewPostCategory(e.target.value)}
                                                 >
-                                                    {forumCategories.filter(cat => cat !== 'All Topics').map(category => (
+                                                    {forumCategories.filter(cat => cat !== 'All Topics' && cat !== 'Complaint Management').map(category => (
                                                         <option key={category} value={category}>{category}</option>
                                                     ))}
                                                 </select>

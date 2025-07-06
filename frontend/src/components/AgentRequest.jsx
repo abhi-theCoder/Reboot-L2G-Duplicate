@@ -363,7 +363,7 @@ const AgentRequests = () => {
             <p><span className="font-medium">Wallet Balance:</span> {profile.walletBalance || 'N/A'}</p>
             <p><span className="font-medium">Created At:</span> {getReadableDate(profile.createdAt)?.customFormat || 'N/A'}</p>
             <p><span className="font-medium">Remarks:</span> {profile.remarks || 'N/A'}</p>
-            <p><span className="font-medium">Referral (Parent Agent ID):</span> {parentAgentprofile?.agentID || 'N/A'}</p>
+            <p><span className="font-medium">Parent Agent ID:</span> {parentAgentprofile?.agentID || 'N/A'}</p>
             {parentAgentprofile && (
               <div className="mt-3 p-3 bg-indigo-50 rounded-md">
                 <h5 className="font-medium text-indigo-700">Parent Agent Details</h5>
