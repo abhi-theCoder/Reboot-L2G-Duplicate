@@ -8,22 +8,31 @@ import {
   FiMail,
   FiUser,
   FiCalendar,
-  FiMessageCircle
+  FiMessageCircle,
+  FiSend,
+  FiUsers,
+  FiChevronDown, // New icon for dropdown
+  FiChevronUp,   // New icon for dropdown
 } from 'react-icons/fi';
 
 const SuperadminComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [replyMessage, setReplyMessage] = useState('');
-  const [status, setStatus] = useState('open'); 
-  const [filterType, setFilterType] = useState('All'); 
+  const [agentMessage, setAgentMessage] = useState('');
+  const [status, setStatus] = useState('open');
+  const [filterType, setFilterType] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // New state for managing accordion open/close
+  const [isCustomerChatOpen, setIsCustomerChatOpen] = useState(true);
+  const [isAgentChatOpen, setIsAgentChatOpen] = useState(true);
+
   useEffect(() => {
     fetchComplaints();
-  }, [filterType]); 
+  }, [filterType]);
 
   const fetchComplaints = async () => {
     try {
@@ -36,13 +45,18 @@ const SuperadminComplaints = () => {
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${localStorage.getItem('Token')}` }
       });
-      // console.log(res)
       setComplaints(Array.isArray(res.data) ? res.data : []);
-      
-      if (selectedComplaint && !res.data.some(c => c._id === selectedComplaint._id)) {
-        setSelectedComplaint(null);
-      } else if (selectedComplaint) {
-        setSelectedComplaint(res.data.find(c => c._id === selectedComplaint._id) || null);
+
+      if (selectedComplaint) {
+        // Find the updated version of the selected complaint
+        const updatedSelected = res.data.find(c => c._id === selectedComplaint._id);
+        setSelectedComplaint(updatedSelected || null);
+        if (updatedSelected) {
+          setStatus(updatedSelected.status);
+        } else {
+          // If the selected complaint no longer exists in the list (e.g., deleted), clear selection
+          setSelectedComplaint(null);
+        }
       }
     } catch (err) {
       console.error('Error fetching complaints:', err);
@@ -63,20 +77,61 @@ const SuperadminComplaints = () => {
     try {
       await axios.post(`/api/complaints/${complaintId}/reply`, {
         message: replyMessage,
-        status 
+        status // Send current status with the reply
       }, {
         headers: {
            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('Token')}` 
+            Authorization: `Bearer ${localStorage.getItem('Token')}`
         }
       });
 
       setReplyMessage('');
-      alert('Response sent!');
-      fetchComplaints(); 
+      alert('Response sent to customer!');
+      fetchComplaints(); // Refresh to get the latest data including new reply
     } catch (err) {
-      console.error('Error submitting reply:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to submit response. Please try again.';
+      console.error('Error submitting customer reply:', err);
+      const errorMessage = err.response?.data?.message || 'Failed to submit customer response. Please try again.';
+      alert(errorMessage);
+    }
+  };
+
+  const handleSendMessageToAgent = async (complaintId) => {
+    if (!agentMessage.trim()) {
+      alert('Message to agent cannot be empty.');
+      return;
+    }
+
+    let targetAgentId = selectedComplaint?.agentInfo?.id;
+
+    // If no agent is assigned, prompt for Agent ID
+    if (!targetAgentId) {
+      const inputAgentId = prompt('This complaint is not assigned to an agent. Please enter the Agent ID to assign and send message:');
+      if (inputAgentId) {
+        targetAgentId = inputAgentId.trim();
+      } else {
+        alert('Agent ID is required to send a message to an unassigned complaint.');
+        return;
+      }
+    }
+
+    try {
+      await axios.post(`/api/agent-chats/superadmin-to-agent`, {
+        complaintId: complaintId,
+        agentId: targetAgentId,
+        message: agentMessage,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('Token')}`
+        }
+      });
+
+      setAgentMessage('');
+      alert('Message sent to agent!');
+      fetchComplaints(); // Refresh to see updated agentInfo and chat history
+    } catch (err) {
+      console.error('Error sending message to agent:', err);
+      const errorMessage = err.response?.data.msg || 'Failed to send message to agent. Please try again.';
       alert(errorMessage);
     }
   };
@@ -86,14 +141,13 @@ const SuperadminComplaints = () => {
 
     try {
       await axios.put(`/api/complaints/${selectedComplaint._id}/status`, { status: newStatus }, {
-        headers: { 
+        headers: {
            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('Token')}` 
+            Authorization: `Bearer ${localStorage.getItem('Token')}`
         }
       });
-      setStatus(newStatus); 
       alert(`Complaint status updated to ${newStatus.replace('_', ' ')}.`);
-      fetchComplaints(); 
+      fetchComplaints(); // Refresh to get the updated status
     } catch (err) {
       console.error('Error updating status:', err);
       const errorMessage = err.response?.data?.message || 'Failed to update status. Please try again.';
@@ -151,8 +205,10 @@ const SuperadminComplaints = () => {
           <h1 className="text-3xl font-bold text-gray-800">Complaint Management</h1>
           {selectedComplaint && (
             <div className="flex items-center space-x-2">
-              <span className="text-gray-700 font-medium">Payment not processed</span>
-              <span className="text-gray-500 font-medium">{selectedComplaint._id}</span>
+              <span className="text-gray-700 font-medium">Status:</span>
+              <span className={`px-3 py-1.5 rounded-md font-semibold text-sm ${getStatusBadgeColor(selectedComplaint.status)}`}>
+                  {selectedComplaint.status.replace('_', ' ')}
+              </span>
               <select
                 value={status}
                 onChange={(e) => handleStatusChange(e.target.value)}
@@ -204,6 +260,7 @@ const SuperadminComplaints = () => {
       </header>
 
       <div className="flex flex-1 gap-6 min-h-0">
+        {/* Left Pane: List of complaints */}
         <div className="w-1/3 flex-shrink-0 bg-white rounded-xl shadow-md overflow-y-auto custom-scrollbar">
           {filteredComplaints.length === 0 && !loading ? (
             <div className="text-gray-500 py-10 text-center">No complaints found matching your criteria.</div>
@@ -218,6 +275,10 @@ const SuperadminComplaints = () => {
                     setSelectedComplaint(complaint);
                     setStatus(complaint.status);
                     setReplyMessage('');
+                    setAgentMessage('');
+                    // Optionally reset accordion states when new complaint is selected
+                    setIsCustomerChatOpen(true);
+                    setIsAgentChatOpen(true);
                   }}
                 >
                   <div className="flex justify-between items-start mb-1">
@@ -249,6 +310,7 @@ const SuperadminComplaints = () => {
           )}
         </div>
 
+        {/* Right Pane: Selected Complaint Details & Chat */}
         <div className="flex-1 bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
           {!selectedComplaint ? (
             <div className="flex-1 flex items-center justify-center text-center text-gray-600 p-6">
@@ -260,97 +322,193 @@ const SuperadminComplaints = () => {
             </div>
           ) : (
             <div className="flex-1 flex flex-col">
+              {/* Complaint Header */}
               <div className="p-6 bg-gray-50 border-b border-gray-200">
                 <h2 className="text-2xl font-bold text-gray-800 mb-1">{selectedComplaint.subject}</h2>
                 <p className="text-sm text-gray-600">Complaint ID: <span className="font-medium">{selectedComplaint._id}</span></p>
               </div>
 
+              {/* Complaint Details */}
               <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <FiUser className="mr-1" />
-                  <span className="font-medium text-gray-800">{selectedComplaint.customerId?.name || 'Unknown Customer'}</span>
-                  <span className="mx-1">•</span>
-                  <FiMail className="mr-1" />
-                  <span className="text-gray-700">{selectedComplaint.customerId?.email || 'N/A'}</span>
-                  <span className="mx-1">•</span>
-                  <FiCalendar className="mr-1" />
-                  <span>{new Date(selectedComplaint.createdAt).toLocaleDateString()}, {new Date(selectedComplaint.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6 text-sm text-gray-600 mb-4">
+                  <div className="flex items-center">
+                    <FiUser className="mr-2 text-base text-gray-500" />
+                    <span className="font-medium text-gray-800">Customer:</span> {selectedComplaint.customerId?.name || 'Unknown Customer'}
+                  </div>
+                  <div className="flex items-center">
+                    <FiMail className="mr-2 text-base text-gray-500" />
+                    <span className="font-medium text-gray-800">Email:</span> {selectedComplaint.customerId?.email || 'N/A'}
+                  </div>
+                  <div className="flex items-center col-span-full">
+                    <FiCalendar className="mr-2 text-base text-gray-500" />
+                    <span className="font-medium text-gray-800">Filed On:</span> {new Date(selectedComplaint.createdAt).toLocaleDateString()}, {new Date(selectedComplaint.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
                 </div>
-                <p className="text-gray-700 whitespace-pre-line">{selectedComplaint.description}</p>
+                <p className="text-gray-700 whitespace-pre-line text-base mb-4">
+                  <span className="font-semibold text-gray-800">Description:</span><br/>
+                  {selectedComplaint.description}
+                </p>
                 {selectedComplaint.preferredResolution && (
-                  <p className="mt-3 text-gray-700">
-                    <span className="font-semibold">Preferred Resolution:</span> {selectedComplaint.preferredResolution}
+                  <p className="text-gray-700 text-base">
+                    <span className="font-semibold text-gray-800">Preferred Resolution:</span> {selectedComplaint.preferredResolution}
                   </p>
                 )}
-                {selectedComplaint.agentInfo?.id && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-100 text-blue-800 text-sm">
-                    <p className="font-semibold">Mentioned Agent details:</p>
-                    <p>Agent ID: {selectedComplaint.agentInfo.id}</p>
-                    <p>Name: {selectedComplaint.agentInfo.name}</p>
-                    <p>Location: {selectedComplaint.agentInfo.location}</p>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100 text-blue-800 text-sm shadow-inner">
+                  <p className="font-bold mb-1 flex items-center"><FiUsers className="mr-2 text-blue-600" /> Agent Information:</p>
+                  {/* {selectedComplaint.agentInfo?.id ? ( */}
+                    <>
+                      <p><span className="font-semibold">ID:</span> {selectedComplaint?.agentInfo?.id || 'Not provided'}</p>
+                      <p><span className="font-semibold">Name:</span> {selectedComplaint?.agentInfo?.name || 'Not provided'}</p>
+                      <p><span className="font-semibold">Location:</span> {selectedComplaint?.agentInfo?.location || 'Not provided'}</p>
+                    </>
+                  {/* ) : (
+                    <p className="text-red-700 font-medium">No agent currently assigned to this complaint.</p>
+                  )} */}
+                </div>
+              </div>
+
+              {/* Collapsible Chat Sections */}
+              <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+
+                {/* Customer Conversation History Accordion */}
+                <div className="mb-8 border border-gray-200 rounded-lg shadow-sm">
+                  <button
+                    className="flex justify-between items-center w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg focus:outline-none"
+                    onClick={() => setIsCustomerChatOpen(!isCustomerChatOpen)}
+                  >
+                    <h3 className="font-bold text-gray-800 flex items-center">
+                      <FiMessageSquare className="mr-2 text-blue-600" /> Customer Conversation History
+                    </h3>
+                    {isCustomerChatOpen ? <FiChevronUp className="text-gray-600" /> : <FiChevronDown className="text-gray-600" />}
+                  </button>
+                  {isCustomerChatOpen && (
+                    <div className="p-4 bg-white border-t border-gray-200 max-h-80 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-4">
+                        {selectedComplaint.adminReplies.length === 0 ? (
+                          <p className="text-gray-600 text-sm text-center py-4">No conversation history yet for this complaint.</p>
+                        ) : (
+                          selectedComplaint.adminReplies.map((reply, index) => {
+                            console.log(selectedComplaint)
+                            const isReplyFromCustomer = reply.repliedByType === 'Customer';
+                            // As per your instruction: "should be written like reply by admin for all replies sent from superadmin, and customer name should show when message from customer side." [cite: 2025-07-08]
+                            const senderDisplayName = isReplyFromCustomer
+                              ? reply.repliedBy?.name || reply.repliedBy?.username || 'Customer'
+                              : 'Reply by Admin';
+
+                            return (
+                              <div
+                                key={index}
+                                className={`p-3 rounded-lg border shadow-sm max-w-[80%] ${
+                                  isReplyFromCustomer
+                                    ? 'bg-blue-100 border-blue-200 mr-auto' // Customer message on left
+                                    : 'bg-gray-100 border-gray-200 ml-auto' // Admin message on right
+                                }`}
+                              >
+                                <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
+                                  <span className="font-bold">{senderDisplayName}</span>
+                                  <span>{new Date(reply.createdAt).toLocaleString()}</span>
+                                </div>
+                                <p className="text-gray-800 text-sm whitespace-pre-line">{reply.message}</p>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Agent-Superadmin Chat History Accordion */}
+                {(selectedComplaint.agentInfo?.id || selectedComplaint.agentChat?.length > 0) && (
+                  <div className="border border-gray-200 rounded-lg shadow-sm">
+                    <button
+                      className="flex justify-between items-center w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors rounded-t-lg focus:outline-none"
+                      onClick={() => setIsAgentChatOpen(!isAgentChatOpen)}
+                    >
+                      <h3 className="font-bold text-gray-800 flex items-center">
+                          <FiUsers className="mr-2 text-purple-600" /> Agent-Superadmin Chat History
+                      </h3>
+                      {isAgentChatOpen ? <FiChevronUp className="text-gray-600" /> : <FiChevronDown className="text-gray-600" />}
+                    </button>
+                    {isAgentChatOpen && (
+                      <div className="p-4 bg-white border-t border-gray-200 max-h-60 overflow-y-auto custom-scrollbar">
+                        <div className="space-y-4">
+                          {selectedComplaint.agentChat && selectedComplaint.agentChat.length > 0 ? (
+                              selectedComplaint.agentChat.map((chat, index) => {
+                                const isSuperadminSender = chat.senderModel === 'Superadmin';
+                                const senderName = isSuperadminSender ? 'Superadmin(You)' : (`${chat.sender?.name}(Agent)` || 'Agent');
+                                const bgColor = isSuperadminSender ? 'bg-indigo-100 border-indigo-200 ml-auto' : 'bg-green-100 border-green-200 mr-auto'; // Superadmin right, Agent left
+                                // Removed alignment variable, directly applied classes above
+
+                                return (
+                                    <div key={index} className={`p-3 rounded-lg border shadow-sm max-w-[80%] ${bgColor}`}>
+                                        <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
+                                            <span className="font-bold">{senderName}</span>
+                                            <span>{new Date(chat.createdAt).toLocaleString()}</span>
+                                        </div>
+                                        <p className="text-gray-800 text-sm whitespace-pre-line">{chat.message}</p>
+                                    </div>
+                                );
+                              })
+                          ) : (
+                              <p className="text-gray-600 text-sm text-center py-4">No messages with the agent yet.</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-                <h3 className="font-semibold text-gray-800 mb-4">Conversation History</h3>
-                <div className="space-y-4">
-                  {selectedComplaint.adminReplies.length === 0 ? (
-                    <p className="text-gray-600 text-sm text-center py-4">No conversation history yet for this complaint.</p>
-                  ) : (
-                    selectedComplaint.adminReplies.map((reply, index) => {
-                      // console.log(reply);
-
-                      const isReplyFromCustomer = reply.repliedByType === 'Customer';
-                      const isReplyFromAdmin = reply.repliedByType === 'Superadmin';
-
-                      let senderDisplayName = 'Unknown';
-                      if (isReplyFromCustomer) {
-                        senderDisplayName = reply.repliedBy?.name || reply.repliedBy?.username || 'Customer';
-                      } else if (isReplyFromAdmin) {
-                        senderDisplayName = 'Admin';
-                      }
-
-                      return (
-                        <div
-                          key={index} 
-                          className={`p-4 rounded-lg border ${
-                            isReplyFromCustomer
-                              ? 'bg-blue-50 border-blue-200' // Customer reply
-                              : 'bg-gray-100 border-gray-200' // Admin/Agent reply
-                          }`}
-                        >
-                          <div className="flex justify-between items-center text-sm mb-1">
-                            <span className="font-medium text-gray-800">
-                              Reply by {senderDisplayName}
-                            </span>
-                            <span className="text-gray-500">{new Date(reply.createdAt).toLocaleString()}</span>
-                          </div>
-                          <p className="whitespace-pre-line text-gray-700">{reply.message}</p>
-                        </div>
-                      );
-                    })
-                  )}
+              {/* Action Buttons and Message Inputs */}
+              <div className="p-6 bg-gray-50 border-t border-gray-200 space-y-6">
+                {/* Send Response to Customer */}
+                <div>
+                  <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                    <FiMessageSquare className="mr-2 text-blue-600" /> Send Response to Customer
+                  </h3>
+                  <textarea
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 resize-y"
+                    rows="4"
+                    placeholder="Type your response to the customer here..."
+                  ></textarea>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleReplySubmit(selectedComplaint._id)}
+                      className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center shadow-md"
+                    >
+                      <FiSend className="mr-2" /> Send to Customer
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-200">
-                <h3 className="font-semibold text-gray-800 mb-3">Send a Response</h3>
-                <textarea
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
-                  rows="4"
-                  placeholder="Type your response here..."
-                ></textarea>
-
-                <div className="flex flex-wrap items-center justify-end gap-4">
-                  <button
-                    onClick={() => handleReplySubmit(selectedComplaint._id)}
-                    className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                  >
-                    <FiMessageSquare className="mr-2" /> Send Response
-                  </button>
+                {/* Send Message to Agent */}
+                <div>
+                  <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                    <FiUsers className="mr-2 text-purple-600" /> Send Message to Agent
+                    {selectedComplaint.agentInfo?.id ? (
+                        <span className="ml-2 text-sm text-gray-600 font-normal">(Assigned: {selectedComplaint.agentInfo.name || selectedComplaint.agentInfo.id})</span>
+                    ) : (
+                        <span className="ml-2 text-sm text-red-500 font-normal">(No agent assigned yet)</span>
+                    )}
+                  </h3>
+                  <textarea
+                    value={agentMessage}
+                    onChange={(e) => setAgentMessage(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 mb-3 resize-y"
+                    rows="3"
+                    placeholder="Type message for the agent..."
+                  ></textarea>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleSendMessageToAgent(selectedComplaint._id)}
+                      className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center shadow-md"
+                    >
+                      <FiSend className="mr-2" /> Send to Agent
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

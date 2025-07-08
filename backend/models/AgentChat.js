@@ -1,4 +1,3 @@
-// models/AgentChat.js
 const mongoose = require('mongoose');
 
 const agentChatSchema = new mongoose.Schema({
@@ -15,7 +14,7 @@ const agentChatSchema = new mongoose.Schema({
   senderModel: { // Stores the model name for 'sender' field
     type: String,
     required: true,
-    enum: ['User', 'Agent'], // 'User' for Superadmin, 'Agent' for Agent
+    enum: ['Superadmin', 'Agent'], // 'User' for Superadmin, 'Agent' for Agent
   },
   message: {
     type: String,

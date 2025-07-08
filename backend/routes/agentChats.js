@@ -1,23 +1,12 @@
-// routes/agentChats.js
 const express = require('express');
 const router = express.Router();
 const AgentChat = require('../models/AgentChat');
-const Complaint = require('../model/Complaints'); // To update complaint.agentInfo and agentChat array
-const Agent = require('../model/Agent'); // To find agent details
-const auth = require('../middleware/auth');
-const authorize = require('../middleware/authorize');
+const Complaint = require('../models/Complaint');
+const Agent = require('../models/Agent'); // To find agent details
+const authenticateSuperAdmin = require('../middleware/authSuperadminMiddleware');
+const authenticate = require('../middleware/authMiddleware');
 
-// Middleware for superadmin access
-const superadminAuth = [auth, authorize(['superadmin'])];
-// Middleware for agent access
-const agentAuth = [auth, authorize(['agent'])];
-// Middleware for superadmin OR agent access (for fetching relevant chats)
-const superadminOrAgentAuth = [auth, authorize(['superadmin', 'agent'])];
-
-// @route   POST /api/agent-chats/superadmin-to-agent
-// @desc    Superadmin sends a message to an agent regarding a complaint
-// @access  Private (Superadmin only)
-router.post('/superadmin-to-agent', superadminAuth, async (req, res) => {
+router.post('/superadmin-to-agent', authenticateSuperAdmin, async (req, res) => {
   const { complaintId, agentId, message } = req.body; // agentId is required here
 
   try {
@@ -30,15 +19,15 @@ router.post('/superadmin-to-agent', superadminAuth, async (req, res) => {
       return res.status(400).json({ msg: 'Agent ID is required to send a message.' });
     }
 
-    const targetAgent = await Agent.findById(agentId);
+    const targetAgent = await Agent.findOne({"agentID":agentId}); // Using agentID field
     if (!targetAgent) {
       return res.status(404).json({ msg: 'Agent not found with the provided ID.' });
     }
 
     // Assign agent to complaint if not already assigned or if a new one is provided
-    if (!complaint.agentInfo?.id || complaint.agentInfo.id.toString() !== targetAgent._id.toString()) {
+    if (!complaint.agentInfo?.id || complaint.agentInfo.id.toString() !== targetAgent.agentID.toString()) {
       complaint.agentInfo = {
-        id: targetAgent._id,
+        id: targetAgent.agentID,
         name: targetAgent.name || targetAgent.username,
         location: targetAgent.location || 'N/A'
       };
@@ -48,7 +37,7 @@ router.post('/superadmin-to-agent', superadminAuth, async (req, res) => {
     const newAgentMessage = new AgentChat({
       complaintId: complaint._id,
       sender: req.user.id, // Superadmin's User ID
-      senderModel: 'User', // Superadmin is a 'User'
+      senderModel: 'Superadmin', // Correctly set to 'Superadmin'
       message: message,
     });
 
@@ -69,12 +58,9 @@ router.post('/superadmin-to-agent', superadminAuth, async (req, res) => {
   }
 });
 
-// @route   POST /api/agent-chats/agent-to-superadmin
-// @desc    Agent sends a message to superadmin regarding a complaint
-// @access  Private (Agent only)
-router.post('/agent-to-superadmin', agentAuth, async (req, res) => {
+router.post('/agent-to-superadmin', authenticate, async (req, res) => {
   const { complaintId, message } = req.body;
-
+  const agent = await Agent.findById(req.user.id);
   try {
     const complaint = await Complaint.findById(complaintId);
     if (!complaint) {
@@ -82,14 +68,13 @@ router.post('/agent-to-superadmin', agentAuth, async (req, res) => {
     }
 
     // Check if the agent sending the message is actually assigned to this complaint
-    // This is a crucial authorization check for agents
-    if (!complaint.agentInfo || complaint.agentInfo.id.toString() !== req.user.id.toString()) {
+    if (!complaint.agentInfo || complaint.agentInfo.id.toString() !== agent.agentID.toString()) {
       return res.status(403).json({ msg: 'Forbidden: You are not assigned to this complaint.' });
     }
 
     const newAgentMessage = new AgentChat({
       complaintId: complaint._id,
-      sender: req.user.id, // Agent's User ID (assuming Agent model extends/is a User or has a linked User ID)
+      sender: req.user.id, // Agent's User ID
       senderModel: 'Agent', // Sender is an 'Agent'
       message: message,
     });
@@ -109,10 +94,7 @@ router.post('/agent-to-superadmin', agentAuth, async (req, res) => {
   }
 });
 
-// @route   GET /api/agent-chats/for-complaint/:complaintId
-// @desc    Get all agent-superadmin messages for a specific complaint
-// @access  Private (Superadmin or assigned Agent)
-router.get('/for-complaint/:complaintId', superadminOrAgentAuth, async (req, res) => {
+router.get('/for-complaint/:complaintId', authenticate, async (req, res) => {
   const { complaintId } = req.params;
 
   try {
@@ -121,9 +103,17 @@ router.get('/for-complaint/:complaintId', superadminOrAgentAuth, async (req, res
       return res.status(404).json({ msg: 'Complaint not found.' });
     }
 
-    // Authorization check: Superadmin can view all. Agent can only view if assigned.
-    if (req.user.role === 'agent' && (!complaint.agentInfo || complaint.agentInfo.id.toString() !== req.user.id.toString())) {
-      return res.status(403).json({ msg: 'Forbidden: You are not assigned to this complaint.' });
+    // Direct authorization check:
+    if (req.user.role === 'superadmin') {
+      // Superadmin can view all
+    } else if (req.user.role === 'agent') {
+      // Agent can only view if assigned to this complaint
+      if (!complaint.agentInfo || complaint.agentInfo.id.toString() !== req.user.id.toString()) {
+        return res.status(403).json({ msg: 'Forbidden: You are not authorized to view chats for this complaint.' });
+      }
+    } else {
+      // Any other role (e.g., customer) is forbidden
+      return res.status(403).json({ msg: 'Forbidden: You do not have permission to access this resource.' });
     }
 
     const agentChats = await AgentChat.find({ complaintId: complaintId })
@@ -139,31 +129,39 @@ router.get('/for-complaint/:complaintId', superadminOrAgentAuth, async (req, res
 });
 
 
-// @route   GET /api/agent-chats/my-agent-chats
-// @desc    Get all agent-superadmin messages for the currently logged-in agent
-// @access  Private (Agent only)
-router.get('/my-agent-chats', agentAuth, async (req, res) => {
+router.get('/my-agent-chats', authenticate, async (req, res) => {
   try {
     // Find all complaints assigned to this agent
-    const complaintsAssigned = await Complaint.find({ 'agentInfo.id': req.user.id }).select('_id');
+    const agent = await Agent.findById(req.user.id);
+    const complaintsAssigned = await Complaint.find({ 'agentInfo.id': agent.agentID }).select('_id');
 
     const complaintIds = complaintsAssigned.map(c => c._id);
 
     // Find all AgentChats where this agent is involved, either as sender or receiver
-    // This assumes the superadmin's ID is not fixed but is a 'User' ID
     const agentChats = await AgentChat.find({
       complaintId: { $in: complaintIds },
       $or: [
         { sender: req.user.id, senderModel: 'Agent' }, // Messages sent by this agent
-        { senderModel: 'User' } // Messages sent by Superadmin (assuming Superadmin is User model)
+        { senderModel: 'Superadmin' } // Messages sent by Superadmin
       ]
     })
     .populate({
       path: 'complaintId', // Populate complaint details for context
-      select: 'subject customerId agentInfo status'
+      // *** MODIFIED: Expand select to include all necessary fields and deep populate ***
+      select: 'subject customerId agentInfo status description preferredResolution adminReplies',
+      populate: [
+        { // Populate customerId within the complaint
+          path: 'customerId',
+          select: 'name email username' // Select customer details
+        },
+        { // Populate adminReplies array, and their senders (customer or superadmin)
+          path: 'adminReplies.repliedBy',
+          select: 'name username role' // Select sender details for admin replies
+        }
+      ]
     })
     .populate({
-      path: 'sender',
+      path: 'sender', // This is for the sender of the AgentChat message itself
       select: 'name username role'
     })
     .sort({ createdAt: 1 });
@@ -173,8 +171,8 @@ router.get('/my-agent-chats', agentAuth, async (req, res) => {
       const complaintId = chat.complaintId._id.toString();
       if (!acc[complaintId]) {
         acc[complaintId] = {
-          complaint: chat.complaintId,
-          messages: []
+          complaint: chat.complaintId, // This now contains full complaint details including adminReplies and populated customerId
+          messages: [] // This will hold the agent-superadmin messages
         };
       }
       acc[complaintId].messages.push(chat);

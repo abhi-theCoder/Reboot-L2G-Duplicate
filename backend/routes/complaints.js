@@ -1,12 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const Complaint = require('../models/Complaint');
+const Agent = require('../models/Agent');
 const authenticateSuperAdmin = require('../middleware/authSuperadminMiddleware');
-const authenticate = require('../middleware/authMiddleware'); // Assumes req.user has id and role
+const authenticate = require('../middleware/authMiddleware');
 
 // Submit new complaint (from customer)
 router.post('/', authenticate, async (req, res) => {
+  const {agentInfo} = req.body;
+  console.log(agentInfo)
   try {
+    const agent = await Agent.findOne({'agentID':agentInfo.id});
+    if(!agent){
+      return res.status(404).json({ error: 'Invalid Agent ID entered.' });
+    }
     const complaint = new Complaint({
       customerId: req.user.id,
       ...req.body
@@ -36,9 +43,15 @@ router.get('/', authenticateSuperAdmin, async (req, res) => {
 
     const complaints = await Complaint.find()
       .populate('customerId', 'name email')
-      .populate({ // Populate adminReplies.repliedBy using refPath
+      .populate({
         path: 'adminReplies.repliedBy',
-        select: 'name username email role', // Select relevant fields from Admin/Customer/Agent
+        select: 'name username email role', 
+      }).populate({
+        path: 'agentChat', 
+        populate: {       
+          path: 'sender',
+          select: 'name username role' // Select relevant fields for the sender
+        }
       })
       .sort({ createdAt: -1 });
 
