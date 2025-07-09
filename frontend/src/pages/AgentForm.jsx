@@ -5,7 +5,7 @@ import {
   FiArrowLeft, FiPlus, FiX, FiCheck, FiAlertCircle,
   FiUser, FiCalendar, FiPhone, FiMail, FiCreditCard,
   FiHome, FiMapPin, FiBriefcase, FiFileText,
-  FiLock, FiChevronRight, FiChevronLeft, FiCheckCircle 
+  FiLock, FiChevronRight, FiChevronLeft, FiCheckCircle
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
 import InnerBanner from '../components/InnerBanner';
@@ -152,48 +152,58 @@ function AgentForm() {
   }, [message]);
 
   const validateField = (name, value) => {
-  let error = '';
+  if (!value && !['parentAgent'].includes(name)) {
+    return 'This field is required';
+  }
 
   switch (name) {
     case 'name':
-      if (!value.trim()) error = 'Name is required';
+      if (!value?.trim()) return 'Name is required';
       break;
     case 'email':
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email format';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '')) return 'Invalid email format';
       break;
     case 'aadhar_card':
-      if (!/^\d{12}$/.test(value)) error = 'Aadhar must be 12 digits';
+      if (!/^\d{12}$/.test(value || '')) return 'Aadhar must be 12 digits';
       break;
     case 'pan_card':
-      if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) error = 'Invalid PAN format';
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value || '')) return 'Invalid PAN format';
       break;
     case 'password':
-      if (value.length < 6) error = 'Password must be at least 6 characters';
+      if ((value || '').length < 6) return 'Password must be at least 6 characters';
       break;
     case 'phone_calling':
     case 'phone_whatsapp':
-      if (!value) {
-        error = 'Phone number is required';
-      } else if (!/^(\+91)?[6-9]\d{9}$/.test(value.replace(/\s/g, ''))) {
-        error = 'Enter a valid Indian phone number';
+      if (!/^(\+91)?[6-9]\d{9}$/.test((value || '').replace(/\s/g, ''))) {
+        return 'Enter a valid Indian phone number';
       }
       break;
     default:
-      if (name.includes('permanent_address') && !value.trim()) {
+      if (name.includes('permanent_address')) {
         const field = name.split('.')[1];
-        error = `${field.replace('_', ' ')} is required`;
+        if (!value?.trim()) return `${field.replace('_', ' ')} is required`;
       }
   }
 
-  return error;
+  return '';
 };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const error = validateField(name, value);
 
-    setErrors(prev => ({ ...prev, [name]: error }));
+    // Clear the error if the field becomes valid
+    if (errors[name]) {
+      const error = validateField(name, value);
+      if (!error) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    }
 
+    // Set the new value
     setFormData(prev => {
       if (name.includes("permanent_address")) {
         const field = name.split('.')[1];
@@ -209,6 +219,16 @@ function AgentForm() {
 
   const handlePhoneChange = (value, name) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Always validate, even if value is empty or undefined
+    let error = '';
+    if (!value) {
+      error = 'Phone number is required';
+    } else if (!/^(\+91)?[6-9]\d{9}$/.test((value || '').replace(/\s/g, ''))) {
+      error = 'Enter a valid Indian phone number';
+    }
+
+    setErrors(prev => ({ ...prev, [name]: error }));
   };
 
   const handleExclusiveZoneChange = (index, field, value) => {
@@ -253,6 +273,9 @@ function AgentForm() {
     const { name, files } = e.target;
     const file = files[0];
 
+    // Clear previous error
+    setErrors(prev => ({ ...prev, [name]: '' }));
+
     if (file) {
       const maxSize = 2 * 1024 * 1024; // 2MB
       if (file.size > maxSize) {
@@ -266,8 +289,9 @@ function AgentForm() {
         return;
       }
 
-      setErrors(prev => ({ ...prev, [name]: '' }));
       setFormData(prev => ({ ...prev, [name]: file }));
+    } else {
+      setErrors(prev => ({ ...prev, [name]: 'This field is required' }));
     }
   };
 
@@ -398,7 +422,7 @@ function AgentForm() {
     { id: 1, name: 'Personal Info', icon: FiUser },
     { id: 2, name: 'Address', icon: FiHome },
     { id: 3, name: 'Working Zones', icon: FiMapPin },
-    { id: 4, name: 'Bank Details', icon: FaRupeeSign }, 
+    { id: 4, name: 'Bank Details', icon: FaRupeeSign },
     { id: 5, name: 'Review & Submit', icon: FiCheckCircle }
   ];
 
@@ -662,52 +686,52 @@ function AgentForm() {
 
           {/* Step 2: Permanent Address */}
           {currentStep === 2 && (
-  <div className="space-y-6 animate-fadeIn">
-    <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-      <FiHome className="mr-2 text-blue-600" /> Permanent Address
-    </h3>
+            <div className="space-y-6 animate-fadeIn">
+              <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+                <FiHome className="mr-2 text-blue-600" /> Permanent Address
+              </h3>
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {['house_no', 'road_no', 'flat_name', 'pincode', 'village', 'district', 'thana', 'post_office'].map((key) => (
-        <Input
-          key={key}
-          label={key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-          name={`permanent_address.${key}`}
-          value={formData.permanent_address[key]}
-          onChange={handleChange}
-          error={errors[`permanent_address_${key}`]}
-          icon={key === 'pincode' ? FiMapPin : FiHome}
-          required
-        />
-      ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {['house_no', 'road_no', 'flat_name', 'pincode', 'village', 'district', 'thana', 'post_office'].map((key) => (
+                  <Input
+                    key={key}
+                    label={key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    name={`permanent_address.${key}`}
+                    value={formData.permanent_address[key]}
+                    onChange={handleChange}
+                    error={errors[`permanent_address_${key}`]}
+                    icon={key === 'pincode' ? FiMapPin : FiHome}
+                    required
+                  />
+                ))}
 
-      {/* State as a select dropdown */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          State <span className="text-red-500">*</span>
-        </label>
-        <select
-          name="permanent_address.state"
-          value={formData.permanent_address.state}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        >
-          <option value="">Select a state</option>
-          <option value="West Bengal">West Bengal</option>
-          <option value="Maharashtra">Maharashtra</option>
-          <option value="Karnataka">Karnataka</option>
-          <option value="Tamil Nadu">Tamil Nadu</option>
-          <option value="Uttar Pradesh">Uttar Pradesh</option>
-          {/* Add more states as needed */}
-        </select>
-        {errors.permanent_address_state && (
-          <p className="text-red-500 text-sm mt-1">{errors.permanent_address_state.message}</p>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+                {/* State as a select dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="permanent_address.state"
+                    value={formData.permanent_address.state}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Select a state</option>
+                    <option value="West Bengal">West Bengal</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    {/* Add more states as needed */}
+                  </select>
+                  {errors.permanent_address_state && (
+                    <p className="text-red-500 text-sm mt-1">{errors.permanent_address_state.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
 
           {/* Step 3: Working Zones */}
