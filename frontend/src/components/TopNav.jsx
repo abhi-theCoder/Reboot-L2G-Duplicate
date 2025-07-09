@@ -10,40 +10,22 @@ import {
   faArrowUp,
   faCopy
 } from '@fortawesome/free-solid-svg-icons';
+import { useDashboard } from '../context/DashboardContext'; // Import the hook
 
 function TopNav({ collapsed }) {
-  const [profile, setProfile] = useState(null);
-  const [message, setMessage] = useState(null);
-  const [pendingCount, setPendingCount] = useState(0);
+  const { profile, pendingCount, isLoadingProfile } = useDashboard(); // Get data from context
+  // console.log(profile);
+  const [message, setMessage] = useState(null); // Keep for local messages
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [activeTab, setActiveTab] = useState('completed');
   const [transactions, setTransactions] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false); // Renamed to avoid confusion
 
   const token = localStorage.getItem('Token');
   const role = localStorage.getItem('role');
 
-  const fetchProfile = async () => {
-    try {
-      const route = role === 'superadmin' || role === 'admin' ? '/api/admin/profile' : '/api/agents/profile';
-      const res = await axios.get(route, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-          role,
-        },
-      });
-      setProfile(res.data);
-    } catch (err) {
-      setMessage({
-        text: 'Error: ' + (err.response?.data?.error || 'Failed to fetch profile'),
-        type: 'error',
-      });
-    }
-  };
-
   const fetchTransactions = async () => {
-    setIsLoading(true);
+    setIsLoadingTransactions(true);
     try {
       const route = role === 'superadmin' || role === 'admin' 
         ? '/api/admin/transactions' 
@@ -59,39 +41,15 @@ function TopNav({ collapsed }) {
     } catch (err) {
       console.error('Failed to fetch transactions:', err);
     } finally {
-      setIsLoading(false);
+      setIsLoadingTransactions(false);
     }
   };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   useEffect(() => {
     if (showWalletModal) {
       fetchTransactions();
     }
-  }, [showWalletModal, activeTab]);
-
-  if (role == 'superadmin') {
-    useEffect(() => {
-      const fetchPendingUsers = async () => {
-        try {
-          const res = await axios.get('/api/admin/pending-count', {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          setPendingCount(res.data.count);
-        } catch (error) {
-          console.error('Failed to fetch pending user count:', error);
-        }
-      };
-      fetchPendingUsers();
-      const intervalId = setInterval(fetchPendingUsers, 2000);
-      return () => clearInterval(intervalId);
-    }, []);
-  }
+  }, [showWalletModal, activeTab]); // Dependencies are correct for transactions
 
   const copyToClipboard = () => {
     if (profile?._id) {
@@ -110,6 +68,15 @@ function TopNav({ collapsed }) {
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
+  // Add a loading state for the profile if it's not yet fetched
+  if (isLoadingProfile) {
+    return (
+      <nav className="bg-white p-4 flex justify-between items-center shadow-md pl-10">
+        <div className="text-xl font-bold text-gray-800">Loading profile...</div>
+      </nav>
+    );
+  }
 
   return (
     <>
@@ -135,7 +102,6 @@ function TopNav({ collapsed }) {
               onClick={() => setShowWalletModal(true)}
               className="text-lg font-bold text-gray-800 bg-gray-100 rounded p-2 hover:bg-gray-200 transition-colors duration-200 flex items-center cursor-pointer"
             >
-              {/* wallet: {profile?.walletBalance || 0} */}
               <span className='mb-1 me-2'>💳</span> Commision
             </button>
           )}
@@ -149,7 +115,7 @@ function TopNav({ collapsed }) {
           </button>
           <button className="bg-gray-100 p-2 rounded-full relative hover:bg-gray-200 transition-colors duration-200">
             <FontAwesomeIcon icon={faBellRegular} />
-            {pendingCount > 0 && (
+            {(role === 'superadmin' || role === 'admin') && pendingCount > 0 && ( // Conditionally show for admin/superadmin
               <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                 {pendingCount}
               </span>
@@ -184,13 +150,6 @@ function TopNav({ collapsed }) {
               </div>
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Last updated: {new Date().toLocaleDateString()}</span>
-                {/* <button 
-                  onClick={copyToClipboard}
-                  className="text-blue-500 hover:text-blue-700 flex items-center"
-                >
-                  <FontAwesomeIcon icon={faCopy} className="mr-1" />
-                  Copy ID
-                </button> */}
               </div>
             </div>
             
@@ -210,11 +169,11 @@ function TopNav({ collapsed }) {
             </div>
             
             <div className="overflow-y-auto max-h-[50vh]">
-              {isLoading ? (
+              {isLoadingTransactions ? (
                 <div className="p-4 text-center">Loading transactions...</div>
               ) : filteredTransactions.length === 0 ? (
                 <div className="p-4 text-center text-gray-500">
-                  No {activeTab === 'completed' ? 'completed' : 'pending'} transactions found
+                  No {activeTab === 'completed' ? 'received' : 'incoming'} payments found
                 </div>
               ) : (
                 <ul className="divide-y">
@@ -255,7 +214,7 @@ function TopNav({ collapsed }) {
             </div>
           </div>
         </div>
-      )}
+      )} 
     </>
   );
 }

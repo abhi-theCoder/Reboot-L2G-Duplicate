@@ -609,7 +609,8 @@ function AgentForm() {
               name="parentAgent"
               value={formData.parentAgent}
               onChange={handleChange}
-              label="Referral ID (Optional)"
+              label="Referral ID "
+              required
             />
           </div>
         </section>
