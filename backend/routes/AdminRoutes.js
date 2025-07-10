@@ -155,11 +155,6 @@ router.post('/update-status', authenticateSuperAdmin, async (req, res) => {
   }
 });
 
-// Add this to your routes/complaints.js or wherever your admin routes are defined
-// Assuming you have 'express', 'router', 'Booking' (mongoose model), and 'authenticateSuperAdmin' middleware defined.
-
-// Add this to your routes/complaints.js or wherever your admin routes are defined
-// Assuming you have 'express', 'router', 'Booking' (mongoose model), and 'authenticateSuperAdmin' middleware defined.
 
 router.get('/booking-payments-overview', authenticateSuperAdmin, async(req,res)=>{
   try{
@@ -273,10 +268,19 @@ router.get('/agent-commission-stats', authenticateSuperAdmin, async (req, res) =
 router.post('/pay-commission/:id', authenticateSuperAdmin, async (req, res) => { // Added :id to path
     try {
         const { id } = req.params; // Get id from req.params as it's a URL parameter
+        // Get current date in YYYY-MM-DD format
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+        const day = String(today.getDate()).padStart(2, '0');
+        const commissionPaidDateString = `${year}-${month}-${day}`;
 
         const updatedStat = await AgentTourStats.findByIdAndUpdate(
             id,
-            { CommissionPaid: true },
+            { 
+              CommissionPaid: true, 
+              CommissionPaidDate: commissionPaidDateString
+            },
             { new: true } // Return the updated document
         );
 

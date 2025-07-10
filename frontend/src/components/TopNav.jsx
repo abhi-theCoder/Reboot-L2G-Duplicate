@@ -1,72 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import axios from '../api';
+import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faMoon as faMoonRegular,
   faQuestionCircle as faQuestionCircleRegular,
   faBell as faBellRegular,
-  faTimes,
-  faArrowDown,
-  faArrowUp,
-  faCopy
 } from '@fortawesome/free-solid-svg-icons';
 import { useDashboard } from '../context/DashboardContext'; // Import the hook
+import WalletModal from './WalletModal'; // Import the new WalletModal component
 
 function TopNav({ collapsed }) {
   const { profile, pendingCount, isLoadingProfile } = useDashboard(); // Get data from context
-  // console.log(profile);
-  const [message, setMessage] = useState(null); // Keep for local messages
-  const [showWalletModal, setShowWalletModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('completed');
-  const [transactions, setTransactions] = useState([]);
-  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false); // Renamed to avoid confusion
+  const [showWalletModal, setShowWalletModal] = useState(false); // State to control wallet modal visibility
 
-  const token = localStorage.getItem('Token');
   const role = localStorage.getItem('role');
-
-  const fetchTransactions = async () => {
-    setIsLoadingTransactions(true);
-    try {
-      const route = role === 'superadmin' || role === 'admin' 
-        ? '/api/admin/transactions' 
-        : '/api/agents/transactions';
-      
-      const res = await axios.get(route, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          role,
-        },
-      });
-      setTransactions(res.data.transactions || []);
-    } catch (err) {
-      console.error('Failed to fetch transactions:', err);
-    } finally {
-      setIsLoadingTransactions(false);
-    }
-  };
-
-  useEffect(() => {
-    if (showWalletModal) {
-      fetchTransactions();
-    }
-  }, [showWalletModal, activeTab]); // Dependencies are correct for transactions
 
   const copyToClipboard = () => {
     if (profile?._id) {
-      navigator.clipboard.writeText(profile._id);
-      alert("Referral code copied to clipboard!");
+      // Using document.execCommand('copy') for better iframe compatibility
+      const el = document.createElement('textarea');
+      el.value = profile._id;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+
+      // Instead of alert, you might want a custom message box or toast notification
+      // For now, a console log for demonstration
+      console.log("Referral code copied to clipboard!");
+      // You could also set a local state to show a temporary message on the UI
     }
-  };
-
-  const filteredTransactions = transactions.filter(tx => {
-    if (activeTab === 'completed') return tx.status === 'completed';
-    if (activeTab === 'pending') return tx.status === 'pending';
-    return true;
-  });
-
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   // Add a loading state for the profile if it's not yet fetched
@@ -98,14 +60,13 @@ function TopNav({ collapsed }) {
         </div>
         <div className="flex items-center space-x-4">
           {profile?._id && role !== 'superadmin' && (
-            <button 
+            <button
               onClick={() => setShowWalletModal(true)}
               className="text-lg font-bold text-gray-800 bg-gray-100 rounded p-2 hover:bg-gray-200 transition-colors duration-200 flex items-center cursor-pointer"
             >
-              <span className='mb-1 me-2'>💳</span> Commision
+              <span className='mb-1 me-2'>💳</span> Commission
             </button>
           )}
-
 
           <button className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition-colors duration-200">
             <FontAwesomeIcon icon={faMoonRegular} />
@@ -129,92 +90,13 @@ function TopNav({ collapsed }) {
         </div>
       </nav>
 
-      {/* Wallet Modal */}
-      {showWalletModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-xl font-bold text-gray-800">Wallet Details</h2>
-              <button 
-                onClick={() => setShowWalletModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
-            
-            <div className="p-4 bg-blue-50">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600">Total Incoming Payments:</span>
-                <span className="text-2xl font-bold">₹{profile?.walletBalance || 0}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>Last updated: {new Date().toLocaleDateString()}</span>
-              </div>
-            </div>
-            
-            <div className="flex border-b">
-              <button
-                className={`flex-1 py-3 font-medium ${activeTab === 'completed' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-                onClick={() => setActiveTab('completed')}
-              >
-                Received Payments
-              </button>
-              <button
-                className={`flex-1 py-3 font-medium ${activeTab === 'pending' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
-                onClick={() => setActiveTab('pending')}
-              >
-                Incoming Payments
-              </button>
-            </div>
-            
-            <div className="overflow-y-auto max-h-[50vh]">
-              {isLoadingTransactions ? (
-                <div className="p-4 text-center">Loading transactions...</div>
-              ) : filteredTransactions.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  No {activeTab === 'completed' ? 'received' : 'incoming'} payments found
-                </div>
-              ) : (
-                <ul className="divide-y">
-                  {filteredTransactions.map((tx) => (
-                    <li key={tx._id} className="p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center">
-                          <div className={`p-2 rounded-full ${tx.type === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                            <FontAwesomeIcon icon={tx.type === 'credit' ? faArrowDown : faArrowUp} />
-                          </div>
-                          <div className="ml-3">
-                            <p className="font-medium">{tx.description || (tx.type === 'credit' ? 'Credit' : 'Debit')}</p>
-                            <p className="text-sm text-gray-500">{formatDate(tx.createdAt)}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-bold ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                            {tx.type === 'credit' ? '+' : '-'}₹{tx.amount}
-                          </p>
-                          <span className={`text-xs px-2 py-1 rounded-full ${tx.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                            {tx.status}
-                          </span>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            
-            <div className="p-4 border-t flex justify-end">
-              <button
-                onClick={() => setShowWalletModal(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors duration-200"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )} 
+      {/* Render the WalletModal component */}
+      <WalletModal
+        profile={profile}
+        role={role}
+        showWalletModal={showWalletModal}
+        setShowWalletModal={setShowWalletModal}
+      />
     </>
   );
 }

@@ -18,8 +18,8 @@ import {
 import { FaRupeeSign } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { ToastContainer, toast } from 'react-toastify'; // Import for toasts
-// import 'react-toastify/dist/React-Toastify.css'; // Corrected import for toast CSS
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // --- Agent-specific desired headers for CSV export ---
 const AGENT_CSV_HEADERS = [
@@ -49,6 +49,7 @@ const PAID_COMMISSIONS_DETAILED_HEADERS = [
     'tourDueDate',
     'tourCommission',
     'tourCommissionStatus',
+    'CommissionPaidDate', // Added new field here
     'totalCommissionEarned',
     'totalCommissionPaid',
     'totalCommissionPending'
@@ -69,7 +70,7 @@ const convertToCSV = (data, type) => {
     } else if (type === 'paymentsReceived') {
         headers = ['bookingId', 'tourName', 'agentName', 'agentID', 'customerName', 'amount', 'commissionAmount', 'paymentStatus', 'paymentDate'];
     } else if (type === 'paymentsPaid') {
-        headers = ['tourID', 'agentName', 'agentID', 'dueDate', 'customerGiven', 'commission', 'CommissionPaid'];
+        headers = ['tourID', 'agentName', 'agentID', 'dueDate', 'customerGiven', 'commission', 'CommissionPaid', 'CommissionPaidDate']; // Added for paymentsPaid table
     } else if (type === 'agentCommissionReport') {
         headers = AGENT_COMMISSION_REPORT_HEADERS;
     } else if (type === 'paymentsPaidDetailed') { // New type for the detailed payments report
@@ -111,12 +112,13 @@ const convertToCSV = (data, type) => {
                     value = row.agentID?.name || 'N/A';
                 } else if (header === 'agentID' && typeof row.agentID !== 'string') {
                     value = row.agentID?.agentID || 'N/A';
+                } else if (header === 'CommissionPaidDate') { // Handle new field for paymentsPaid table
+                    value = value ? new Date(value).toLocaleDateString() : 'N/A';
                 }
             } else if (type === 'agentCommissionReport' || type === 'paymentsPaidDetailed') { // Apply similar logic for both detailed reports
                 if (['totalCommissionEarned', 'totalCommissionPaid', 'totalCommissionPending', 'tourCommission'].includes(header)) {
-                    // For tourCommission, ensure it's a number. For totals, keep as is for now.
                     value = value || 0;
-                } else if (header === 'tourDueDate') {
+                } else if (header === 'tourDueDate' || header === 'CommissionPaidDate') { // Handle CommissionPaidDate for detailed reports
                     value = value ? new Date(value).toLocaleDateString() : ''; // Use empty string for gaps
                 } else if (header === 'tourCommissionStatus') {
                     value = (value === true) ? 'Paid' : ((value === false) ? 'Pending' : ''); // Use empty string for gaps
@@ -182,7 +184,7 @@ const MasterDataDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [timeFilterReceived, setTimeFilterReceived] = useState('currentMonth');
-    const [timeFilterPaid, setTimeFilterPaid] = useState('currentMonth');
+    const [timeFilterPaid, setTimeFilterPaid] = useState('currentMonth'); // This will now control filtering by CommissionPaidDate
 
     // State for custom date range for received payments
     const [startDateReceived, setStartDateReceived] = useState('');
@@ -191,6 +193,10 @@ const MasterDataDashboard = () => {
     // State for custom date range for paid payments (AgentTourStats)
     const [startDatePaid, setStartDatePaid] = useState('');
     const [endDatePaid, setEndDatePaid] = useState('');
+
+    // State for confirmation modal
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [commissionToPayId, setCommissionToPayId] = useState(null);
 
 
     const itemsPerPage = 5;
@@ -289,8 +295,8 @@ const MasterDataDashboard = () => {
                 if (endDateReceived) params.endDate = endDateReceived;
             } else if (timeFilterReceived === 'currentMonth') {
                 const now = new Date();
-                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
                 params.startDate = firstDay;
                 params.endDate = lastDay;
             }
@@ -329,8 +335,8 @@ const MasterDataDashboard = () => {
                 if (endDatePaid) params.endDate = endDatePaid;
             } else if (timeFilterPaid === 'currentMonth') {
                 const now = new Date();
-                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]; // YYYY-MM-DD
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]; // YYYY-MM-DD
                 params.startDate = firstDay;
                 params.endDate = lastDay;
             }
@@ -356,11 +362,20 @@ const MasterDataDashboard = () => {
     }, [token, timeFilterPaid, startDatePaid, endDatePaid, activeTab, paymentSubTab]);
 
 
-    // Function to mark commission as paid
-    const handlePayCommission = async (tourStatsId) => {
+    // Function to initiate commission payment (show confirmation)
+    const initiatePayCommission = (tourStatsId) => {
+        setCommissionToPayId(tourStatsId);
+        setShowConfirmModal(true);
+    };
+
+    // Function to confirm and execute commission payment
+    const confirmPayCommission = async () => {
+        setShowConfirmModal(false); // Close modal immediately
+        if (!commissionToPayId) return; // Should not happen if initiated correctly
+
         toast.info("Marking commission as paid...");
         try {
-            const response = await axios.post(`/api/admin/pay-commission/${tourStatsId}`, {}, {
+            const response = await axios.post(`/api/admin/pay-commission/${commissionToPayId}`, {}, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -378,7 +393,14 @@ const MasterDataDashboard = () => {
             console.error('Error paying commission:', error);
             const errorMessage = error.response?.data?.message || 'Error marking commission as paid. Please try again.';
             toast.error(errorMessage);
+        } finally {
+            setCommissionToPayId(null); // Clear the ID
         }
+    };
+
+    const cancelPayCommission = () => {
+        setShowConfirmModal(false);
+        setCommissionToPayId(null);
     };
 
 
@@ -621,7 +643,8 @@ const MasterDataDashboard = () => {
                     tourID: '', // Blank
                     tourDueDate: '', // Blank
                     tourCommission: '', // Blank
-                    tourCommissionStatus: '', // Blank
+                    tourCommissionStatus: '', // Blank for no tours
+                    CommissionPaidDate: '', // Blank for no tours
                     totalCommissionEarned: overallTotals.totalCommissionEarned,
                     totalCommissionPaid: overallTotals.totalCommissionPaid,
                     totalCommissionPending: overallTotals.totalCommissionPending,
@@ -636,6 +659,7 @@ const MasterDataDashboard = () => {
                         tourDueDate: commission.tourStartDate,
                         tourCommission: commission.commissionReceived || 0,
                         tourCommissionStatus: commission.CommissionPaid,
+                        CommissionPaidDate: commission.CommissionPaidDate || '', // Include CommissionPaidDate
                         // Only print total commission details on the LAST row for the agent
                         totalCommissionEarned: index === agentCommissions.length - 1 ? overallTotals.totalCommissionEarned : '',
                         totalCommissionPaid: index === agentCommissions.length - 1 ? overallTotals.totalCommissionPaid : '',
@@ -697,6 +721,30 @@ const MasterDataDashboard = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Master Data Dashboard</h1>
 
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                        <h2 className="text-lg font-semibold mb-4">Confirm Payment</h2>
+                        <p className="text-gray-700 mb-6">Are you sure you want to mark this commission as paid?</p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={cancelPayCommission}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmPayCommission}
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                            >
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -1232,12 +1280,13 @@ const MasterDataDashboard = () => {
                                             <thead className="bg-gray-50">
                                                 <tr>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour ID</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th> {/* Now populated */}
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th> {/* Renamed from Tour Start Date */}
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th> {/* Renamed from Commission Received */}
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th> {/* Renamed from Payment Status */}
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> {/* For Pay Button */}
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th> {/* NEW COLUMN */}
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="bg-white divide-y divide-gray-200">
@@ -1260,10 +1309,13 @@ const MasterDataDashboard = () => {
                                                                     {stat.CommissionPaid ? 'Paid' : 'Pending'}
                                                                 </span>
                                                             </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {stat.CommissionPaidDate ? new Date(stat.CommissionPaidDate).toLocaleDateString() : 'N/A'} {/* Display Paid Date */}
+                                                            </td>
                                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                                 {!stat.CommissionPaid ? (
                                                                     <button
-                                                                        onClick={() => handlePayCommission(stat._id)}
+                                                                        onClick={() => initiatePayCommission(stat._id)} // Call initiate function
                                                                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                                                     >
                                                                         <FiDollarSign className="mr-1 h-4 w-4" /> Pay
@@ -1276,7 +1328,7 @@ const MasterDataDashboard = () => {
                                                     ))
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
+                                                        <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500"> {/* Updated colspan */}
                                                             No commission payments found
                                                         </td>
                                                     </tr>
@@ -1313,6 +1365,7 @@ const MasterDataDashboard = () => {
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th> {/* NEW COLUMN */}
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                                                             </tr>
                                                                         </thead>
@@ -1329,10 +1382,13 @@ const MasterDataDashboard = () => {
                                                                                             {tourStat.CommissionPaid ? 'Paid' : 'Pending'}
                                                                                         </span>
                                                                                     </td>
+                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                                                        {tourStat.CommissionPaidDate ? new Date(tourStat.CommissionPaidDate).toLocaleDateString() : 'N/A'} {/* Display Paid Date */}
+                                                                                    </td>
                                                                                     <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                                                                                         {!tourStat.CommissionPaid ? (
                                                                                             <button
-                                                                                                onClick={() => handlePayCommission(tourStat._id)}
+                                                                                                onClick={() => initiatePayCommission(tourStat._id)}
                                                                                                 className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
                                                                                             >
                                                                                                 <FiDollarSign className="mr-1 h-3 w-3" /> Pay
@@ -1387,6 +1443,7 @@ const MasterDataDashboard = () => {
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th> {/* NEW COLUMN */}
                                                                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                                                             </tr>
                                                                         </thead>
@@ -1404,10 +1461,13 @@ const MasterDataDashboard = () => {
                                                                                             {agentStat.CommissionPaid ? 'Paid' : 'Pending'}
                                                                                         </span>
                                                                                     </td>
+                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                                                        {agentStat.CommissionPaidDate ? new Date(agentStat.CommissionPaidDate).toLocaleDateString() : 'N/A'} {/* Display Paid Date */}
+                                                                                    </td>
                                                                                     <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
                                                                                         {!agentStat.CommissionPaid ? (
                                                                                             <button
-                                                                                                onClick={() => handlePayCommission(agentStat._id)}
+                                                                                                onClick={() => initiatePayCommission(agentStat._id)}
                                                                                                 className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
                                                                                             >
                                                                                                 <FiDollarSign className="mr-1 h-3 w-3" /> Pay
