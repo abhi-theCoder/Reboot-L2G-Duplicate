@@ -41,7 +41,14 @@ router.get('/', authenticateSuperAdmin, async (req, res) => {
       return res.status(403).send({ error: 'Access denied' });
     }
 
-    const complaints = await Complaint.find()
+    const { status } = req.query; 
+    let query = {};
+
+    if (status && status !== 'All') {
+      query.status = status;
+    }
+
+    const complaints = await Complaint.find(query)
       .populate('customerId', 'name email')
       .populate({
         path: 'adminReplies.repliedBy',
