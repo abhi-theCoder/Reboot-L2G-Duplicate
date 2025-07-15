@@ -22,7 +22,14 @@ L.Icon.Default.mergeOptions({
 const AboutL2G = () => {
     const [allAgents, setAllAgents] = useState([]);
     const [agents, setAgents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingAgents, setLoadingAgents] = useState(true); // Separate loading state for agents
+    const [loadingAboutContent, setLoadingAboutContent] = useState(true); // Loading state for about content
+    const [aboutContent, setAboutContent] = useState({ // State for dynamic about content
+        heading: 'About L2G',
+        paragraph1: 'Loading about content...',
+        paragraph2: 'Loading about content...',
+        imageUrl: 'https://img.freepik.com/free-photo/group-tourist-hiking-mountain_1150-7414.jpg', // Default placeholder image
+    });
     const [search, setSearch] = useState({
         state: "",
         village: "",
@@ -38,17 +45,37 @@ const AboutL2G = () => {
         return phone.slice(0, 6) + "****";
     };
 
+    // Function to fetch about page content
+    const fetchAboutContent = async () => {
+        setLoadingAboutContent(true);
+        try {
+            const response = await axios.get('/api/about-content');
+            setAboutContent(response.data);
+        } catch (error) {
+            console.error("Error fetching about content:", error);
+            // Fallback to default content if API call fails
+            setAboutContent({
+                heading: 'About L2G',
+                paragraph1: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. This is default content because dynamic content could not be loaded.',
+                paragraph2: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. This is default content because dynamic content could not be loaded.',
+                imageUrl: 'https://img.freepik.com/free-photo/group-tourist-hiking-mountain_1150-7414.jpg',
+            });
+        } finally {
+            setLoadingAboutContent(false);
+        }
+    };
+
     const fetchAgents = async () => {
         try {
-            setLoading(true);
+            setLoadingAgents(true);
             const res = await axios.get("/api/agents/active-agents");
             const fetched = res.data.agents || res.data || [];
-            
+
             const cleanedAgents = await Promise.all(
                 fetched.map(async (agent) => {
                     let position = [22.9734, 78.6569]; // default center
                     const pincode = agent?.permanent_address?.pincode;
-                    
+
                     if (pincode) {
                         try {
                             const coords = await geocodePincode(pincode);
@@ -79,22 +106,22 @@ const AboutL2G = () => {
             console.error("Error fetching agents:", err);
             setAgents([]);
         } finally {
-            setLoading(false);
+            setLoadingAgents(false);
         }
     };
 
     const handleSearch = (e) => {
         e.preventDefault();
         const filtered = allAgents.filter((agent) => {
-            const matchesState = search.state ? 
+            const matchesState = search.state ?
                 agent.state.toLowerCase().includes(search.state.toLowerCase()) : true;
-            const matchesVillage = search.village ? 
+            const matchesVillage = search.village ?
                 agent.village.toLowerCase().includes(search.village.toLowerCase()) : true;
-            const matchesCity = search.city ? 
+            const matchesCity = search.city ?
                 agent.city.toLowerCase().includes(search.city.toLowerCase()) : true;
-            const matchesDistrict = search.district ? 
+            const matchesDistrict = search.district ?
                 agent.district.toLowerCase().includes(search.district.toLowerCase()) : true;
-            const matchesAgentId = search.agentId ? 
+            const matchesAgentId = search.agentId ?
                 agent.id.toString().toLowerCase().includes(search.agentId.toLowerCase()) : true;
 
             return matchesState && matchesVillage && matchesCity && matchesDistrict && matchesAgentId;
@@ -139,7 +166,8 @@ const AboutL2G = () => {
     };
 
     useEffect(() => {
-        fetchAgents();
+        fetchAboutContent(); // Fetch about content on mount
+        fetchAgents(); // Fetch agents on mount
     }, []);
 
     return (
@@ -149,26 +177,32 @@ const AboutL2G = () => {
                 title="About Us"
                 backgroundImage="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
             />
-            
+
             <div className="bg-[#E8F3FF] text-[#0D2044] font-sans">
                 {/* About Section */}
                 <div className="max-w-7xl mx-auto py-12 px-4 md:px-8">
-                    <div className="flex flex-col md:flex-row gap-6 items-start">
-                        <div className="flex-1">
-                            <h2 className="text-3xl md:text-4xl font-bold mb-4">About L2G</h2>
-                            <p className="mb-4 text-gray-700">
-                                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...
-                            </p>
-                            <p className="text-gray-700">
-                                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua...
-                            </p>
+                    {loadingAboutContent ? (
+                        <div className="flex items-center justify-center min-h-[200px]">
+                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D2044]"></div>
                         </div>
-                        <div className="w-full md:w-1/3">
-                            <img src="https://img.freepik.com/free-photo/group-tourist-hiking-mountain_1150-7414.jpg" 
-                                 alt="About" 
-                                 className="rounded-lg w-full object-cover" />
+                    ) : (
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                            <div className="flex-1">
+                                <h2 className="text-3xl md:text-4xl font-bold mb-4">{aboutContent.heading}</h2>
+                                <p className="mb-4 text-gray-700">
+                                    {aboutContent.paragraph1}
+                                </p>
+                                <p className="text-gray-700">
+                                    {aboutContent.paragraph2}
+                                </p>
+                            </div>
+                            <div className="w-full md:w-1/3">
+                                <img src={aboutContent.imageUrl}
+                                     alt="About"
+                                     className="rounded-lg w-full object-cover" />
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Search Box */}
@@ -245,7 +279,7 @@ const AboutL2G = () => {
                         </div>
                     )}
                     <div className="rounded-md overflow-hidden border border-gray-300 mb-8">
-                        {loading ? (
+                        {loadingAgents ? (
                             <div className="h-[570px] w-full flex items-center justify-center">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0D2044]"></div>
                             </div>
@@ -293,7 +327,7 @@ const AboutL2G = () => {
                             )}
                         </div>
                         <div className="overflow-x-auto">
-                            {loading ? (
+                            {loadingAgents ? (
                                 <div className="flex justify-center py-8">
                                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#0D2044]"></div>
                                 </div>

@@ -15,6 +15,7 @@ import MasterDataDashboard from '../pages/MasterDataDashboard';
 import ComplaintManagement from '../pages/ComplaintManagement';
 import AddBlog from '../pages/AddBlog';
 import AdminContactEditPage from './AdminContactEditPage';
+import AdminAboutEditPage from './AdminAboutEditPage';
 
 function Dashboard() {
   const [view, setView] = useState('dashboard');
@@ -50,6 +51,8 @@ function Dashboard() {
         return <AddBlog />;
       case 'adminContactEditPage':
         return <AdminContactEditPage/>;
+      case 'adminAboutEditPage':
+        return <AdminAboutEditPage/>;
       default:
         return <MainContent />;
     }
