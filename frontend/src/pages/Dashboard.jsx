@@ -14,6 +14,7 @@ import ForumModeration from '../pages/ForumModeration';
 import MasterDataDashboard from '../pages/MasterDataDashboard';
 import ComplaintManagement from '../pages/ComplaintManagement';
 import AddBlog from '../pages/AddBlog';
+import AdminContactEditPage from './AdminContactEditPage';
 
 function Dashboard() {
   const [view, setView] = useState('dashboard');
@@ -47,6 +48,8 @@ function Dashboard() {
         return <ComplaintManagement />;
       case 'addBlog':
         return <AddBlog />;
+      case 'adminContactEditPage':
+        return <AdminContactEditPage/>;
       default:
         return <MainContent />;
     }
