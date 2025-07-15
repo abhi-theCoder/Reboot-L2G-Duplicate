@@ -8,27 +8,27 @@ export const useAuth = () => {
     return username ? { name: username } : null;
   });
   const [profile, setProfile] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const fetchProfile = async (token, role) => {
     if (!token || token === 'null') return;
-    
+
     try {
       const route = role === 'superadmin' ? 'api/admin/profile' :
         role === 'customer' ? 'api/customer/profile' : 'api/agents/profile';
-      
+
       const res = await axios.get(route, {
         headers: { Authorization: `Bearer ${token}`, role }
       });
-      
+
       setProfile(res.data);
       if (res.data.name) {
         setUser({ name: res.data.name });
         localStorage.setItem("username", res.data.name);
       }
+      setIsLoggedIn(true); // Set login status to true
     } catch (err) {
-      localStorage.clear();
-      setUser(null);
-      setProfile(null);
+      logout();
       toast.error("Session expired. Please log in again.");
     }
   };
@@ -37,14 +37,18 @@ export const useAuth = () => {
     localStorage.clear();
     setUser(null);
     setProfile(null);
+    setIsLoggedIn(false); // Set login status to false
     toast.success("Logged out successfully");
   };
 
   useEffect(() => {
     const token = localStorage.getItem("Token");
     const role = localStorage.getItem("role");
-    if (token && !profile) fetchProfile(token, role);
+    if (token) {
+      setIsLoggedIn(true);
+      if (!profile) fetchProfile(token, role);
+    }
   }, []);
 
-  return { user, profile, logout };
+  return { user, profile, isLoggedIn, logout };
 };

@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import MainLogo from '../../public/Images/main-logo-03.svg';
 import { FaBars, FaTimes, FaChevronDown, FaChevronUp, FaSearch } from "react-icons/fa";
 import { useAuth } from '../hooks/useAuth';
+import { FaUmbrellaBeach, FaHeartbeat } from 'react-icons/fa';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -21,8 +22,6 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -45,26 +44,17 @@ const Navbar = () => {
     navigate("/login");
   };
 
-  // Option 1: Direct navigation on Enter
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
       navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
       setSearchQuery("");
       setIsMobileMenuOpen(false);
     }
   };
 
-  // Option 2: Immediate search on input
-  const handleSearchInput = (value) => {
-    setSearchQuery(value);
-    if (value.trim()) {
-      navigate(`/search?query=${encodeURIComponent(value)}`);
-    }
-  };
-
-  // Option 3: Button click handler
-  const handleSearchClick = () => {
-    if (searchQuery.trim()) {
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
       navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
       setSearchQuery("");
       setIsMobileMenuOpen(false);
@@ -76,7 +66,6 @@ const Navbar = () => {
     { path: "/About", label: "About Us" },
     { path: "/tour-programs/leisure tour", label: "Leisure Tour" },
     { path: "/tour-programs/Medical Tour", label: "Medical Tour" },
-    // { path: "/l2g-services", label: "L2G ad Services" },
     { path: "/customer-forum", label: "Forum" },
     { path: "/community-list", label: "Community" },
     { path: "/connect-us", label: "Contact" }
@@ -85,10 +74,56 @@ const Navbar = () => {
   return (
     <>
       {/* Top Announcement Bar */}
-      <div className="bg-[#92ac1f] text-white text-center py-2 px-4 text-4xl font-semibold uppercase">
-        <p>L2G Cruise & Cure</p>
-      </div>
+      <div className="relative bg-gradient-to-r from-[#3a7bd5] to-[#00d2ff] text-white text-center py-4 px-6 uppercase overflow-hidden group">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a504a] to-[#559aa8] group-hover:from-[#559aa8] group-hover:to-[#0a504a] transition-all duration-1000 ease-in-out"></div>
 
+        {/* New Wave Effect */}
+        <div className="ocean">
+          <div className="wave"></div>
+          <div className="wave"></div>
+        </div>
+
+        {/* Main Content with animations */}
+        <div className="relative z-10 space-y-2">
+          <svg
+            viewBox="0 0 500 80"
+            className="w-full max-w-md h-auto mx-auto"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              <linearGradient id="halfStroke" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="50%" stop-color="white" />
+                <stop offset="50%" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+            <text
+              x="50%"
+              y="50%"
+              fill="url(#halfStroke)"
+              stroke="white"
+              stroke-width="0.6"
+              stroke-linejoin="round"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              font-size="40"
+              font-weight="bold"
+              letter-spacing="3"
+              className="xl:text-5xl lg:text-xl"
+            >
+              L2G Cruise & Cure
+            </text>
+          </svg>
+        </div>
+
+        {/* Animated Tour & Medical Icons */}
+        <div className="absolute top-4 right-6 text-3xl opacity-70 hover:opacity-100 transition-opacity duration-300 animate-float">
+          <FaUmbrellaBeach className="text-amber-300" />
+        </div>
+        <div className="absolute bottom-6 left-6 text-3xl opacity-70 hover:opacity-100 transition-opacity duration-300 animate-float-reverse">
+          <FaHeartbeat className="text-red-300" />
+        </div>
+      </div>
       {/* Main Navbar */}
       <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-lg' : 'bg-white'}`}>
         <div className="xl:container mx-auto px-4 sm:px-6 lg:px-8">
@@ -202,7 +237,7 @@ const Navbar = () => {
                 className="lg:hidden p-2 rounded-md focus:outline-none"
                 aria-label="Open menu"
               >
-                <FaBars className={`w-6 h-6 ${isScrolled ? 'text-[#011A4D]' : 'text-white'}`} />
+                <FaBars className={`w-6 h-6 ${isScrolled ? 'text-[#011A4D]' : 'text-[#011A4D]'}`} />
               </button>
             </div>
           </div>
@@ -316,8 +351,81 @@ const Navbar = () => {
           </div>
         )}
       </header>
+
+      <style jsx global>{`
+        .ocean { 
+          height: 0%;
+          width:100%;
+          position:absolute;
+          bottom:0;
+          left:0;
+          background: #015871;
+        }
+
+        .wave {
+          background: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/85486/wave.svg) repeat-x; 
+          position: absolute;
+          top: -50px;
+          width: 6400px;
+          height: 198px;
+          animation: wave 7s cubic-bezier( 0.36, 0.45, 0.63, 0.53) infinite;
+          transform: translate3d(0, 0, 0);
+        }
+
+        .wave:nth-of-type(2) {
+          top: -55px;
+          animation: wave 7s cubic-bezier( 0.36, 0.45, 0.63, 0.53) -.125s infinite, swell 7s ease -1.25s infinite;
+          opacity: 1;
+        }
+
+        @keyframes wave {
+          0% {
+            margin-left: 0;
+          }
+          100% {
+            margin-left: -1600px;
+          }
+        }
+
+        @keyframes swell {
+          0%, 100% {
+            transform: translate3d(0,-25px,0);
+          }
+          50% {
+            transform: translate3d(0,5px,0);
+          }
+        }
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0) rotate(-5deg);
+          }
+          50% {
+            transform: translateY(-10px) rotate(5deg);
+          }
+        }
+        
+        @keyframes float-reverse {
+          0%, 100% {
+            transform: translateY(0) rotate(5deg);
+          }
+          50% {
+            transform: translateY(10px) rotate(-5deg);
+          }
+        }
+        
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        .animate-float-reverse {
+          animation: float-reverse 6s ease-in-out infinite;
+        }
+      `}</style>
+
     </>
   );
 };
+
 
 export default Navbar;
