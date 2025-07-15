@@ -12,16 +12,31 @@ import {
   faChevronLeft,
   faChevronRight,
   faFileContract,
+  faEdit, // Added for the new "Change Details" icon
+  faCaretDown, // Added for dropdown caret
+  faCaretUp // Added for dropdown caret
 } from '@fortawesome/free-solid-svg-icons';
 import { Link } from 'react-router-dom';
 import MainLogo from '../../public/main-logo.png';
-// import axios from '../api'; // No longer needed for fetching here
-import { useDashboard } from '../context/DashboardContext'; // Import the hook
+import { useDashboard } from '../context/DashboardContext';
 
 const Sidebar = ({ collapsed, setCollapsed, setView }) => {
   const [activeView, setActiveView] = useState('dashboard');
-  const { pendingCount, profile } = useDashboard(); // Get data from context
-  const role = localStorage.getItem('role'); // Role is still needed for menu logic
+  const [openDropdown, setOpenDropdown] = useState(null); // State to manage open dropdowns
+  const { pendingCount, profile } = useDashboard();
+  const role = localStorage.getItem('role');
+
+  useEffect(() => {
+    // This effect ensures that if the 'view' prop changes externally,
+    // the activeView state is updated, which is crucial for highlighting
+    // the correct item in the sidebar.
+    if (setView && typeof setView === 'function') {
+      // If setView is provided, it means the parent component is controlling the view.
+      // We might want to initialize activeView based on the current URL or a default.
+      // For now, keeping it simple, assume the parent handles setting the initial view.
+    }
+  }, [setView]);
+
 
   const handleLogout = () => {
     localStorage.clear();
@@ -30,11 +45,19 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
 
   const handleItemClick = (view) => {
     setActiveView(view);
-    setView?.(view);
+    setView?.(view); // Call setView prop if it exists
+    // Close dropdowns when a specific item is clicked
+    if (view !== 'changeDetails') { // Don't close if clicking the dropdown header itself
+      setOpenDropdown(null);
+    }
   };
 
   const toggleSidebar = () => {
     setCollapsed(prev => !prev);
+  };
+
+  const toggleDropdown = (dropdownName) => {
+    setOpenDropdown(prev => (prev === dropdownName ? null : dropdownName));
   };
 
   const commonMenu = [
@@ -55,7 +78,18 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     { icon: faUsers, label: 'Forum Moderation', view: 'forumModeration' },
     { icon: faUsers, label: 'Master Data Dashboard', view: 'masterDataDashboard' },
     { icon: faUsers, label: 'Complaint Management', view: 'complaintManagement' },
-    { icon: faTasks, label: 'Add Blog', view: 'addBlog' }
+    { icon: faTasks, label: 'Add Blog', view: 'addBlog' },
+    // New "Change Details" dropdown item
+    {
+      icon: faEdit,
+      label: 'Change Details',
+      view: 'changeDetails', // A unique view for the dropdown header
+      isDropdown: true,
+      subItems: [
+        { label: 'Contact Page', view: 'adminContactEditPage' }, // Corresponds to AdminContactEditPage.jsx
+        { label: 'About Page', view: 'adminAboutEditPage' } // Corresponds to AdminAboutEditPage.jsx
+      ]
+    }
   ];
 
   const accountMenu = [
@@ -108,16 +142,54 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
           <>
             {!collapsed && <p className="text-indigo-200 text-xs font-medium uppercase mb-2 mt-6">Admin Only</p>}
             {superAdminMenu.map(item => (
-              <div
-                key={item.label}
-                onClick={() => handleItemClick(item.view)}
-                className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''}`}
-              >
-                <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
-                  <FontAwesomeIcon icon={item.icon} />
+              item.isDropdown ? (
+                // Render dropdown header
+                <div key={item.label}>
+                  <div
+                    onClick={() => toggleDropdown(item.view)}
+                    className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${openDropdown === item.view ? 'active-menu-item' : ''}`}
+                  >
+                    <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
+                      <FontAwesomeIcon icon={item.icon} />
+                    </div>
+                    {!collapsed && (
+                      <>
+                        <span>{item.label}</span>
+                        <FontAwesomeIcon icon={openDropdown === item.view ? faCaretUp : faCaretDown} className="ml-auto" />
+                      </>
+                    )}
+                  </div>
+                  {/* Render dropdown sub-items if open and not collapsed */}
+                  {openDropdown === item.view && !collapsed && (
+                    <div className="ml-8 border-l border-indigo-400 border-opacity-30">
+                      {item.subItems.map(subItem => (
+                        <div
+                          key={subItem.label}
+                          onClick={() => handleItemClick(subItem.view)}
+                          className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${activeView === subItem.view ? 'active-menu-item' : ''}`}
+                        >
+                          <div className="h-8 w-8 rounded-md bg-transparent flex items-center justify-center mr-3">
+                            {/* No icon for sub-items, or a small dot/dash */}
+                          </div>
+                          <span>{subItem.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {!collapsed && <span>{item.label}</span>}
-              </div>
+              ) : (
+                // Render regular menu item
+                <div
+                  key={item.label}
+                  onClick={() => handleItemClick(item.view)}
+                  className={`sidebar-item px-2 py-2 flex items-center hover:bg-[#ffffff29] rounded-xl mb-2 cursor-pointer ${activeView === item.view ? 'active-menu-item' : ''}`}
+                >
+                  <div className="h-8 w-8 rounded-md bg-indigo-500 bg-opacity-30 flex items-center justify-center mr-3">
+                    <FontAwesomeIcon icon={item.icon} />
+                  </div>
+                  {!collapsed && <span>{item.label}</span>}
+                </div>
+              )
             ))}
           </>
         )}
