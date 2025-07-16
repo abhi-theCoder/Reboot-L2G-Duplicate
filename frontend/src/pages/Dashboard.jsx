@@ -13,9 +13,11 @@ import CheckBooking from '../components/CheckBooking';
 import ForumModeration from '../pages/ForumModeration';
 import MasterDataDashboard from '../pages/MasterDataDashboard';
 import ComplaintManagement from '../pages/ComplaintManagement';
-import AddBlog from '../pages/AddBlog';
 import AdminContactEditPage from './AdminContactEditPage';
 import AdminAboutEditPage from './AdminAboutEditPage';
+import AddBlog from '../pages/AddBlog';
+import AdminBlogList from './AdminBlogList';
+
 
 function Dashboard() {
   const [view, setView] = useState('dashboard');
@@ -53,6 +55,10 @@ function Dashboard() {
         return <AdminContactEditPage/>;
       case 'adminAboutEditPage':
         return <AdminAboutEditPage/>;
+      case 'addBlogs':
+        return <AddBlog/>;
+      case 'editBlogs':
+        return <AdminBlogList/>;
       default:
         return <MainContent />;
     }

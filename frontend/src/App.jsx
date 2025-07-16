@@ -126,6 +126,9 @@ function App() {
         <Route path="/community-list/:id" element={<CommunityListDetails />} />
         <Route path="/add-blog" element={<AddBlog />} />
 
+        {/* NEW: Route for editing an existing blog (uses AddBlog/BlogPostEditor with an ID) */}
+        <Route path="/edit-blog/:id" element={<AddBlog />} />
+
         {/* Login Page */}
       </Routes>
     </DashboardProvider>

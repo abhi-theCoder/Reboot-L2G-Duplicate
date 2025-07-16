@@ -1,44 +1,60 @@
-import { useState } from 'react';
-import { 
-  FaUpload, 
-  FaSave, 
-  FaPenAlt, 
-  FaMapMarkerAlt, 
-  FaAlignLeft, 
-  FaNewspaper,
+import React, { useState, useEffect } from 'react'; // Import useEffect
+import { useParams, useNavigate } from 'react-router-dom'; // Import useParams and useNavigate
+import {
+  FaUpload,
+  FaSave,
+  FaPenAlt,
+  FaMapMarkerAlt,
+  FaAlignLeft,
   FaDollarSign,
   FaCalendarAlt,
   FaUser,
   FaStar,
-  FaHospital,
-  FaPlane,
-  FaClinicMedical
 } from 'react-icons/fa';
-import { MdCategory, MdCheck, MdWarning } from 'react-icons/md';
+import { MdCheck, MdWarning } from 'react-icons/md';
 import { z } from 'zod';
+import axios from '../api'; // Import Axios
 
+// Import CKEditor components
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+
+import LoadingSpinner from '../components/LoadingSpinner';
 // Zod Schema with optional fields
 const blogSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters"),
-  category: z.enum(['medical', 'wellness', 'travel']),
-  type: z.enum(['medical', 'wellness', 'travel']).optional(),
+  category: z.enum(['medical', 'wellness', 'travel'], { message: "Invalid category selected" }),
+  type: z.enum(['medical', 'wellness', 'travel'], { message: "Invalid type selected" }).optional(),
   location: z.string().min(3, "Location is required"),
   excerpt: z.string().min(50, "Excerpt must be at least 50 characters"),
-  content: z.string().min(100, "Content must be at least 100 characters").or(z.literal('')),
+  content: z.string().min(100, "Content must be at least 100 characters"),
   image: z
-    .instanceof(File)
-    .refine(file => file.size <= 5_000_000, "Max image size is 5MB")
-    .optional(),
+    .string()
+    .optional()
+    .refine((val) => {
+      return !val || val.startsWith('data:image/');
+    }, {
+      message: "Image must be a valid base64 image string (e.g., data:image/png;base64,...)"
+    })
+    .refine((val) => {
+        const MAX_BASE64_LENGTH = 7 * 1024 * 1024; // ~7MB for safety
+        return !val || val.length <= MAX_BASE64_LENGTH;
+    }, {
+        message: "Image size exceeds 5MB limit."
+    }),
   cost: z.string().optional(),
   author: z.string().optional(),
   authorTitle: z.string().optional(),
   date: z.string().optional(),
-  rating: z.number().min(0).max(5).optional(),
-  pros: z.string().optional().transform(val => val ? val.split('\n') : []),
-  cons: z.string().optional().transform(val => val ? val.split('\n') : [])
+  rating: z.number().min(0, "Rating must be between 0 and 5").max(5, "Rating must be between 0 and 5").optional(),
+  pros: z.string().optional().transform(val => val ? val.split('\n').map(p => p.trim()).filter(p => p.length > 0) : []),
+  cons: z.string().optional().transform(val => val ? val.split('\n').map(c => c.trim()).filter(c => c.length > 0) : [])
 });
 
 const BlogPostEditor = () => {
+  const { id } = useParams(); // Get the ID from the URL (e.g., /edit-blog/:id)
+  const navigate = useNavigate(); // For redirection after save
+
   const [formData, setFormData] = useState({
     title: '',
     category: 'medical',
@@ -60,6 +76,51 @@ const BlogPostEditor = () => {
   const [previewImage, setPreviewImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isLoadingBlog, setIsLoadingBlog] = useState(false); // New state for loading existing blog
+
+  // Effect to fetch blog data if ID is present (for editing)
+  useEffect(() => {
+    const fetchBlogForEdit = async () => {
+      if (id) { // Only fetch if an ID is provided in the URL
+        setIsLoadingBlog(true);
+        try {
+          const response = await axios.get(`/api/blogs/${id}`);
+          console.log(response);
+          const blogData = response.data;
+
+          // Convert pros/cons arrays back to newline-separated strings for textareas
+          const formattedPros = blogData.pros ? blogData.pros.join('\n') : '';
+          const formattedCons = blogData.cons ? blogData.cons.join('\n') : '';
+
+          setFormData({
+            title: blogData.title || '',
+            category: blogData.category || 'medical',
+            type: blogData.type || 'medical',
+            location: blogData.location || '',
+            excerpt: blogData.excerpt || '',
+            content: blogData.content || '', // CKEditor will display this HTML
+            image: blogData.image || undefined, // Base64 image
+            cost: blogData.cost || '',
+            author: blogData.author || '',
+            authorTitle: blogData.authorTitle || '',
+            date: blogData.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            rating: blogData.rating || 0,
+            pros: formattedPros,
+            cons: formattedCons,
+          });
+          setPreviewImage(blogData.image || null); // Set preview image if available
+        } catch (error) {
+          console.error('Error fetching blog for edit:', error);
+          alert('Failed to load blog for editing. Please try again.');
+          navigate('/community-list'); // Redirect if blog not found or error
+        } finally {
+          setIsLoadingBlog(false);
+        }
+      }
+    };
+
+    fetchBlogForEdit();
+  }, [id, navigate]); // Re-run when ID changes or navigate function changes
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -75,10 +136,35 @@ const BlogPostEditor = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, image: file }));
-      setPreviewImage(URL.createObjectURL(file));
-      if (errors.image) setErrors(prev => ({ ...prev, image: null }));
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, image: "Max image size is 5MB" }));
+        setPreviewImage(null);
+        setFormData(prev => ({ ...prev, image: undefined }));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, image: reader.result }));
+        setPreviewImage(reader.result);
+        if (errors.image) setErrors(prev => ({ ...prev, image: null }));
+      };
+      reader.onerror = () => {
+        setErrors(prev => ({ ...prev, image: "Failed to read image file." }));
+        setPreviewImage(null);
+        setFormData(prev => ({ ...prev, image: undefined }));
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFormData(prev => ({ ...prev, image: undefined }));
+      setPreviewImage(null);
     }
+  };
+
+  const handleEditorChange = (event, editor) => {
+    const data = editor.getData();
+    setFormData(prev => ({ ...prev, content: data }));
+    if (errors.content) setErrors(prev => ({ ...prev, content: null }));
   };
 
   const handleSubmit = async (e) => {
@@ -86,14 +172,40 @@ const BlogPostEditor = () => {
     setIsSubmitting(true);
 
     try {
-      const validatedData = blogSchema.parse(formData);
+      const dataForValidation = {
+        ...formData,
+        pros: Array.isArray(formData.pros) ? formData.pros.join('\n') : formData.pros,
+        cons: Array.isArray(formData.cons) ? formData.cons.join('\n') : formData.cons,
+      };
+
+      const validatedData = blogSchema.parse(dataForValidation);
       console.log("Valid data:", validatedData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      alert("Blog post created successfully!");
-      resetForm();
+
+      let response;
+      if (id) {
+        // Update existing blog
+        response = await axios.put(`/api/blogs/${id}`, validatedData, {
+          headers: {
+                    'Content-Type': 'application/json',
+                     Authorization: `Bearer ${localStorage.getItem('Token')}` 
+                },
+        });
+        alert(response.data.message || "Blog updated successfully!");
+        navigate(`/community-list/${id}`); // Redirect to the updated blog detail page
+      } else {
+        // Create new blog
+        response = await axios.post('/api/blogs', validatedData, {
+          headers: {
+                    'Content-Type': 'application/json',
+                     Authorization: `Bearer ${localStorage.getItem('Token')}` 
+                },
+        });
+        alert(response.data.message || "Blog created successfully!");
+        resetForm(); // Reset form for new creation
+        // Optionally navigate to the new blog's detail page:
+        // navigate(`/community-list/${response.data.blog._id}`);
+      }
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errorMap = {};
@@ -101,6 +213,12 @@ const BlogPostEditor = () => {
           if (err.path) errorMap[err.path[0]] = err.message;
         });
         setErrors(errorMap);
+      } else if (axios.isAxiosError(error)) {
+        console.error("Submission error:", error.response?.data || error.message);
+        alert(`Error: ${error.response?.data?.message || error.message}`);
+      } else {
+        console.error("Submission error:", error);
+        alert(`Error: ${error.message}`);
       }
     } finally {
       setIsSubmitting(false);
@@ -128,18 +246,27 @@ const BlogPostEditor = () => {
     setErrors({});
   };
 
+  if (isLoadingBlog) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <p className="text-xl text-gray-700">Loading blog for editing...</p>
+        <LoadingSpinner /> {/* Assuming you have this component */}
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 w-full bg-gray-200 min-h-screen my-5 max-w-[1200px] mx-auto rounded-2xl">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Create New Blog Post</h1>
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">
+        {id ? 'Edit Blog Post' : 'Create New Blog Post'}
+      </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-sm">
-        {/* Basic Information Section */}
         <section>
           <h2 className="text-xl font-semibold mb-4 flex items-center text-gray-700">
             <FaPenAlt className="mr-2" /> Basic Information
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Title */}
             <div>
               <label className="block mb-2 font-medium">Title*</label>
               <input
@@ -152,7 +279,6 @@ const BlogPostEditor = () => {
               {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
             </div>
 
-            {/* Category */}
             <div>
               <label className="block mb-2 font-medium">Category*</label>
               <select
@@ -167,7 +293,6 @@ const BlogPostEditor = () => {
               </select>
             </div>
 
-            {/* Type */}
             <div>
               <label className="block mb-2 font-medium">Type</label>
               <select
@@ -182,7 +307,6 @@ const BlogPostEditor = () => {
               </select>
             </div>
 
-            {/* Location */}
             <div>
               <label className="block mb-2 font-medium">Location*</label>
               <div className="relative">
@@ -200,7 +324,6 @@ const BlogPostEditor = () => {
           </div>
         </section>
 
-        {/* Image Upload */}
         <section>
           <h2 className="text-xl font-semibold mb-4 flex items-center text-gray-700">
             <FaUpload className="mr-2" /> Featured Image
@@ -219,8 +342,8 @@ const BlogPostEditor = () => {
               {previewImage && (
                 <div className="relative">
                   <img src={previewImage} alt="Preview" className="h-24 w-24 object-cover rounded-lg" />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => {
                       setPreviewImage(null);
                       setFormData(prev => ({ ...prev, image: undefined }));
@@ -237,13 +360,11 @@ const BlogPostEditor = () => {
           </div>
         </section>
 
-        {/* Content Section */}
         <section>
           <h2 className="text-xl font-semibold mb-4 flex items-center text-gray-700">
             <FaAlignLeft className="mr-2" /> Content
           </h2>
           <div className="space-y-6">
-            {/* Excerpt */}
             <div>
               <label className="block mb-2 font-medium">Excerpt*</label>
               <textarea
@@ -257,35 +378,38 @@ const BlogPostEditor = () => {
               {errors.excerpt && <p className="text-red-500 text-sm mt-1">{errors.excerpt}</p>}
             </div>
 
-            {/* Main Content */}
             <div>
               <label className="block mb-2 font-medium">Content*</label>
-              <textarea
-                name="content"
-                value={formData.content}
-                onChange={handleChange}
-                rows={10}
-                className={`w-full p-3 border rounded-lg font-mono ${errors.content ? 'border-red-500' : 'border-gray-300'}`}
-                placeholder="Enter your content (HTML allowed)"
-              />
-              <p className="text-sm text-gray-500 mt-1">You can use HTML tags for formatting</p>
+              <div className={errors.content ? 'border border-red-500 rounded-lg p-1' : ''}>
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={formData.content}
+                  onChange={handleEditorChange}
+                  config={{
+                    toolbar: [
+                      'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList',
+                      'blockQuote', '|', 'undo', 'redo', 'insertTable'
+                    ]
+                  }}
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Use the editor above to format your content.</p>
               {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
             </div>
           </div>
         </section>
 
-        {/* Optional Fields Section */}
         <section>
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center text-primary hover:text-primary-dark mb-4"
+            className="flex items-center text-blue-600 hover:text-blue-800 mb-4 font-medium"
           >
             {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-            <svg 
-              className={`ml-2 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} 
-              width="16" 
-              height="16" 
+            <svg
+              className={`ml-2 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
             >
               <path fill="currentColor" d="M7 10l5 5 5-5z"/>
@@ -295,9 +419,8 @@ const BlogPostEditor = () => {
           {showAdvanced && (
             <div className="space-y-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-lg font-semibold mb-4 text-gray-700">Additional Information</h3>
-              
+
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Author */}
                 <div>
                   <label className="block mb-2 font-medium">Author</label>
                   <div className="relative">
@@ -312,7 +435,6 @@ const BlogPostEditor = () => {
                   </div>
                 </div>
 
-                {/* Author Title */}
                 <div>
                   <label className="block mb-2 font-medium">Author Title</label>
                   <input
@@ -324,7 +446,6 @@ const BlogPostEditor = () => {
                   />
                 </div>
 
-                {/* Date */}
                 <div>
                   <label className="block mb-2 font-medium">Publish Date</label>
                   <div className="relative">
@@ -338,7 +459,6 @@ const BlogPostEditor = () => {
                   </div>
                 </div>
 
-                {/* Rating */}
                 <div>
                   <label className="block mb-2 font-medium">Rating (0-5)</label>
                   <div className="relative">
@@ -356,7 +476,6 @@ const BlogPostEditor = () => {
                   </div>
                 </div>
 
-                {/* Cost */}
                 <div>
                   <label className="block mb-2 font-medium">Cost Indicator</label>
                   <div className="relative">
@@ -372,7 +491,6 @@ const BlogPostEditor = () => {
                 </div>
               </div>
 
-              {/* Pros and Cons (for Medical Tourism) */}
               {formData.category === 'medical' && (
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
@@ -407,7 +525,6 @@ const BlogPostEditor = () => {
           )}
         </section>
 
-        {/* Form Actions */}
         <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
           <button
             type="button"
@@ -419,13 +536,13 @@ const BlogPostEditor = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-1.5"
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1.5"
           >
             {isSubmitting ? (
-              'Publishing...'
+              id ? 'Updating...' : 'Publishing...'
             ) : (
               <>
-                <FaSave /> Publish Post
+                <FaSave /> {id ? 'Update Post' : 'Publish Post'}
               </>
             )}
           </button>

@@ -78,7 +78,18 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     { icon: faUsers, label: 'Forum Moderation', view: 'forumModeration' },
     { icon: faUsers, label: 'Master Data Dashboard', view: 'masterDataDashboard' },
     { icon: faUsers, label: 'Complaint Management', view: 'complaintManagement' },
-    { icon: faTasks, label: 'Add Blog', view: 'addBlog' },
+    
+    {
+      icon: faEdit,
+      label: 'Blogs',
+      view: 'changeblogs', // A unique view for the dropdown header
+      isDropdown: true,
+      subItems: [
+        { icon: faTasks, label: 'Add Blogs', view: 'addBlogs' },
+        { label: 'Edit Blogs', view: 'editBlogs' } // Corresponds to AdminAboutEditPage.jsx
+      ]
+    },
+
     // New "Change Details" dropdown item
     {
       icon: faEdit,
