@@ -50,6 +50,8 @@ app.use('/api/posts', require('./routes/posts'));
 app.use('/api/complaints', require('./routes/complaints'));
 app.use('/api/agent-chats', require('./routes/agentChats'));
 app.use('/api/contact-content', require('./routes/contactContent'));
+app.use('/api/about-content', require('./routes/AboutContent'));
+app.use('/api/blogs', require('./routes/Blog'));
 
 // app.use("/api/webhook", webhookRoute);
 // app.use('/api/admin', require('./routes/SuperAdminRoutes'));

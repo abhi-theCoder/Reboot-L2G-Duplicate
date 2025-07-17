@@ -132,6 +132,9 @@ function App() {
         <Route path="/terms-conditions" element={<TermsConditions />} />
         <Route path="/grievance-policy" element={<GrievancePolicy />} />
 
+        {/* NEW: Route for editing an existing blog (uses AddBlog/BlogPostEditor with an ID) */}
+        <Route path="/edit-blog/:id" element={<AddBlog />} />
+
         {/* Login Page */}
       </Routes>
     </DashboardProvider>
