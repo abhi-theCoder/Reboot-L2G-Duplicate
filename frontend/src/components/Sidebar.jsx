@@ -82,6 +82,17 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     
     {
       icon: faEdit,
+      label: 'Edit Policies',
+      view: 'editPolicies', // A unique view for the dropdown header
+      isDropdown: true,
+      subItems: [
+        { icon: faTasks, label: 'Grievance Policy', view: 'editGrievance' },
+        { label: 'Cancellation Policy', view: 'editCancellation' } // Corresponds to AdminAboutEditPage.jsx
+      ]
+    },
+
+    {
+      icon: faEdit,
       label: 'Blogs',
       view: 'changeblogs', // A unique view for the dropdown header
       isDropdown: true,
