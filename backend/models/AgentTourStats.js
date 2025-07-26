@@ -18,7 +18,7 @@ const agentTourStatsSchema = new mongoose.Schema({
     // Link to the agent document (using its ObjectId)
     agent: {
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Agent',
+        ref: 'Agent', 
         required: true
     },
     // Denormalized agentID string for convenience and CSV generation
