@@ -38,6 +38,8 @@ import CancellationPolicy from './pages/CancellationPolicy';
 import TermsConditions from './pages/TermsConditions';
 import GrievancePolicy from './pages/GrievancePolicy';
 import EditAgentTermsConditions from './pages/EditAgentTermsConditions';
+import AdminSpecialOffers from './pages/AdminSpecialOffers';
+import AttractionsEditPage from './pages/AttractionsEditPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -136,6 +138,8 @@ function App() {
         {/* NEW: Route for editing an existing blog (uses AddBlog/BlogPostEditor with an ID) */}
         <Route path="/edit-blog/:id" element={<AddBlog />} />
         <Route path="/edit-agent-terms-conditions" element={<EditAgentTermsConditions />} />
+        <Route path="/edit-special-offers" element={<AdminSpecialOffers />} />
+        <Route path="/attractions-edit" element={<AttractionsEditPage />} />
 
         {/* Login Page */}
       </Routes>

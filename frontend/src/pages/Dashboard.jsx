@@ -20,6 +20,7 @@ import AdminBlogList from './AdminBlogList';
 import AgentTreeViewer from '../components/AgentTreeViewer';
 import EditGrievance from './EditGrievance';
 import EditCancellationPolicy from './EditCancellationPolicy';
+import AdminSpecialOffers from './AdminSpecialOffers';
 
 function Dashboard() {
   const [view, setView] = useState('dashboard');
@@ -67,6 +68,8 @@ function Dashboard() {
         return <EditGrievance/>;
       case 'editCancellation':
         return <EditCancellationPolicy/>;
+      case 'adminSpecialOffers':
+        return <AdminSpecialOffers />;
       default:
         return <MainContent />;
     }

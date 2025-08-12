@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router-dom';
 import MainLogo from '../../public/main-logo.png';
 import { useDashboard } from '../context/DashboardContext';
+import { icons } from 'lucide-react';
 
 const Sidebar = ({ collapsed, setCollapsed, setView }) => {
   const [activeView, setActiveView] = useState('dashboard');
@@ -45,12 +46,10 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
 
   const handleItemClick = (view) => {
     setActiveView(view);
-    setView?.(view); // Call setView prop if it exists
-    // Close dropdowns when a specific item is clicked
-    if (view !== 'changeDetails') { // Don't close if clicking the dropdown header itself
-      setOpenDropdown(null);
-    }
+    setView?.(view);
+    setOpenDropdown(null); // always close dropdown after click
   };
+
 
   const toggleSidebar = () => {
     setCollapsed(prev => !prev);
@@ -80,7 +79,8 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     { icon: faUsers, label: 'Master Data Dashboard', view: 'masterDataDashboard' },
     { icon: faUsers, label: 'Complaint Management', view: 'complaintManagement' },
     { icon: faUsers, label: 'Edit Agent Terms Conditions', view: 'EditAgentTermsConditions' },
-    
+    // {icons: faUsers, label: 'Edit Special Offer', view: 'AdminSpecialOffers' },
+
     {
       icon: faEdit,
       label: 'Edit Policies',
@@ -94,12 +94,22 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
 
     {
       icon: faEdit,
+      label: 'Home',
+      view: 'changehome',
+      isDropdown: true,
+      subItems: [
+        { icon: faUsers, label: 'Edit Special Offer', view: 'AdminSpecialOffers' } // fixed icon
+      ]
+    },
+
+    {
+      icon: faEdit,
       label: 'Blogs',
-      view: 'changeblogs', // A unique view for the dropdown header
+      view: 'changeblogs',
       isDropdown: true,
       subItems: [
         { icon: faTasks, label: 'Add Blogs', view: 'addBlogs' },
-        { label: 'Edit Blogs', view: 'editBlogs' } // Corresponds to AdminAboutEditPage.jsx
+        { label: 'Edit Blogs', view: 'editBlogs' },// fixed icon
       ]
     },
 
