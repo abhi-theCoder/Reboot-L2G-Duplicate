@@ -1,78 +1,105 @@
 const axios = require('axios');
 const crypto = require('crypto');
-require('dotenv').config();
+require('dotenv').config(); // Make sure your .env file is configured for RAZORPAY_WEBHOOK_SECRET
 const path = require('path');
-const webhookURL = 'http://localhost:5001/webhook';
 
-// --- IMPORTANT: REPLACE WITH AN ACTUAL BOOKING ID FROM YOUR DATABASE ---
-// This booking ID must exist in your MongoDB for the webhook to find and update it.
-const TEST_BOOKING_ID = 'BKG61488'; // <--- MUST CHANGE THIS TO A REAL BOOKING ID
+// --- Configuration ---
+// The URL where your webhook endpoint is listening
+const webhookURL = 'http://localhost:5001/webhook'; // Adjust port if necessary
 
-console.log(process.env.RAZORPAY_WEBHOOK_SECRET);
-const tourPricePerHead = 2000;
-const tourGivenOccupancy = 1 ;
-const tourActualOccupancy = 50;
-const totalAmount = tourPricePerHead * Number(tourGivenOccupancy); // in ₹
-const GST = 10;
-const gstAmount = (totalAmount * GST) / 100;
-const finalAmount = totalAmount + gstAmount;
+// --- IMPORTANT: REPLACE WITH ACTUAL IDs FROM YOUR DATABASE ---
+// For this test to be successful, the bookingID and tourID MUST exist in your MongoDB.
+// If agentID is provided, that agent MUST also exist.
+const TEST_BOOKING_ID = 'BKG40217'; // <--- REPLACE WITH A REAL, EXISTING BOOKING ID FROM YOUR DB
+const TEST_TOUR_ID = "683ed99b3a44a7ade21e2d31"; // <--- REPLACE WITH A REAL, EXISTING TOUR ID FROM YOUR DB
+const TEST_AGENT_ID = 'AGT001'; // <--- REPLACE WITH A REAL, EXISTING AGENT ID, or use '' for direct customer booking
+
+// --- Payment Details (simulating Razorpay notes) ---
+// These values should reflect the actual booking details that would be passed by your frontend
+// when creating the Razorpay order.
+const tourPricePerHead = 2000; // Price per person for the tour
+const tourGivenOccupancy = 1; // Number of people included in THIS payment/booking
+const tourActualOccupancy = 50; // Total expected occupancy for the tour (from Tour model)
+const GST_PERCENTAGE = 10; // GST percentage
+
+const baseAmountForBooking = tourPricePerHead * Number(tourGivenOccupancy); // Base amount for this specific booking
+const gstAmount = (baseAmountForBooking * GST_PERCENTAGE) / 100;
+const finalAmountWithGST = baseAmountForBooking + gstAmount; // Total amount to be paid (in Rupees)
+
+// Razorpay expects amount in paisa
+const razorpayAmountInPaisa = finalAmountWithGST * 100;
+
+// Current Unix timestamp for payment creation date
 const currentUnixTimestamp = Math.floor(Date.now() / 1000);
 
+// Sample payload mimicking a 'payment.captured' event from Razorpay
 const samplePayload = {
   event: 'payment.captured',
   payload: {
     payment: {
       entity: {
-        id: 'pay_MOCK123455', // Unique transaction ID for this test
-        amount: finalAmount * 100, // Razorpay amount is in paisa
+        id: `pay_MOCK_${Date.now()}`, // Unique transaction ID for each test run
+        amount: razorpayAmountInPaisa, // Amount in paisa
         currency: 'INR',
         status: 'captured',
         method: 'card',
         created_at: currentUnixTimestamp,
-        email: 'testuser@example.com',
-        contact: '9876543210',
+        email: 'testuser@example.com', // Customer email (can be pulled from booking later)
+        contact: '9876543210', // Customer contact (can be pulled from booking later)
         notes: {
-          bookingID: TEST_BOOKING_ID, // <--- ADDED THIS CRITICAL FIELD
-          agentID: '032-2025-000A', // Keep empty for direct customer test, or put an existing agentID
-          tourID: '683e211c6ec96af47df5b96f', // <--- REPLACE WITH AN ACTUAL TOUR ID 
-          tourName: 'Varanasi', // <--- ADDED THIS CRITICAL FIELD (match tourID's name)
-          tourPricePerHead: String(tourPricePerHead),
+          // These notes are crucial and should match what your Razorpay order creation sends
+          bookingID: TEST_BOOKING_ID,
+          agentID: TEST_AGENT_ID, // Use TEST_AGENT_ID or leave empty '' for direct booking
+          tourID: TEST_TOUR_ID,
+          tourName: 'Varanasi Spiritual Journey', // Ensure this matches the tour name for TEST_TOUR_ID
+          tourPricePerHead: String(tourPricePerHead), // Convert to string as Razorpay notes are strings
           tourActualOccupancy: String(tourActualOccupancy),
           tourGivenOccupancy: String(tourGivenOccupancy),
-          tourStartDate: '2025-08-12T00:00:00.000Z', // Or '2025-08-12'
-          GST: String(GST),
-          finalAmount: String(finalAmount),
-          // Customer and Travelers details are usually part of the Booking document itself,
-          // but if your system passes them in notes for initial booking creation, keep them.
-          // For webhook updates, typically the bookingID is enough to find the associated data.
+          tourStartDate: '2025-08-12', // YYYY-MM-DD format, or '2025-08-12T00:00:00.000Z' if your notes expect full ISO string
+          GST: String(GST_PERCENTAGE),
+          finalAmount: String(finalAmountWithGST), // Total amount for this specific payment (in Rupees)
         }
       }
     }
   }
 };
 
+// Function to generate the Razorpay webhook signature
 const generateSignature = (body, secret) => {
   return crypto.createHmac('sha256', secret)
     .update(body)
     .digest('hex');
 };
 
+// --- Main execution block ---
 (async () => {
-  try {
-    const payloadStr = JSON.stringify(samplePayload);
-    const signature = generateSignature(payloadStr, process.env.RAZORPAY_WEBHOOK_SECRET);
+  // Ensure Razorpay Webhook Secret is loaded from environment variables
+  const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  if (!razorpayWebhookSecret) {
+    console.error("Error: RAZORPAY_WEBHOOK_SECRET environment variable is not set.");
+    console.error("Please set it in your .env file or directly in the script for testing.");
+    return;
+  }
 
-    console.log('Sending webhook payload:', samplePayload);
+  try {
+    // Stringify the payload for signature generation
+    const payloadStr = JSON.stringify(samplePayload);
+    const signature = generateSignature(payloadStr, razorpayWebhookSecret);
+
+    console.log('--- Sending Webhook Request ---');
+    console.log('Webhook URL:', webhookURL);
+    console.log('Payload (notes section is key):', samplePayload.payload.payment.entity.notes);
     console.log('Generated signature:', signature);
 
+    // Send the POST request to the webhook endpoint
     const response = await axios.post(webhookURL, samplePayload, {
       headers: {
         'Content-Type': 'application/json',
-        'x-razorpay-signature': signature
+        'x-razorpay-signature': signature // Include the generated signature
       },
+      // This transformRequest ensures the exact stringified payload is used for signature verification
+      // on the server side, mimicking how Express's `req.rawBody` would capture it.
       transformRequest: [(data) => {
-        // This simulates Express's `req.rawBody` for webhook signature verification.
-        // It ensures the exact stringified payload is used for signature generation.
         return JSON.stringify(data);
       }]
     });
@@ -81,22 +108,22 @@ const generateSignature = (body, secret) => {
     console.log('Status:', response.status);
     console.log('Data:', response.data);
     console.log('------------------------');
+    console.log('Test completed. Check your MongoDB and Master Data Dashboard for updates.');
 
   } catch (error) {
     console.error('\n--- Error Sending Webhook ---');
     if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
+      // The server responded with an error status code
       console.error('Status:', error.response.status);
-      console.error('Data:', error.response.data);
-      console.error('Headers:', error.response.headers);
+      console.error('Response Data:', error.response.data);
+      console.error('Response Headers:', error.response.headers);
     } else if (error.request) {
-      // The request was made but no response was received
-      console.error('No response received:', error.request);
+      // The request was made but no response was received (e.g., server not running)
+      console.error('No response received. Is your backend server running at', webhookURL, '?');
+      console.error('Request:', error.request);
     } else {
-      // Something happened in setting up the request that triggered an Error
+      // Something happened in setting up the request
       console.error('Error message:', error.message);
-      console.log(error);
     }
     console.error('----------------------------');
   }

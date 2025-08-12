@@ -7,4 +7,14 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),],
+  resolve: {
+    dedupe: [
+      '@ckeditor/ckeditor5-core',
+      '@ckeditor/ckeditor5-engine',
+      '@ckeditor/ckeditor5-utils',
+      '@ckeditor/ckeditor5-theme-lark',
+      '@ckeditor/ckeditor5-typing',
+      '@ckeditor/ckeditor5-command'
+    ]
+  },
 })

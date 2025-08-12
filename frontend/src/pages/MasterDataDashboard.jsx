@@ -55,6 +55,39 @@ const PAID_COMMISSIONS_DETAILED_HEADERS = [
     'totalCommissionPending'
 ];
 
+// NEW: Headers for Agent Dump CSV (matching Cronjob details.xlsx - Agent Dump.csv)
+const AGENT_DUMP_HEADERS = [
+    'S/L', 'Agent name', 'Gender', 'DOB', 'Age', 'Phone No. Calling',
+    'Phone No. Whatsaap', 'Flat No.', 'Locality', 'City', 'Pin Code', 'PS',
+    'State', 'Country', 'Aadhar Card Number', 'PAN Card Number',
+    'Date of onboarding', 'Agent ID', 'Referral Code', 'Child agent name',
+    'Child agent Id', 'Booking Id', 'Destination', 'Date of journy',
+    'Packag price for Adult', 'Packag price for Child', 'Total Occupancy',
+    'Date of booking', 'No. of Adult provided by agent', 'No. of Child provided by agent',
+    'No. of Adult provided by Sub agent', 'No. of Child provided by Sub agent',
+    'Provided occupancy rate', 'Percentage rate of commision for sub agent',
+    'Percentage rate of commision for agent', 'Due date of payment', 'Date of payment',
+    'Commission paid', 'Commission to be paid', 'No.of cancled booking',
+    'Deduction of comission against cancelation', 'JPG/PDF of aadhar Card of Agent',
+    'JPG/PDF of PAN Card of Agent'
+];
+
+// NEW: Headers for Customer Dump CSV (matching Cronjob details.xlsx - Customer Dump.csv)
+const CUSTOMER_DUMP_HEADERS = [
+    'S/L', 'Date of Dump', 'Date of booking', 'Booking Email ID', 'Booking ID',
+    'Date of journey', 'Name of customer', 'Name of co-passengers', 'Gender',
+    'DOB', 'Age', 'Phone No. Calling', 'Emergency Contact', 'Phone No. Whatsaap',
+    'Flat No.', 'Locality', 'City', 'Pin Code', 'PS', 'State', 'Country',
+    'Aadhar Card Number', 'PAN Card Number', 'Birth Certificate',
+    'Disability (if any)', 'Medical condition', 'Tour Type', 'Package selected',
+    'Agent Name', 'Agent ID', 'Selected Trip', 'No. of Co-passanger',
+    'JPG/PDF of aadhar Card of passanger', 'JPG/PDF of PAN Card of passanger',
+    'Bank Name', 'Account holder name', 'Bank Account No', 'IFSC Code',
+    'No. of adults', 'No. of Child', 'Package rate for adult', 'Package rate for child',
+    'Total Amount paid by customer', 'UTR Number', 'Canceled booking of members(Only Nos.)',
+    'Refund against cancellation'
+];
+
 
 // Utility function to convert array of objects to CSV
 const convertToCSV = (data, type) => {
@@ -68,13 +101,17 @@ const convertToCSV = (data, type) => {
     } else if (type === 'customers') {
         headers = ['name', 'email', 'phone', 'createdAt', 'totalBookings'];
     } else if (type === 'paymentsReceived') {
-        headers = ['bookingId', 'tourName', 'agentName', 'agentID', 'customerName', 'amount', 'commissionAmount', 'paymentStatus', 'paymentDate'];
+        headers = ['bookingID', 'tourName', 'agentName', 'agentID', 'customerName', 'amount', 'commissionAmount', 'paymentStatus', 'paymentDate'];
     } else if (type === 'paymentsPaid') {
         headers = ['tourID', 'agentName', 'agentID', 'dueDate', 'customerGiven', 'commission', 'CommissionPaid', 'CommissionPaidDate']; // Added for paymentsPaid table
     } else if (type === 'agentCommissionReport') {
         headers = AGENT_COMMISSION_REPORT_HEADERS;
     } else if (type === 'paymentsPaidDetailed') { // New type for the detailed payments report
         headers = PAID_COMMISSIONS_DETAILED_HEADERS;
+    } else if (type === 'agentDump') { // NEW: Agent Dump headers
+        headers = AGENT_DUMP_HEADERS;
+    } else if (type === 'customerDump') { // NEW: Customer Dump headers
+        headers = CUSTOMER_DUMP_HEADERS;
     }
     else {
         headers = Object.keys(data[0]).filter(key =>
@@ -125,6 +162,12 @@ const convertToCSV = (data, type) => {
                 } else if (header === 'parentAgent') {
                     value = row.parentAgent || 'N/A,N/A';
                 }
+            } else if (type === 'agentDump' || type === 'customerDump') {
+                // For dump types, direct mapping as backend provides formatted data
+                // Handle dates specifically if they are Date objects and need formatting
+                if (header.includes('Date') && value instanceof Date) {
+                    value = value.toLocaleDateString();
+                }
             }
 
 
@@ -160,6 +203,11 @@ const MasterDataDashboard = () => {
     const [paymentsReceived, setPaymentsReceived] = useState([]);
     const [paymentsPaid, setPaymentsPaid] = useState([]); // This will now hold AgentTourStats data
 
+    // NEW: State for dump data
+    const [agentDumpData, setAgentDumpData] = useState([]);
+    const [customerDumpData, setCustomerDumpData] = useState([]);
+
+
     // Loading and error states
     const [loadingAgents, setLoadingAgents] = useState(true);
     const [loadingCustomers, setLoadingCustomers] = useState(true);
@@ -178,7 +226,7 @@ const MasterDataDashboard = () => {
     const [commissionView, setCommissionView] = useState('table');
     // State to manage expanded accordions
     const [expandedAgents, setExpandedAgents] = useState({}); // For agent-wise view
-    const [expandedTours, setExpandedTours] = useState({}); // For tour-wise view
+    const [expandedTours, setExpandedTours] = useState({}); // Corrected: Initialized with useState({})
 
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -236,7 +284,7 @@ const MasterDataDashboard = () => {
                     phone_calling: agent.phone_calling || '',
                     phone_whatsapp: agent.phone_whatsapp || '',
                     email: agent.email || '',
-                    adhar_card: agent.aadhar_card || '',
+                    aadhar_card: agent.aadhar_card || '',
                     pan_card: agent.pan_card || '',
                     profession: agent.profession || '',
                     income: agent.income || 0,
@@ -362,6 +410,36 @@ const MasterDataDashboard = () => {
     }, [token, timeFilterPaid, startDatePaid, endDatePaid, activeTab, paymentSubTab]);
 
 
+    // NEW: Fetch Agent Dump Data
+    const fetchAgentDumpData = async () => {
+        console.log("object")
+        try {
+            const response = await axios.get('/api/admin/agent-dump-csv', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setAgentDumpData(Array.isArray(response.data.data) ? response.data.data : []);
+        } catch (error) {
+            console.error('Error fetching agent dump data:', error);
+            toast.error('Failed to fetch agent dump data.');
+            setAgentDumpData([]);
+        }
+    };
+
+    // NEW: Fetch Customer Dump Data
+    const fetchCustomerDumpData = async () => {
+        try {
+            const response = await axios.get('/api/admin/customer-dump-csv', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setCustomerDumpData(Array.isArray(response.data.data) ? response.data.data : []);
+        } catch (error) {
+            console.error('Error fetching customer dump data:', error);
+            toast.error('Failed to fetch customer dump data.');
+            setCustomerDumpData([]);
+        }
+    };
+
+
     // Function to initiate commission payment (show confirmation)
     const initiatePayCommission = (tourStatsId) => {
         setCommissionToPayId(tourStatsId);
@@ -433,7 +511,7 @@ const MasterDataDashboard = () => {
             (payment.agent?.name && payment.agent.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (payment.customer?.name && payment.customer.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (payment.tourName && payment.tourName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (payment.bookingId && payment.bookingId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (payment.bookingID && payment.bookingID.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (payment.paymentStatus && payment.paymentStatus.toLowerCase().includes(searchTerm.toLowerCase()));
 
         return matchesSearch;
@@ -671,6 +749,28 @@ const MasterDataDashboard = () => {
         downloadCSV(reportRows, 'payments_paid_detailed_report.csv', 'paymentsPaidDetailed');
     };
 
+    // NEW: Function to download Agent Dump CSV
+    const downloadAgentDumpCSV = async () => {
+        await fetchAgentDumpData(); // Ensure data is fetched before downloading
+        if (agentDumpData.length > 0) {
+            downloadCSV(agentDumpData, 'agent_dump.csv', 'agentDump');
+            toast.success('Agent Dump CSV downloaded successfully!');
+        } else {
+            toast.warn('No agent dump data available to download.');
+        }
+    };
+
+    // NEW: Function to download Customer Dump CSV
+    const downloadCustomerDumpCSV = async () => {
+        await fetchCustomerDumpData(); // Ensure data is fetched before downloading
+        if (customerDumpData.length > 0) {
+            downloadCSV(customerDumpData, 'customer_dump.csv', 'customerDump');
+            toast.success('Customer Dump CSV downloaded successfully!');
+        } else {
+            toast.warn('No customer dump data available to download.');
+        }
+    };
+
 
     // Function to toggle agent status
     const toggleAgentStatus = async (agentId, currentStatus) => {
@@ -860,6 +960,22 @@ const MasterDataDashboard = () => {
                                 <span className="hidden md:inline">Paid Commissions Detailed</span>
                             </button>
                         )}
+                        {/* NEW: Button for Agent Dump CSV */}
+                        <button
+                            onClick={downloadAgentDumpCSV}
+                            className="px-3 py-2 bg-yellow-600 text-white rounded-md flex items-center hover:bg-yellow-700"
+                        >
+                            <FiDownload className="mr-1" />
+                            <span className="hidden md:inline">Agent Dump</span>
+                        </button>
+                        {/* NEW: Button for Customer Dump CSV */}
+                        <button
+                            onClick={downloadCustomerDumpCSV}
+                            className="px-3 py-2 bg-teal-600 text-white rounded-md flex items-center hover:bg-teal-700"
+                        >
+                            <FiDownload className="mr-1" />
+                            <span className="hidden md:inline">Customer Dump</span>
+                        </button>
                         <button
                             className="px-3 py-2 bg-gray-100 rounded-md"
                             onClick={() => {
@@ -1026,517 +1142,550 @@ const MasterDataDashboard = () => {
                     )}
 
                     {activeTab === 'payments' && (
+                    <>
+                        {/* Payment Sub-Tabs */}
+                        <div className="flex space-x-2 mb-4">
+                        <button
+                            onClick={() => { 
+                            setPaymentSubTab('received'); 
+                            setCurrentPage(1); 
+                            setTimeFilterReceived('currentMonth'); 
+                            setStartDateReceived(''); 
+                            setEndDateReceived(''); 
+                            }}
+                            className={`px-4 py-2 rounded-md ${paymentSubTab === 'received' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                        >
+                            Payments Received (from Customers)
+                        </button>
+                        <button
+                            onClick={() => { 
+                            setPaymentSubTab('paid'); 
+                            setCurrentPage(1); 
+                            setTimeFilterPaid('currentMonth'); 
+                            setStartDatePaid(''); 
+                            setEndDatePaid(''); 
+                            setCommissionView('table'); 
+                            }}
+                            className={`px-4 py-2 rounded-md ${paymentSubTab === 'paid' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                        >
+                            Payments Paid (to Agents)
+                        </button>
+                        </div>
+
+                        {paymentSubTab === 'received' ? (
                         <>
-                            {/* Payment Sub-Tabs */}
-                            <div className="flex space-x-2 mb-4">
-                                <button
-                                    onClick={() => { setPaymentSubTab('received'); setCurrentPage(1); setTimeFilterReceived('currentMonth'); setStartDateReceived(''); setEndDateReceived(''); }}
-                                    className={`px-4 py-2 rounded-md ${paymentSubTab === 'received' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                >
-                                    Payments Received (from Customers)
-                                </button>
-                                <button
-                                    onClick={() => { setPaymentSubTab('paid'); setCurrentPage(1); setTimeFilterPaid('currentMonth'); setStartDatePaid(''); setEndDatePaid(''); setCommissionView('table'); }}
-                                    className={`px-4 py-2 rounded-md ${paymentSubTab === 'paid' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                >
-                                    Payments Paid (to Agents)
-                                </button>
+                            {/* Payment Received Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div className="bg-white rounded-lg shadow p-4 flex items-center">
+                                <div className="bg-green-100 p-3 rounded-full mr-4">
+                                <FaRupeeSign className="text-green-600 text-xl" />
+                                </div>
+                                <div>
+                                <p className="text-gray-500 text-sm">Total Received Amount</p>
+                                <p className="text-2xl font-bold flex items-center gap-1">
+                                    <FaRupeeSign className='text-base'/> {totalReceivedAmount.toLocaleString()}
+                                </p>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-lg shadow p-4 flex items-center">
+                                <div className="bg-orange-100 p-3 rounded-full mr-4">
+                                <FaRupeeSign className="text-orange-600 text-xl" />
+                                </div>
+                                <div>
+                                <p className="text-gray-500 text-sm">Total Pending Amount</p>
+                                <p className="text-2xl font-bold flex items-center gap-1">
+                                    <FaRupeeSign className='text-base'/> {totalPendingAmount.toLocaleString()}
+                                </p>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-lg shadow p-4 flex items-center">
+                                <div className="bg-blue-100 p-3 rounded-full mr-4">
+                                <FaRupeeSign className="text-blue-600 text-xl" />
+                                </div>
+                                <div>
+                                <p className="text-gray-500 text-sm">Total Commission (from received)</p>
+                                <p className="text-2xl font-bold flex items-center gap-1">
+                                    <FaRupeeSign className='text-base'/> {totalCommissionFromReceivedPayments.toLocaleString()}
+                                </p>
+                                </div>
+                            </div>
                             </div>
 
-                            {paymentSubTab === 'received' && (
-                                <>
-                                    {/* Payment Received Summary Cards */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                        <div className="bg-white rounded-lg shadow p-4 flex items-center">
-                                            <div className="bg-green-100 p-3 rounded-full mr-4">
-                                                <FaRupeeSign className="text-green-600 text-xl" />
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 text-sm">Total Received Amount</p>
-                                                <p className="text-2xl font-bold flex items-center gap-1"><FaRupeeSign className='text-base'/> {totalReceivedAmount.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-lg shadow p-4 flex items-center">
-                                            <div className="bg-orange-100 p-3 rounded-full mr-4">
-                                                <FaRupeeSign className="text-orange-600 text-xl" />
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 text-sm">Total Pending Amount</p>
-                                                <p className="text-2xl font-bold flex items-center gap-1"><FaRupeeSign className='text-base'/> {totalPendingAmount.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-lg shadow p-4 flex items-center">
-                                            <div className="bg-blue-100 p-3 rounded-full mr-4">
-                                                <FaRupeeSign className="text-blue-600 text-xl" />
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 text-sm">Total Commission (from received)</p>
-                                                <p className="text-2xl font-bold flex items-center gap-1"><FaRupeeSign className='text-base'/> {totalCommissionFromReceivedPayments.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Time Filter for Payments Received */}
-                                    <div className="flex space-x-2 mb-4 items-center">
-                                        <button
-                                            onClick={() => { setTimeFilterReceived('currentMonth'); setStartDateReceived(''); setEndDateReceived(''); fetchPaymentsReceived(); }}
-                                            className={`px-4 py-2 rounded-md ${timeFilterReceived === 'currentMonth' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Current Month
-                                        </button>
-                                        <button
-                                            onClick={() => { setTimeFilterReceived('all'); setStartDateReceived(''); setEndDateReceived(''); fetchPaymentsReceived(); }}
-                                            className={`px-4 py-2 rounded-md ${timeFilterReceived === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            All Payments
-                                        </button>
-                                        <button
-                                            onClick={() => setTimeFilterReceived('custom')}
-                                            className={`px-4 py-2 rounded-md ${timeFilterReceived === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Custom Date Range
-                                        </button>
-                                        {timeFilterReceived === 'custom' && (
-                                            <div className="flex space-x-2 ml-4">
-                                                <input
-                                                    type="date"
-                                                    value={startDateReceived}
-                                                    onChange={(e) => setStartDateReceived(e.target.value)}
-                                                    className="p-2 border rounded-md"
-                                                    placeholder="Start Date"
-                                                />
-                                                <input
-                                                    type="date"
-                                                    value={endDateReceived}
-                                                    onChange={(e) => setEndDateReceived(e.target.value)}
-                                                    className="p-2 border rounded-md"
-                                                    placeholder="End Date"
-                                                />
-                                                <button
-                                                    onClick={fetchPaymentsReceived}
-                                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                                >
-                                                    Apply
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {loadingPaymentsReceived ? (
-                                        <div className="text-center py-8">Loading payments received...</div>
-                                    ) : errorPaymentsReceived ? (
-                                        <div className="text-center py-8 text-red-500">{errorPaymentsReceived}</div>
-                                    ) : (
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour Name</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Date</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {currentPaymentsReceived.length > 0 ? (
-                                                    currentPaymentsReceived.map(payment => (
-                                                        <tr key={payment._id}>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{payment.bookingId}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.tourName || 'N/A'}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <div className="text-sm font-medium text-gray-900">{payment.agent?.name || 'N/A'}</div>
-                                                                <div className="text-sm text-gray-500">ID: #{payment.agent?.agentID || 'N/A'}</div>
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.customer?.name || 'N/A'}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{(payment.amount || 0).toLocaleString()}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{(payment.commissionAmount || 0).toLocaleString()}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                    ${payment.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' :
-                                                                      payment.paymentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                                      'bg-gray-100 text-gray-800'}`}>
-                                                                    {payment.paymentStatus}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                    {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ) : (
-                                                    <tr>
-                                                        <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
-                                                            No received payments found
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    )}
-                                </>
+                            {/* Time Filter for Payments Received */}
+                            <div className="flex space-x-2 mb-4 items-center">
+                            <button
+                                onClick={() => { 
+                                setTimeFilterReceived('currentMonth'); 
+                                setStartDateReceived(''); 
+                                setEndDateReceived(''); 
+                                fetchPaymentsReceived(); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${timeFilterReceived === 'currentMonth' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Current Month
+                            </button>
+                            <button
+                                onClick={() => { 
+                                setTimeFilterReceived('all'); 
+                                setStartDateReceived(''); 
+                                setEndDateReceived(''); 
+                                fetchPaymentsReceived(); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${timeFilterReceived === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                All Payments
+                            </button>
+                            <button
+                                onClick={() => setTimeFilterReceived('custom')}
+                                className={`px-4 py-2 rounded-md ${timeFilterReceived === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Custom Date Range
+                            </button>
+                            {timeFilterReceived === 'custom' && (
+                                <div className="flex space-x-2 ml-4">
+                                <input
+                                    type="date"
+                                    value={startDateReceived}
+                                    onChange={(e) => setStartDateReceived(e.target.value)}
+                                    className="p-2 border rounded-md"
+                                    placeholder="Start Date"
+                                />
+                                <input
+                                    type="date"
+                                    value={endDateReceived}
+                                    onChange={(e) => setEndDateReceived(e.target.value)}
+                                    className="p-2 border rounded-md"
+                                    placeholder="End Date"
+                                />
+                                <button
+                                    onClick={fetchPaymentsReceived}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                                >
+                                    Apply
+                                </button>
+                                </div>
                             )}
+                            </div>
 
-                            {paymentSubTab === 'paid' && (
-                                <>
-                                    {/* Payment Paid Summary Cards */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                        <div className="bg-white rounded-lg shadow p-4 flex items-center">
-                                            <div className="bg-green-100 p-3 rounded-full mr-4">
-                                                <FaRupeeSign className="text-green-600 text-xl" />
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 text-sm">Total Commission Paid</p>
-                                                <p className="text-2xl font-bold flex items-center gap-1"><FaRupeeSign className='text-base'/> {totalPaidCommission.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white rounded-lg shadow p-4 flex items-center">
-                                            <div className="bg-orange-100 p-3 rounded-full mr-4">
-                                                <FaRupeeSign className="text-orange-600 text-xl" />
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 text-sm">Total Commission Pending To Pay</p>
-                                                <p className="text-2xl font-bold flex items-center gap-1"><FaRupeeSign className='text-base'/> {totalPendingCommissionToPay.toLocaleString()}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Time Filter for Payments Paid */}
-                                    <div className="flex space-x-2 mb-4 items-center">
-                                        <button
-                                            onClick={() => { setTimeFilterPaid('currentMonth'); setStartDatePaid(''); setEndDatePaid(''); fetchPaymentsPaid(); }}
-                                            className={`px-4 py-2 rounded-md ${timeFilterPaid === 'currentMonth' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Current Month
-                                        </button>
-                                        <button
-                                            onClick={() => { setTimeFilterPaid('all'); setStartDatePaid(''); setEndDatePaid(''); fetchPaymentsPaid(); }}
-                                            className={`px-4 py-2 rounded-md ${timeFilterPaid === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            All Payments
-                                        </button>
-                                        <button
-                                            onClick={() => setTimeFilterPaid('custom')}
-                                            className={`px-4 py-2 rounded-md ${timeFilterPaid === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Custom Date Range
-                                        </button>
-                                        {timeFilterPaid === 'custom' && (
-                                            <div className="flex space-x-2 ml-4">
-                                                <input
-                                                    type="date"
-                                                    value={startDatePaid}
-                                                    onChange={(e) => setStartDatePaid(e.target.value)}
-                                                    className="p-2 border rounded-md"
-                                                    placeholder="Start Date"
-                                                />
-                                                <input
-                                                    type="date"
-                                                    value={endDatePaid}
-                                                    onChange={(e) => setEndDatePaid(e.target.value)}
-                                                    className="p-2 border rounded-md"
-                                                    placeholder="End Date"
-                                                />
-                                                <button
-                                                    onClick={fetchPaymentsPaid}
-                                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                                                >
-                                                    Apply
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Commission View Toggles */}
-                                    <div className="flex space-x-2 mb-4">
-                                        <button
-                                            onClick={() => { setCommissionView('table'); setCurrentPage(1); }}
-                                            className={`px-4 py-2 rounded-md ${commissionView === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Table View
-                                        </button>
-                                        <button
-                                            onClick={() => { setCommissionView('agentWise'); setCurrentPage(1); }}
-                                            className={`px-4 py-2 rounded-md ${commissionView === 'agentWise' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Agent-wise
-                                        </button>
-                                        <button
-                                            onClick={() => { setCommissionView('tourWise'); setCurrentPage(1); }}
-                                            className={`px-4 py-2 rounded-md ${commissionView === 'tourWise' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-                                        >
-                                            Tour-wise
-                                        </button>
-                                    </div>
-
-                                    {loadingPaymentsPaid ? (
-                                        <div className="text-center py-8">Loading payments paid...</div>
-                                    ) : errorPaymentsPaid ? (
-                                        <div className="text-center py-8 text-red-500">{errorPaymentsPaid}</div>
-                                    ) : commissionView === 'table' ? (
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour ID</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th> {/* NEW COLUMN */}
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-200">
-                                                {currentPaymentsPaidTable.length > 0 ? (
-                                                    currentPaymentsPaidTable.map(stat => (
-                                                        <tr key={stat._id}>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stat.tourID || 'N/A'}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <div className="text-sm font-medium text-gray-900">{stat.agentID?.name || 'N/A'}</div>
-                                                                <div className="text-sm text-gray-500">ID: #{stat.agentID?.agentID || 'N/A'}</div>
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {stat.tourStartDate ? new Date(stat.tourStartDate).toLocaleDateString() : 'N/A'}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stat.customerGiven || 0}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{(stat.commissionReceived || 0).toLocaleString()}</td>
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                    ${stat.CommissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                                    {stat.CommissionPaid ? 'Paid' : 'Pending'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {stat.CommissionPaidDate ? new Date(stat.CommissionPaidDate).toLocaleDateString() : 'N/A'} {/* Display Paid Date */}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                                {!stat.CommissionPaid ? (
-                                                                    <button
-                                                                        onClick={() => initiatePayCommission(stat._id)} // Call initiate function
-                                                                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                                                    >
-                                                                        <FiDollarSign className="mr-1 h-4 w-4" /> Pay
-                                                                    </button>
-                                                                ) : (
-                                                                    <span className="text-gray-500 text-xs">Already Paid</span>
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ) : (
-                                                    <tr>
-                                                        <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500"> {/* Updated colspan */}
-                                                            No commission payments found
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    ) : commissionView === 'agentWise' ? (
-                                        <div className="space-y-4">
-                                            {Object.keys(groupedPaymentsPaidByAgent).length > 0 ? (
-                                                Object.entries(groupedPaymentsPaidByAgent).map(([agentKey, agentData]) => (
-                                                    <div key={agentKey} className="border border-gray-200 rounded-lg shadow-sm">
-                                                        <button
-                                                            className="flex justify-between items-center w-full p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none"
-                                                            onClick={() => toggleAgentAccordion(agentKey)}
-                                                        >
-                                                            <h3 className="text-lg font-semibold text-gray-800">
-                                                                {agentData.agentName} (ID: #{agentData.agentID})
-                                                            </h3>
-                                                            <div className="flex items-center space-x-4">
-                                                                <span className="text-sm text-gray-600">Total Commission: <FaRupeeSign className='inline-block text-xs'/>{agentData.totalCommission.toLocaleString()}</span>
-                                                                <span className="text-sm text-green-600">Paid: <FaRupeeSign className='inline-block text-xs'/>{agentData.totalPaid.toLocaleString()}</span>
-                                                                <span className="text-sm text-orange-600">Pending: <FaRupeeSign className='inline-block text-xs'/>{agentData.totalPending.toLocaleString()}</span>
-                                                                {expandedAgents[agentKey] ? <FiChevronUp /> : <FiChevronDown />}
-                                                            </div>
-                                                        </button>
-                                                        {expandedAgents[agentKey] && (
-                                                            <div className="p-4 border-t border-gray-200">
-                                                                {agentData.tours.length > 0 ? (
-                                                                    <table className="min-w-full divide-y divide-gray-200">
-                                                                        <thead className="bg-gray-50">
-                                                                            <tr>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour ID</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th> {/* NEW COLUMN */}
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody className="bg-white divide-y divide-gray-200">
-                                                                            {agentData.tours.map(tourStat => (
-                                                                                <tr key={tourStat._id}>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{tourStat.tourID || 'N/A'}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{tourStat.tourStartDate ? new Date(tourStat.tourStartDate).toLocaleDateString() : 'N/A'}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{tourStat.customerGiven || 0}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">₹{(tourStat.commissionReceived || 0).toLocaleString()}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap">
-                                                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                                            ${tourStat.CommissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                                                            {tourStat.CommissionPaid ? 'Paid' : 'Pending'}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                                                                        {tourStat.CommissionPaidDate ? new Date(tourStat.CommissionPaidDate).toLocaleDateString() : 'N/A'} {/* Display Paid Date */}
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
-                                                                                        {!tourStat.CommissionPaid ? (
-                                                                                            <button
-                                                                                                onClick={() => initiatePayCommission(tourStat._id)}
-                                                                                                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-                                                                                            >
-                                                                                                <FiDollarSign className="mr-1 h-3 w-3" /> Pay
-                                                                                            </button>
-                                                                                        ) : (
-                                                                                            <span className="text-gray-500 text-xs">Already Paid</span>
-                                                                                        )}
-                                                                                    </td>
-                                                                                </tr>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
-                                                                ) : (
-                                                                    <p className="text-center text-gray-500 py-2">No tours for this agent.</p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="text-center py-8 text-gray-500">No agent commission data found.</div>
-                                            )}
-                                        </div>
-                                    ) : commissionView === 'tourWise' ? (
-                                        <div className="space-y-4">
-                                            {Object.keys(groupedPaymentsPaidByTour).length > 0 ? (
-                                                Object.entries(groupedPaymentsPaidByTour).map(([tourKey, tourData]) => (
-                                                    <div key={tourKey} className="border border-gray-200 rounded-lg shadow-sm">
-                                                        <button
-                                                            className="flex justify-between items-center w-full p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none"
-                                                            onClick={() => toggleTourAccordion(tourKey)}
-                                                        >
-                                                            <h3 className="text-lg font-semibold text-gray-800">
-                                                                Tour ID: {tourData.tourName}
-                                                            </h3>
-                                                            <div className="flex items-center space-x-4">
-                                                                <span className="text-sm text-gray-600">Total Commission: <FaRupeeSign className='inline-block text-xs'/>{tourData.totalCommission.toLocaleString()}</span>
-                                                                <span className="text-sm text-green-600">Paid: <FaRupeeSign className='inline-block text-xs'/>{tourData.totalPaid.toLocaleString()}</span>
-                                                                <span className="text-sm text-orange-600">Pending: <FaRupeeSign className='inline-block text-xs'/>{tourData.totalPending.toLocaleString()}</span>
-                                                                {expandedTours[tourKey] ? <FiChevronUp /> : <FiChevronDown />}
-                                                            </div>
-                                                        </button>
-                                                        {expandedTours[tourKey] && (
-                                                            <div className="p-4 border-t border-gray-200">
-                                                                {tourData.agents.length > 0 ? (
-                                                                    <table className="min-w-full divide-y divide-gray-200">
-                                                                        <thead className="bg-gray-50">
-                                                                            <tr>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Name</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent ID</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th> {/* NEW COLUMN */}
-                                                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody className="bg-white divide-y divide-gray-200">
-                                                                            {tourData.agents.map(agentStat => (
-                                                                                <tr key={agentStat._id}>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{agentStat.agentID?.name || 'N/A'}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">#{agentStat.agentID?.agentID || 'N/A'}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{agentStat.tourStartDate ? new Date(agentStat.tourStartDate).toLocaleDateString() : 'N/A'}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{agentStat.customerGiven || 0}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">₹{(agentStat.commissionReceived || 0).toLocaleString()}</td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap">
-                                                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                                            ${agentStat.CommissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                                                            {agentStat.CommissionPaid ? 'Paid' : 'Pending'}
-                                                                                        </span>
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                                                                        {agentStat.CommissionPaidDate ? new Date(agentStat.CommissionPaidDate).toLocaleDateString() : 'N/A'} {/* Display Paid Date */}
-                                                                                    </td>
-                                                                                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
-                                                                                        {!agentStat.CommissionPaid ? (
-                                                                                            <button
-                                                                                                onClick={() => initiatePayCommission(agentStat._id)}
-                                                                                                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-                                                                                            >
-                                                                                                <FiDollarSign className="mr-1 h-3 w-3" /> Pay
-                                                                                            </button>
-                                                                                        ) : (
-                                                                                            <span className="text-gray-500 text-xs">Already Paid</span>
-                                                                                        )}
-                                                                                    </td>
-                                                                                </tr>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
-                                                                ) : (
-                                                                    <p className="text-center text-gray-500 py-2">No agents for this tour.</p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="text-center py-8 text-gray-500">No tour commission data found.</div>
-                                            )}
-                                        </div>
-                                    ) : null}
-                                </>
+                            {loadingPaymentsReceived ? (
+                            <div className="text-center py-8">Loading payments received...</div>
+                            ) : errorPaymentsReceived ? (
+                            <div className="text-center py-8 text-red-500">{errorPaymentsReceived}</div>
+                            ) : (
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour Name</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Date</th>
+                                </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                {currentPaymentsReceived.length > 0 ? (
+                                    currentPaymentsReceived.map(payment => (
+                                    <tr key={payment._id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{payment.bookingID}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.tourName || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm font-medium text-gray-900">{payment.agent?.name || 'N/A'}</div>
+                                        <div className="text-sm text-gray-500">ID: #{payment.agent?.agentID || 'N/A'}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{payment.customer?.name || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{(payment.amount || 0).toLocaleString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{(payment.commissionAmount || 0).toLocaleString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                            ${payment.paymentStatus === 'Paid' ? 'bg-green-100 text-green-800' :
+                                            payment.paymentStatus === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-gray-100 text-gray-800'}`}>
+                                            {payment.paymentStatus}
+                                        </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                    </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                    <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                                        No received payments found
+                                    </td>
+                                    </tr>
+                                )}
+                                </tbody>
+                            </table>
                             )}
                         </>
+                        ) : (
+                        <>
+                            {/* Payment Paid Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div className="bg-white rounded-lg shadow p-4 flex items-center">
+                                <div className="bg-green-100 p-3 rounded-full mr-4">
+                                <FaRupeeSign className="text-green-600 text-xl" />
+                                </div>
+                                <div>
+                                <p className="text-gray-500 text-sm">Total Commission Paid</p>
+                                <p className="text-2xl font-bold flex items-center gap-1">
+                                    <FaRupeeSign className='text-base'/> {totalPaidCommission.toLocaleString()}
+                                </p>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-lg shadow p-4 flex items-center">
+                                <div className="bg-orange-100 p-3 rounded-full mr-4">
+                                <FaRupeeSign className="text-orange-600 text-xl" />
+                                </div>
+                                <div>
+                                <p className="text-gray-500 text-sm">Total Commission Pending To Pay</p>
+                                <p className="text-2xl font-bold flex items-center gap-1">
+                                    <FaRupeeSign className='text-base'/> {totalPendingCommissionToPay.toLocaleString()}
+                                </p>
+                                </div>
+                            </div>
+                            </div>
+
+                            {/* Time Filter for Payments Paid */}
+                            <div className="flex space-x-2 mb-4 items-center">
+                            <button
+                                onClick={() => { 
+                                setTimeFilterPaid('currentMonth'); 
+                                setStartDatePaid(''); 
+                                setEndDatePaid(''); 
+                                fetchPaymentsPaid(); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${timeFilterPaid === 'currentMonth' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Current Month
+                            </button>
+                            <button
+                                onClick={() => { 
+                                setTimeFilterPaid('all'); 
+                                setStartDatePaid(''); 
+                                setEndDatePaid(''); 
+                                fetchPaymentsPaid(); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${timeFilterPaid === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                All Payments
+                            </button>
+                            <button
+                                onClick={() => setTimeFilterPaid('custom')}
+                                className={`px-4 py-2 rounded-md ${timeFilterPaid === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Custom Date Range
+                            </button>
+                            {timeFilterPaid === 'custom' && (
+                                <div className="flex space-x-2 ml-4">
+                                <input
+                                    type="date"
+                                    value={startDatePaid}
+                                    onChange={(e) => setStartDatePaid(e.target.value)}
+                                    className="p-2 border rounded-md"
+                                    placeholder="Start Date"
+                                />
+                                <input
+                                    type="date"
+                                    value={endDatePaid}
+                                    onChange={(e) => setEndDatePaid(e.target.value)}
+                                    className="p-2 border rounded-md"
+                                    placeholder="End Date"
+                                />
+                                <button
+                                    onClick={fetchPaymentsPaid}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                                >
+                                    Apply
+                                </button>
+                                </div>
+                            )}
+                            </div>
+
+                            {/* Commission View Toggles */}
+                            <div className="flex space-x-2 mb-4">
+                            <button
+                                onClick={() => { 
+                                setCommissionView('table'); 
+                                setCurrentPage(1); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${commissionView === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Table View
+                            </button>
+                            <button
+                                onClick={() => { 
+                                setCommissionView('agentWise'); 
+                                setCurrentPage(1); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${commissionView === 'agentWise' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Agent-wise
+                            </button>
+                            <button
+                                onClick={() => { 
+                                setCommissionView('tourWise'); 
+                                setCurrentPage(1); 
+                                }}
+                                className={`px-4 py-2 rounded-md ${commissionView === 'tourWise' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}
+                            >
+                                Tour-wise
+                            </button>
+                            </div>
+
+                            {loadingPaymentsPaid ? (
+                            <div className="text-center py-8">Loading payments paid...</div>
+                            ) : errorPaymentsPaid ? (
+                            <div className="text-center py-8 text-red-500">{errorPaymentsPaid}</div>
+                            ) : commissionView === 'table' ? (
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                {currentPaymentsPaidTable.length > 0 ? (
+                                    currentPaymentsPaidTable.map(stat => (
+                                    <tr key={stat._id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stat.tourID || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="text-sm font-medium text-gray-900">{stat.agentID?.name || 'N/A'}</div>
+                                        <div className="text-sm text-gray-500">ID: #{stat.agentID?.agentID || 'N/A'}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {stat.tourStartDate ? new Date(stat.tourStartDate).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{stat.customerGiven || 0}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">₹{(stat.commissionReceived || 0).toLocaleString()}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                            ${stat.CommissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                            {stat.CommissionPaid ? 'Paid' : 'Pending'}
+                                        </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {stat.CommissionPaidDate ? new Date(stat.CommissionPaidDate).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        {!stat.CommissionPaid ? (
+                                            <button
+                                            onClick={() => initiatePayCommission(stat._id)}
+                                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            >
+                                            <FiDollarSign className="mr-1 h-4 w-4" /> Pay
+                                            </button>
+                                        ) : (
+                                            <span className="text-gray-500 text-xs">Already Paid</span>
+                                        )}
+                                        </td>
+                                    </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                    <td colSpan="8" className="px-6 py-4 text-center text-sm text-gray-500">
+                                        No commission payments found
+                                    </td>
+                                    </tr>
+                                )}
+                                </tbody>
+                            </table>
+                            ) : commissionView === 'agentWise' ? (
+                            <div className="space-y-4">
+                                {Object.keys(groupedPaymentsPaidByAgent).length > 0 ? (
+                                Object.entries(groupedPaymentsPaidByAgent).map(([agentKey, agentData]) => (
+                                    <div key={agentKey} className="border border-gray-200 rounded-lg shadow-sm">
+                                    <button
+                                        className="flex justify-between items-center w-full p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                                        onClick={() => toggleAgentAccordion(agentKey)}
+                                    >
+                                        <h3 className="text-lg font-semibold text-gray-800">
+                                        {agentData.agentName} (ID: #{agentData.agentID})
+                                        </h3>
+                                        <div className="flex items-center space-x-4">
+                                        <span className="text-sm text-gray-600">Total Commission: <FaRupeeSign className='inline-block text-xs'/>{agentData.totalCommission.toLocaleString()}</span>
+                                        <span className="text-sm text-green-600">Paid: <FaRupeeSign className='inline-block text-xs'/>{agentData.totalPaid.toLocaleString()}</span>
+                                        <span className="text-sm text-orange-600">Pending: <FaRupeeSign className='inline-block text-xs'/>{agentData.totalPending.toLocaleString()}</span>
+                                        {expandedAgents[agentKey] ? <FiChevronUp /> : <FiChevronDown />}
+                                        </div>
+                                    </button>
+                                    {expandedAgents[agentKey] && (
+                                        <div className="p-4 border-t border-gray-200">
+                                        {agentData.tours.length > 0 ? (
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour ID</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {agentData.tours.map(tourStat => (
+                                                <tr key={tourStat._id}>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{tourStat.tourID || 'N/A'}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{tourStat.tourStartDate ? new Date(tourStat.tourStartDate).toLocaleDateString() : 'N/A'}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{tourStat.customerGiven || 0}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">₹{(tourStat.commissionReceived || 0).toLocaleString()}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                        ${tourStat.CommissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                        {tourStat.CommissionPaid ? 'Paid' : 'Pending'}
+                                                    </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                    {tourStat.CommissionPaidDate ? new Date(tourStat.CommissionPaidDate).toLocaleDateString() : 'N/A'}
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                                    {!tourStat.CommissionPaid ? (
+                                                        <button
+                                                        onClick={() => initiatePayCommission(tourStat._id)}
+                                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                                                        >
+                                                        <FiDollarSign className="mr-1 h-3 w-3" /> Pay
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-500 text-xs">Already Paid</span>
+                                                    )}
+                                                    </td>
+                                                </tr>
+                                                ))}
+                                            </tbody>
+                                            </table>
+                                        ) : (
+                                            <p className="text-center text-gray-500 py-2">No tours for this agent.</p>
+                                        )}
+                                        </div>
+                                    )}
+                                    </div>
+                                ))
+                                ) : (
+                                <div className="text-center py-8 text-gray-500">No agent commission data found.</div>
+                                )}
+                            </div>
+                            ) : (
+                            <div className="space-y-4">
+                                {Object.keys(groupedPaymentsPaidByTour).length > 0 ? (
+                                Object.entries(groupedPaymentsPaidByTour).map(([tourKey, tourData]) => (
+                                    <div key={tourKey} className="border border-gray-200 rounded-lg shadow-sm">
+                                    <button
+                                        className="flex justify-between items-center w-full p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                                        onClick={() => toggleTourAccordion(tourKey)}
+                                    >
+                                        <h3 className="text-lg font-semibold text-gray-800">
+                                        Tour ID: {tourData.tourName}
+                                        </h3>
+                                        <div className="flex items-center space-x-4">
+                                        <span className="text-sm text-gray-600">Total Commission: <FaRupeeSign className='inline-block text-xs'/>{tourData.totalCommission.toLocaleString()}</span>
+                                        <span className="text-sm text-green-600">Paid: <FaRupeeSign className='inline-block text-xs'/>{tourData.totalPaid.toLocaleString()}</span>
+                                        <span className="text-sm text-orange-600">Pending: <FaRupeeSign className='inline-block text-xs'/>{tourData.totalPending.toLocaleString()}</span>
+                                        {expandedTours[tourKey] ? <FiChevronUp /> : <FiChevronDown />}
+                                        </div>
+                                    </button>
+                                    {expandedTours[tourKey] && (
+                                        <div className="p-4 border-t border-gray-200">
+                                        {tourData.agents.length > 0 ? (
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent Name</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agent ID</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Given</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Commission</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid Date</th>
+                                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {tourData.agents.map(agentStat => (
+                                                <tr key={agentStat._id}>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{agentStat.agentID?.name || 'N/A'}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">#{agentStat.agentID?.agentID || 'N/A'}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{agentStat.tourStartDate ? new Date(agentStat.tourStartDate).toLocaleDateString() : 'N/A'}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{agentStat.customerGiven || 0}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">₹{(agentStat.commissionReceived || 0).toLocaleString()}</td>
+                                                    <td className="px-4 py-2 whitespace-nowrap">
+                                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                        ${agentStat.CommissionPaid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                        {agentStat.CommissionPaid ? 'Paid' : 'Pending'}
+                                                    </span>
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                    {agentStat.CommissionPaidDate ? new Date(agentStat.CommissionPaidDate).toLocaleDateString() : 'N/A'}
+                                                    </td>
+                                                    <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                                                    {!agentStat.CommissionPaid ? (
+                                                        <button
+                                                        onClick={() => initiatePayCommission(agentStat._id)}
+                                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                                                        >
+                                                        <FiDollarSign className="mr-1 h-3 w-3" /> Pay
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-500 text-xs">Already Paid</span>
+                                                    )}
+                                                    </td>
+                                                </tr>
+                                                ))}
+                                            </tbody>
+                                            </table>
+                                        ) : (
+                                            <p className="text-center text-gray-500 py-2">No agents for this tour.</p>
+                                        )}
+                                        </div>
+                                    )}
+                                    </div>
+                                ))
+                                ) : (
+                                <div className="text-center py-8 text-gray-500">No tour commission data found.</div>
+                                )}
+                            </div>
+                            )}
+                        </>
+                        )}
+                    </>
                     )}
 
-                    {/* Pagination for all tabs */}
-                    {((activeTab === 'agents' && filteredAgents.length > itemsPerPage) ||
+                    {/* Pagination */}
+                    {(activeTab === 'agents' && filteredAgents.length > itemsPerPage) ||
                      (activeTab === 'customers' && filteredCustomers.length > itemsPerPage) ||
                      (activeTab === 'payments' && paymentSubTab === 'received' && filteredPaymentsReceived.length > itemsPerPage) ||
-                     (activeTab === 'payments' && paymentSubTab === 'paid' && commissionView === 'table' && filteredPaymentsPaid.length > itemsPerPage)) ? ( // Only show pagination for table view of payments paid
-                        <div className="flex justify-center mt-4">
+                     (activeTab === 'payments' && paymentSubTab === 'paid' && commissionView === 'table' && filteredPaymentsPaid.length > itemsPerPage) ? (
+                        <div className="flex justify-center items-center space-x-2 mt-6">
                             <button
                                 onClick={() => paginate(currentPage - 1)}
                                 disabled={currentPage === 1}
-                                className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md mr-2 disabled:opacity-50"
+                                className="p-2 rounded-md bg-gray-200 text-gray-700 disabled:opacity-50"
                             >
                                 <FiChevronLeft />
                             </button>
-                            {Array.from({
-                                length: Math.ceil(
-                                    (activeTab === 'agents' ? filteredAgents.length :
-                                     activeTab === 'customers' ? filteredCustomers.length :
-                                     (activeTab === 'payments' && paymentSubTab === 'received' ? filteredPaymentsReceived.length :
-                                      (activeTab === 'payments' && paymentSubTab === 'paid' && commissionView === 'table' ? filteredPaymentsPaid.length : 0))) / itemsPerPage
-                                ),
-                            }, (_, i) => (
-                                <button
-                                    key={i + 1}
-                                    onClick={() => paginate(i + 1)}
-                                    className={`px-3 py-1 rounded-md mx-1 ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
+                            <span className="text-gray-700">Page {currentPage}</span>
                             <button
                                 onClick={() => paginate(currentPage + 1)}
                                 disabled={
-                                    currentPage === Math.ceil(
-                                        (activeTab === 'agents' ? filteredAgents.length :
-                                         activeTab === 'customers' ? filteredCustomers.length :
-                                         (activeTab === 'payments' && paymentSubTab === 'received' ? filteredPaymentsReceived.length :
-                                          (activeTab === 'payments' && paymentSubTab === 'paid' && commissionView === 'table' ? filteredPaymentsPaid.length : 0))) / itemsPerPage
-                                    )
+                                    (activeTab === 'agents' && indexOfLastItem >= filteredAgents.length) ||
+                                    (activeTab === 'customers' && indexOfLastItem >= filteredCustomers.length) ||
+                                    (activeTab === 'payments' && paymentSubTab === 'received' && indexOfLastItem >= filteredPaymentsReceived.length) ||
+                                    (activeTab === 'payments' && paymentSubTab === 'paid' && commissionView === 'table' && indexOfLastItem >= filteredPaymentsPaid.length)
                                 }
-                                className="px-3 py-1 bg-gray-200 text-gray-700 rounded-md ml-2 disabled:opacity-50"
+                                className="p-2 rounded-md bg-gray-200 text-gray-700 disabled:opacity-50"
                             >
                                 <FiChevronRight />
                             </button>
@@ -1544,8 +1693,7 @@ const MasterDataDashboard = () => {
                     ) : null}
                 </div>
             </div>
-            {/* <Footer />
-            <Navbar /> */}
+            {/* <Footer /> */}
         </div>
     );
 };

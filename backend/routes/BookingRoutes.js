@@ -13,7 +13,7 @@ const createBooking = async (req, res) => {
   try {
     const { bookingID, status, bookingDate, tour, customer, travelers, agent } = req.body;
 
-    console.log(req.body);
+    console.log(req.body); 
     console.log("req.body data is above");
 
     // Basic validation

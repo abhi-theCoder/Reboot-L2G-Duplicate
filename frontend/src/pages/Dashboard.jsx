@@ -17,7 +17,9 @@ import AdminContactEditPage from './AdminContactEditPage';
 import AdminAboutEditPage from './AdminAboutEditPage';
 import AddBlog from '../pages/AddBlog';
 import AdminBlogList from './AdminBlogList';
-
+import AgentTreeViewer from '../components/AgentTreeViewer';
+import EditGrievance from './EditGrievance';
+import EditCancellationPolicy from './EditCancellationPolicy';
 
 function Dashboard() {
   const [view, setView] = useState('dashboard');
@@ -59,6 +61,12 @@ function Dashboard() {
         return <AddBlog/>;
       case 'editBlogs':
         return <AdminBlogList/>;
+      case 'treeView':
+        return <AgentTreeViewer/>;
+      case 'editGrievance':
+        return <EditGrievance/>;
+      case 'editCancellation':
+        return <EditCancellationPolicy/>;
       default:
         return <MainContent />;
     }

@@ -50,7 +50,7 @@ const transferCommission = async (agentId, currentPaymentValue, updatedPercentag
 
         // Commission for the parent agent (level 2)
         if (agent.parentAgent) {
-            const parent = await Agent.findById(agent.parentAgent);
+            const parent = await Agent.findById(agent.parentAgent); // parentAgent is an ObjectId ref
             if (parent) {
                 const parentCommissionRate = getCommissionRate(updatedPercentage, 2); // Level 2 rate
                 // Parent commission should be based on the current transaction amount
@@ -103,27 +103,30 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
             return res.status(400).json({ error: "Missing critical payment notes data (bookingID, tourID, or tourName)." });
         }
 
+        // Extract and robustly parse numeric values from payment.notes
         const {
             bookingID,
             tourID,
             tourName,
             agentID, // This could be '' for direct customers
-            tourPricePerHead,
-            tourActualOccupancy,
-            tourGivenOccupancy,
             tourStartDate,
-            GST,
-            finalAmount, // Total amount from Razorpay order creation (includes base + GST)
         } = payment.notes;
+
+        const parsedTourPricePerHead = parseFloat(payment.notes.tourPricePerHead) || 0;
+        const parsedTourActualOccupancy = parseFloat(payment.notes.tourActualOccupancy) || 0;
+        const parsedTourGivenOccupancy = parseFloat(payment.notes.tourGivenOccupancy) || 0;
+        const parsedGST = parseFloat(payment.notes.GST) || 0;
+        const parsedFinalAmount = parseFloat(payment.notes.finalAmount) || 0;
+
 
         const transactionId = payment.id;
         const currentPaymentAmount = parseFloat(payment.amount) / 100; // Razorpay amount is in paisa
         const paymentMethod = payment.method;
 
-        // Basic validation for critical numbers
-        if (isNaN(currentPaymentAmount) || isNaN(parseFloat(tourPricePerHead)) || isNaN(parseFloat(tourActualOccupancy)) || isNaN(parseFloat(tourGivenOccupancy)) || isNaN(parseFloat(GST)) || isNaN(parseFloat(finalAmount))) {
-             console.error("Invalid numeric data in payment notes:", payment.notes);
-             return res.status(400).json({ error: "Invalid numeric data in payment notes." });
+        // Basic validation for critical numbers (now using parsed values)
+        if (isNaN(currentPaymentAmount) || isNaN(parsedTourPricePerHead) || isNaN(parsedTourActualOccupancy) || isNaN(parsedTourGivenOccupancy) || isNaN(parsedGST) || isNaN(parsedFinalAmount)) {
+             console.error("Invalid numeric data after parsing payment notes. Check raw notes:", payment.notes);
+             return res.status(400).json({ error: "Invalid numeric data in payment notes after parsing." });
         }
 
 
@@ -139,20 +142,42 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
             // Update the existing booking's status and payment information
             existingBooking.status = 'confirmed';
             existingBooking.payment = {
-                totalAmount: parseFloat(finalAmount), // Use finalAmount from notes as total
+                totalAmount: parsedFinalAmount, // Use parsedFinalAmount from notes as total
                 paidAmount: currentPaymentAmount,
                 paymentStatus: 'Paid',
                 paymentMethod: paymentMethod,
                 transactionId: transactionId,
                 paymentDate: new Date(payment.created_at * 1000), // Convert Unix timestamp to Date object
                 breakdown: [
-                    { item: `Base Price (${tourGivenOccupancy} pax)`, amount: parseFloat(tourPricePerHead) * parseFloat(tourGivenOccupancy) },
-                    { item: 'GST', amount: parseFloat(GST) }
+                    { item: `Base Price (${parsedTourGivenOccupancy} pax)`, amount: parsedTourPricePerHead * parsedTourGivenOccupancy },
+                    { item: 'GST', amount: parsedGST }
                 ]
             };
 
+            // Ensure tour subdocument exists before assigning properties
             if (!existingBooking.tour) existingBooking.tour = {};
             existingBooking.tour.tourID = tourID;
+            // Assuming other tour details are already populated during booking creation
+            // or will be pulled from the Tour model later if needed for the dump.
+
+            // Calculate adults, children, and cancelled travelers from the booking's travelers array
+            let adultsCount = 0;
+            let childrenCount = 0;
+            let cancelledTravelersCount = 0;
+
+            existingBooking.travelers.forEach(traveler => {
+                // Ensure age is a number before comparison
+                const travelerAge = parseFloat(traveler.age);
+                if (!isNaN(travelerAge) && travelerAge >= 12) { // Assuming 12 is the cutoff for adult
+                    adultsCount++;
+                } else if (!isNaN(travelerAge)) { // If age is a number but less than 12
+                    childrenCount++;
+                }
+                if (traveler.cancellationApproved) {
+                    cancelledTravelersCount++;
+                }
+            });
+
 
             await existingBooking.save();
             console.log("Existing booking updated successfully:", existingBooking.bookingID);
@@ -172,7 +197,7 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
             }
 
             // Update tour's remaining occupancy
-            tour.remainingOccupancy -= parseFloat(tourGivenOccupancy);
+            tour.remainingOccupancy -= parsedTourGivenOccupancy;
             if (tour.remainingOccupancy < 0) {
                 tour.remainingOccupancy = 0; // Ensure it doesn't go below zero
             }
@@ -189,43 +214,76 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                 if (!agent) {
                     console.error(`Agent with agentID ${agentID} not found.`);
                 } else {
-                    const agent_db_id = agent._id; // Mongoose _id
-                    // __________________
-                        // let check1 = await AgentTourStats.findOne({agentID: agent.agentID});
-                        // let check2 = await AgentTourStats.findOne({tourStartDate: formattedTourStartDate});
-                        // let check3 = await AgentTourStats.findOne({tourID});
+                    const agent_db_id = agent._id; // Mongoose _id of the agent
 
-                        // if(check1)
-                        // console.log("object1");
-                        // if(check2)
-                        // console.log("object2");
-                        // if(check3)
-                        // console.log("object3");
-                    // __________________
-                    let stats = await AgentTourStats.findOne({ agentID: agent.agentID, tourStartDate: formattedTourStartDate, tourID }); // Use agent.agentID for stats lookup
+                    let stats = await AgentTourStats.findOne({ agent: agent_db_id, tourStartDate: formattedTourStartDate, tourID }); // Use agent._id for stats lookup
+                    
                     if (!stats) {
+                        // Create new AgentTourStats record with all new fields
                         stats = new AgentTourStats({
-                            agentID: agent.agentID,
+                            booking: existingBooking._id, // Link to Booking ObjectId
+                            bookingStringID: existingBooking.bookingID, // Store string booking ID
+                            agent: agent_db_id, // Link to Agent ObjectId
+                            agentID: agent.agentID, // Store string agent ID
                             tourStartDate: formattedTourStartDate,
                             tourID,
-                            customerGiven: 0,
-                            finalAmount: 0,
-                            commissionReceived: 0,
+                            tourName: tourName, // Use tourName from notes
+                            tourPricePerHead: parsedTourPricePerHead, // From notes
+                            totalOccupancy: parsedTourActualOccupancy, // From notes
+                            bookingDate: existingBooking.bookingDate, // From booking
+                            customerGiven: 0, // Will be updated below
+                            commissionReceived: 0, // Will be updated below
+                            CommissionPaid: false,
+                            CommissionPaidDate: null,
+                            commissionRate: 0, // Will be updated below
+                            commissionDeductionAmount: 0,
+                            adultsCount: 0, // Will be updated below
+                            childrenCount: 0, // Will be updated below
+                            cancelledTravelersCount: 0, // Will be updated below
                         });
                     }
 
-                    // Update stats
-                    const givenCustomerCount = parseFloat(tourGivenOccupancy);
-                    const addedAmountToStats = givenCustomerCount * parseFloat(tourPricePerHead); // Base price without GST for commission calculation
+                    // Ensure stats.finalAmount and stats.commissionReceived are numbers before calculation
+                    // This is the fix for the NaN error
+                    stats.finalAmount = stats.finalAmount || 0;
+                    stats.commissionReceived = stats.commissionReceived || 0;
+
+
+                    // Update stats (for both new and existing records)
+                    const givenCustomerCount = parsedTourGivenOccupancy;
+                    const addedAmountToStats = givenCustomerCount * parsedTourPricePerHead; // Base price without GST for commission calculation
+                    
                     const newCustomerGiven = stats.customerGiven + givenCustomerCount;
-                    const updatedPercentage = (newCustomerGiven / parseFloat(tourActualOccupancy)) * 100;
+                    
+                    let updatedPercentage = 0;
+                    if (parsedTourActualOccupancy > 0) { // Prevent division by zero
+                        updatedPercentage = (newCustomerGiven / parsedTourActualOccupancy) * 100;
+                    }
+                    // If updatedPercentage still becomes NaN (e.g., 0/0), default it to 0
+                    if (isNaN(updatedPercentage)) {
+                        updatedPercentage = 0;
+                    }
 
                     const newTotalAmountForStats = stats.finalAmount + addedAmountToStats; // Cumulative amount for stats
-                    console.log(newTotalAmountForStats, stats.finalAmount, addedAmountToStats)
                     const newCommissionRateForStats = getCommissionRate(updatedPercentage, 1); // Rate for the direct agent based on *new* cumulative percentage
                     const newTotalEligibleCommissionForStats = (newTotalAmountForStats * newCommissionRateForStats) / 100; // New cumulative eligible commission
 
-                    // console.log(newTotalAmountForStats, newCommissionRateForStats);
+                    // Debugging logs for commission calculation
+                    console.log(`--- Commission Calculation Debug for Agent ${agent.agentID} ---`);
+                    console.log(`  stats.customerGiven (before): ${stats.customerGiven}`);
+                    console.log(`  givenCustomerCount: ${givenCustomerCount}`);
+                    console.log(`  newCustomerGiven: ${newCustomerGiven}`);
+                    console.log(`  parsedTourActualOccupancy: ${parsedTourActualOccupancy}`);
+                    console.log(`  updatedPercentage: ${updatedPercentage}`);
+                    console.log(`  stats.finalAmount (before): ${stats.finalAmount}`);
+                    console.log(`  addedAmountToStats: ${addedAmountToStats}`);
+                    console.log(`  newTotalAmountForStats: ${newTotalAmountForStats}`);
+                    console.log(`  newCommissionRateForStats: ${newCommissionRateForStats}`);
+                    console.log(`  newTotalEligibleCommissionForStats: ${newTotalEligibleCommissionForStats}`);
+                    console.log(`  stats.commissionReceived (before): ${stats.commissionReceived}`);
+                    console.log(`-------------------------------------------------`);
+
+
                     // This is the actual commission to *add* to the direct agent's wallet for *this* payment
                     const commissionDelta = newTotalEligibleCommissionForStats - stats.commissionReceived;
 
@@ -235,18 +293,24 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                     directAgentCommissionAmount = commissionDelta; // Store for the transaction model
 
                     // Update and save agent stats
-
-                    console.log(newTotalEligibleCommissionForStats)
                     stats.customerGiven = newCustomerGiven;
                     stats.finalAmount = newTotalAmountForStats;
                     stats.commissionReceived = newTotalEligibleCommissionForStats;
-                    console.log("stats:",stats);
+                    stats.commissionRate = newCommissionRateForStats; // Store the current commission rate
+                    stats.adultsCount = adultsCount; // Update with current booking's adult count
+                    stats.childrenCount = childrenCount; // Update with current booking's children count
+                    stats.cancelledTravelersCount = cancelledTravelersCount; // Update with current booking's cancelled travelers count
+
                     await stats.save();
                     console.log(`AgentTourStats updated for agent ${agent.agentID}.`);
 
-                    // Also update the agent's commission in the existing booking if it was provided
-                    // Note: If you want to sum commissions in the booking, you'd need to modify existingBooking.agent.commission += directAgentCommissionAmount;
-                    // For now, we are just using it to save into the transaction.
+                    // Also update the agent's commission in the existing booking
+                    // This will store the commission for THIS specific booking in the booking record
+                    if (existingBooking.agent) {
+                        existingBooking.agent.commission = directAgentCommissionAmount;
+                        await existingBooking.save(); // Save booking again to persist agent commission update
+                        console.log(`Booking ${existingBooking.bookingID} agent commission updated.`);
+                    }
                 }
             } else {
                 console.log("Direct customer booking - no agent involved.");
@@ -258,13 +322,13 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                 agentID: agentID || 'N/A', // Save agentID or 'N/A' for direct
                 customerEmail,
                 transactionId,
-                tourPricePerHead,
-                tourActualOccupancy,
-                tourGivenOccupancy,
+                tourPricePerHead: parsedTourPricePerHead, // Use parsed value
+                tourActualOccupancy: parsedTourActualOccupancy, // Use parsed value
+                tourGivenOccupancy: parsedTourGivenOccupancy, // Use parsed value
                 tourStartDate: formattedTourStartDate,
                 commissions: commissionRecords,
                 finalAmount: currentPaymentAmount, // Final amount of this specific transaction
-                travelers: travelersFromBooking, // <<< NEW: Add travelers from the existing booking
+                travelers: travelersFromBooking, // Add travelers from the existing booking
             });
 
             await newTransaction.save();

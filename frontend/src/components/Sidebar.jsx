@@ -69,6 +69,7 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
 
   const businessMenu = [
     { icon: faPaperPlane, label: 'Requests', view: 'requests', badge: pendingCount },
+    { icon: faPaperPlane, label: 'Tree View', view: 'treeView' },
     { icon: faTasks, label: 'Cancellations', view: 'cancellations' }
   ];
 
@@ -80,6 +81,17 @@ const Sidebar = ({ collapsed, setCollapsed, setView }) => {
     { icon: faUsers, label: 'Complaint Management', view: 'complaintManagement' },
     { icon: faUsers, label: 'Edit Agent Terms Conditions', view: 'EditAgentTermsConditions' },
     
+    {
+      icon: faEdit,
+      label: 'Edit Policies',
+      view: 'editPolicies', // A unique view for the dropdown header
+      isDropdown: true,
+      subItems: [
+        { icon: faTasks, label: 'Grievance Policy', view: 'editGrievance' },
+        { label: 'Cancellation Policy', view: 'editCancellation' } // Corresponds to AdminAboutEditPage.jsx
+      ]
+    },
+
     {
       icon: faEdit,
       label: 'Blogs',
