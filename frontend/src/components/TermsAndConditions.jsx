@@ -94,7 +94,7 @@ export default function TermsAndConditions() {
   useEffect(() => {
     const fetchTerms = async () => {
       try {
-        const response = await axios.get('/api/terms');
+        const response = await axios.get('/api/terms/latest?type=tour');
         setTerms(response.data);
       } catch (err) {
         setError('Failed to load terms and conditions. Please try again later.');

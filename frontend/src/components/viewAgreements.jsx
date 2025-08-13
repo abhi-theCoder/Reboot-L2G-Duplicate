@@ -1,0 +1,232 @@
+import React, { useState, useEffect } from 'react';
+import axios from '../api';
+
+// This component now contains both the list view and the detailed view for a single agreement.
+const ViewAgreements = () => {
+  const [agreements, setAgreements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // New state to hold the agreement details for the detailed view
+  const [selectedAgreement, setSelectedAgreement] = useState(null);
+  const token = localStorage.getItem('Token');
+
+  // This useEffect hook runs once when the component mounts.
+  useEffect(() => {
+    const fetchAgreements = async () => {
+      try {
+        const latestTermsResponse = await axios.get('/api/terms/latest?type=agents');
+
+        if (latestTermsResponse.data && latestTermsResponse.data._id) {
+          const latestTermsId = latestTermsResponse.data._id;
+          
+          const usersResponse = await axios.get(`/api/terms/agreed-users/${latestTermsId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+          });
+          console.log(usersResponse)
+          setAgreements(usersResponse.data);
+        } else {
+          setAgreements([]);
+        }
+      } catch (e) {
+        console.error("Error fetching agreements:", e);
+        if (e.response && e.response.status === 404) {
+            setError(e.response.data.message);
+        } else {
+            setError("Failed to load agreements. Please try again later.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAgreements();
+  }, []);
+
+  // Handler for the "View" button.
+  const handleViewDetails = async (agreement) => {
+    try {
+      // We need to fetch the full terms content and user details for the detailed view.
+      // This logic is now part of the main component for simplicity.
+      const termsResponse = await axios.get(`/api/terms/${agreement.termsId}`);
+      const userResponse = await axios.get(`/api/terms/users/${agreement._id}`);
+      
+      setSelectedAgreement({
+        ...agreement,
+        termsDetails: termsResponse.data,
+        userDetails: userResponse.data
+      });
+    } catch (e) {
+      console.error("Error fetching detailed agreement:", e);
+      setError("Failed to load agreement details.");
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex flex-col items-center p-8 bg-white rounded-xl shadow-lg">
+          <svg className="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="mt-4 text-lg font-medium text-gray-700">Loading Agreements...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="p-8 bg-red-100 border border-red-400 text-red-700 rounded-xl shadow-lg text-center">
+          <p className="text-xl font-bold">Error</p>
+          <p className="mt-2 text-lg">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Conditional rendering: if an agreement is selected, show the detailed view.
+  if (selectedAgreement) {
+    const { termsDetails, userDetails, agreedAt } = selectedAgreement;
+    return (
+      <div className="bg-gray-50 min-h-screen p-6 sm:p-10 font-sans">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center mb-8">
+            <button
+              onClick={() => setSelectedAgreement(null)}
+              className="flex items-center text-indigo-600 hover:text-indigo-800 transition-colors duration-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                <path d="M19 12H5"></path>
+                <path d="M12 19l-7-7 7-7"></path>
+              </svg>
+              Back to Agreements
+            </button>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between mb-8 pb-4 border-b border-gray-200">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 leading-tight">
+                Agreement for: <span className="text-indigo-600">{userDetails?.name || 'User Not Found'}</span>
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Agreed on: <span className="font-semibold">{formatDate(agreedAt)}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md overflow-y-auto max-h-[70vh] border border-gray-200">
+            <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">{termsDetails?.mainHeader || 'N/A'}</h2>
+            <p className="text-gray-600 mb-6">{termsDetails?.introText || 'N/A'}</p>
+            {termsDetails?.sections && termsDetails.sections.map((section, index) => (
+              <div key={index} className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">{section.header}</h3>
+                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{section.content}</p>
+              </div>
+            ))}
+            <div className="mt-8 pt-4 border-t border-gray-200 text-sm text-gray-500">
+              {termsDetails?.footerNotes && termsDetails.footerNotes.map((note, index) => (
+                <p key={index} className="mb-1">{note}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default rendering: the list of all agreements.
+  return (
+    <div className="bg-gray-50 min-h-screen p-6 sm:p-10 font-sans">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-4">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <path d="M8 12h8"></path>
+              <path d="M8 16h8"></path>
+              <path d="M10 20h4"></path>
+            </svg>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Agent Agreements</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                A complete list of all agents and the terms and conditions they have agreed to.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {agreements.length === 0 ? (
+          <div className="text-center p-12 bg-white rounded-xl shadow-md border border-gray-200">
+            <p className="text-xl font-semibold text-gray-700">No agreements found.</p>
+            <p className="mt-2 text-gray-500">
+              There are no user agreements to display at this time.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Agent Name
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Agreement Date
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User Type
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User ID
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {agreements.map((agreement) => (
+                    <tr key={agreement._id} className="hover:bg-gray-100 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {agreement.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(agreement.agreedAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {agreement.userType || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                        {agreement._id || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-center">
+                        <button
+                          onClick={() => handleViewDetails(agreement)}
+                          className="text-indigo-600 hover:text-indigo-900 font-semibold"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ViewAgreements;

@@ -37,7 +37,7 @@ import { DashboardProvider } from './context/DashboardContext';
 import CancellationPolicy from './pages/CancellationPolicy';
 import TermsConditions from './pages/TermsConditions';
 import GrievancePolicy from './pages/GrievancePolicy';
-import EditAgentTermsConditions from './pages/EditAgentTermsConditions';
+import EditAgentTermsConditions from './pages/EditTermsConditions';
 import AdminSpecialOffers from './pages/AdminSpecialOffers';
 import AttractionsEditPage from './pages/AttractionsEditPage';
 

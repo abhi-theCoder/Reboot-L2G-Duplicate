@@ -10,6 +10,7 @@ import {
 import { FaRupeeSign } from 'react-icons/fa';
 import InnerBanner from '../components/InnerBanner';
 import PhoneInput from 'react-phone-number-input';
+import AgentTermsConditions from '../components/AgentTermsConditions';
 import 'react-phone-number-input/style.css';
 import MainLogo from '../../public/main-logo.png';
 import { isValidPhoneNumber } from 'react-phone-number-input';
@@ -1049,7 +1050,7 @@ function AgentForm() {
 
               <h2 className="text-2xl font-bold mb-4 text-center">Terms and Conditions</h2>
 
-              <div className="prose prose-sm max-w-none">
+              {/* <div className="prose prose-sm max-w-none">
                 <h3 className="font-semibold mt-4">1. Eligibility</h3>
                 <p>You must be at least 18 years old to register as an agent. By submitting this form, you confirm that all information provided is accurate and complete.</p>
 
@@ -1075,7 +1076,8 @@ function AgentForm() {
 
                 <h3 className="font-semibold mt-4">6. Termination</h3>
                 <p>We reserve the right to terminate your agent status if you violate any terms or engage in fraudulent activities.</p>
-              </div>
+              </div> */}
+              <AgentTermsConditions/>
 
               <div className="mt-6 text-center">
                 <button
