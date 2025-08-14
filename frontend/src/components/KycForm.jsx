@@ -496,7 +496,7 @@ const CustomerForm = () => {
 
             const paymentUrl = response.data.url;
             const uniqueId = crypto.randomUUID();
-            const termsUrl = `${window.location.origin}/terms/${uniqueId}?redirect=${encodeURIComponent(paymentUrl)}`;
+            const termsUrl = `${window.location.origin}/terms/tour/${tourID}/${uniqueId}?redirect=${encodeURIComponent(paymentUrl)}`;
             setTermsLink(termsUrl);
 
             window.location.href = termsUrl;

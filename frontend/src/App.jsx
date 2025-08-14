@@ -22,7 +22,7 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import TravelExperience from './pages/TravelExperience';
 import EditTour from './components/EditTour';
 import CustomerForum from './pages/CustomerForum';
-import TermsAndConditionsNew from './pages/EditTermsAndConditions';
+// import TermsAndConditionsNew from './pages/EditTermsAndConditions';
 import L2gServices from './pages/L2gServices';
 import CommunityServices from './pages/CommunityServices';
 import ConnectUs from './pages/ContactForm';
@@ -82,8 +82,9 @@ function App() {
             </PrivateRoute>
           } 
         />
-        <Route path="terms/:id" element={<TermsAndConditions />} />
-
+        <Route path="terms/:tourID" element={<TermsAndConditions />} />
+        {/* <Route path="terms/:ttourID/:uniqueId" element={<TermsAndConditions />} /> */}
+        <Route path="terms/tour/:tourID/:uniqueId" element={<TermsAndConditions />} />
         {/* Protected Routes */}
         <Route
           path="agent/dashboard"
@@ -121,7 +122,7 @@ function App() {
         <Route path="/customer-dashboard" element={<CustomerDashboard />} />
         <Route path="/travel-experience" element={<TravelExperience />} />
         <Route path="/customer-forum" element={<CustomerForum />} />
-        <Route path="/terms-and-conditions-new" element={<TermsAndConditionsNew />} />
+        {/* <Route path="/terms-and-conditions-new" element={<TermsAndConditionsNew />} /> */}
         <Route path="/l2g-services" element={<L2gServices />} />
         <Route path="/community-services" element={<CommunityServices />} />
         <Route path="/connect-us" element={<ConnectUs />} />

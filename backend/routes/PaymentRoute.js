@@ -49,6 +49,9 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error generating Razorpay link:', error);
     const description = error?.error?.description || 'Failed to generate Razorpay link';
+    if(description.includes('amount exceeds maximum amount allowed.')){
+      return res.status(400).json({ error: 'Your booking amount exceeds the maximum transaction limit allowed by Razorpay. Kindly reduce the number of passengers or split your booking into multiple transactions.' });
+    }
     res.status(500).json({ error: description });
   }
 });

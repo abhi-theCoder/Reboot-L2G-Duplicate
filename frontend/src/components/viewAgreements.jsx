@@ -1,60 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api';
 
-// This component now contains both the list view and the detailed view for a single agreement.
 const ViewAgreements = () => {
   const [agreements, setAgreements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // New state to hold the agreement details for the detailed view
   const [selectedAgreement, setSelectedAgreement] = useState(null);
+  const [agreementType, setAgreementType] = useState('agents'); // State to switch between 'agents' and 'tour'
+  const [tourId, setTourId] = useState(''); // State to hold the tourId for customer T&Cs
   const token = localStorage.getItem('Token');
 
-  // This useEffect hook runs once when the component mounts.
   useEffect(() => {
     const fetchAgreements = async () => {
+      if (!token) {
+        setError('Authentication token not found. Please log in.');
+        setLoading(false);
+        return;
+      }
+
+      // --- New Logic: Skip fetch if 'tour' type is selected but tourId is missing ---
+      if (agreementType === 'tour' && !tourId) {
+        setAgreements([]); // Clear any previous agreements
+        setLoading(false);
+        setError("Please enter a Tour ID to view customer agreements.");
+        console.log("Tour ID is required for this agreement type. Skipping API call.");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
       try {
-        const latestTermsResponse = await axios.get('/api/terms/latest?type=agents');
+        const latestTermsUrl = `/api/terms/latest?type=${agreementType}${agreementType === 'tour' ? `&tourId=${tourId}` : ''}`;
+        console.log(`Fetching latest terms from: ${latestTermsUrl}`);
+
+        const latestTermsResponse = await axios.get(latestTermsUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
 
         if (latestTermsResponse.data && latestTermsResponse.data._id) {
           const latestTermsId = latestTermsResponse.data._id;
           
           const usersResponse = await axios.get(`/api/terms/agreed-users/${latestTermsId}`, {
             headers: {
-                Authorization: `Bearer ${token}`
+              Authorization: `Bearer ${token}`
             }
           });
-          console.log(usersResponse)
           setAgreements(usersResponse.data);
         } else {
           setAgreements([]);
         }
       } catch (e) {
         console.error("Error fetching agreements:", e);
-        if (e.response && e.response.status === 404) {
-            setError(e.response.data.message);
+        if (e.response) {
+            setError(e.response.data.message || "Failed to load agreements.");
         } else {
-            setError("Failed to load agreements. Please try again later.");
+            setError("Failed to load agreements. Please check your network and try again.");
         }
       } finally {
         setLoading(false);
       }
     };
     fetchAgreements();
-  }, []);
+  }, [agreementType, tourId, token]);
 
-  // Handler for the "View" button.
   const handleViewDetails = async (agreement) => {
+    setError(null);
     try {
-      // We need to fetch the full terms content and user details for the detailed view.
-      // This logic is now part of the main component for simplicity.
       const termsResponse = await axios.get(`/api/terms/${agreement.termsId}`);
-      const userResponse = await axios.get(`/api/terms/users/${agreement._id}`);
-      
+
       setSelectedAgreement({
         ...agreement,
         termsDetails: termsResponse.data,
-        userDetails: userResponse.data
       });
     } catch (e) {
       console.error("Error fetching detailed agreement:", e);
@@ -82,20 +101,8 @@ const ViewAgreements = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-        <div className="p-8 bg-red-100 border border-red-400 text-red-700 rounded-xl shadow-lg text-center">
-          <p className="text-xl font-bold">Error</p>
-          <p className="mt-2 text-lg">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Conditional rendering: if an agreement is selected, show the detailed view.
   if (selectedAgreement) {
-    const { termsDetails, userDetails, agreedAt } = selectedAgreement;
+    const { termsDetails, agreedAt, name } = selectedAgreement;
     return (
       <div className="bg-gray-50 min-h-screen p-6 sm:p-10 font-sans">
         <div className="max-w-4xl mx-auto">
@@ -114,7 +121,7 @@ const ViewAgreements = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between mb-8 pb-4 border-b border-gray-200">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                Agreement for: <span className="text-indigo-600">{userDetails?.name || 'User Not Found'}</span>
+                Agreement for: <span className="text-indigo-600">{name || 'User Not Found'}</span>
               </h1>
               <p className="mt-1 text-sm text-gray-500">
                 Agreed on: <span className="font-semibold">{formatDate(agreedAt)}</span>
@@ -142,12 +149,11 @@ const ViewAgreements = () => {
     );
   }
 
-  // Default rendering: the list of all agreements.
   return (
     <div className="bg-gray-50 min-h-screen p-6 sm:p-10 font-sans">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
+          <div className="flex items-center mb-4 sm:mb-0">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600 mr-4">
               <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -156,20 +162,64 @@ const ViewAgreements = () => {
               <path d="M10 20h4"></path>
             </svg>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Agent Agreements</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {agreementType === 'agents' ? 'Agent Agreements' : 'Customer Agreements'}
+              </h1>
               <p className="mt-1 text-sm text-gray-500">
-                A complete list of all agents and the terms and conditions they have agreed to.
+                A complete list of all {agreementType === 'agents' ? 'agents' : 'customers'} and the terms and conditions they have agreed to.
               </p>
             </div>
+          </div>
+          <div className="flex items-center">
+            <label htmlFor="agreement-type" className="text-sm font-medium text-gray-700 mr-2">View:</label>
+            <select
+              id="agreement-type"
+              name="agreement-type"
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              value={agreementType}
+              onChange={(e) => {
+                setAgreementType(e.target.value);
+                setTourId(''); // Clear tourId when switching types
+              }}
+            >
+              <option value="agents">Agents</option>
+              <option value="tour">Customers (Tour T&C)</option>
+            </select>
+            {agreementType === 'tour' && (
+              <div className="ml-4">
+                <label htmlFor="tour-id" className="text-sm font-medium text-gray-700 sr-only">Tour ID</label>
+                <input
+                  type="text"
+                  id="tour-id"
+                  name="tour-id"
+                  placeholder="Enter Tour ID"
+                  className="mt-1 block w-full pl-3 pr-3 py-2 text-base border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  value={tourId}
+                  onChange={(e) => setTourId(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {agreements.length === 0 ? (
           <div className="text-center p-12 bg-white rounded-xl shadow-md border border-gray-200">
             <p className="text-xl font-semibold text-gray-700">No agreements found.</p>
-            <p className="mt-2 text-gray-500">
-              There are no user agreements to display at this time.
-            </p>
+            {agreementType === 'tour' && !tourId && (
+              <p className="mt-2 text-red-500">
+                Please enter a Tour ID to search for agreements.
+              </p>
+            )}
+            {agreementType === 'tour' && tourId && (
+              <p className="mt-2 text-gray-500">
+                No agreements found for the specified Tour ID.
+              </p>
+            )}
+             {agreementType === 'agents' && (
+              <p className="mt-2 text-gray-500">
+                There are no agent agreements to display at this time.
+              </p>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
@@ -178,7 +228,7 @@ const ViewAgreements = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Agent Name
+                      {agreementType === 'agents' ? 'Agent Name' : 'Customer Name'}
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Agreement Date
@@ -186,9 +236,14 @@ const ViewAgreements = () => {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       User Type
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {agreementType === 'tour' && (
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tour T&C ID
+                      </th>
+                    )}
+                    {/* <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       User ID
-                    </th>
+                    </th> */}
                     <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
@@ -206,13 +261,18 @@ const ViewAgreements = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {agreement.userType || 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                      {agreementType === 'tour' && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                          {agreement.termsId || 'N/A'}
+                        </td>
+                      )}
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                         {agreement._id || 'N/A'}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-center">
                         <button
                           onClick={() => handleViewDetails(agreement)}
-                          className="text-indigo-600 hover:text-indigo-900 font-semibold"
+                          className="text-indigo-600 hover:text-indigo-900 font-semibold mr-15"
                         >
                           View
                         </button>

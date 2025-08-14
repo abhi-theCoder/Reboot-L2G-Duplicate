@@ -1,3 +1,4 @@
+//Homepage terms and conditions page
 import { useState, useEffect } from 'react';
 import axios from '../api'; // Import axios
 import Navbar from '../components/Navbar';
