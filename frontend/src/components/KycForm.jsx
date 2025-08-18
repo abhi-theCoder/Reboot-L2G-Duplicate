@@ -56,8 +56,21 @@ const sectionASchema = z.object({
     gender: z.string().min(1, 'Gender is required'),
     phone: z.string().min(1, 'Primary Phone is required'),
     aadhar: z.string().min(1, 'Aadhar Card Number is required'),
-    homeAddress: z.string().min(1, 'Complete Address is required'),
-    pin: z.string().min(1, 'PIN Number is required'), // <-- Added line
+    homeAddress: z.object({
+        flatNo: z.string().optional(),
+        locality: z.string().optional(),
+        city: z.string().optional(),
+        pincode: z.string().optional(),
+        ps: z.string().optional(),
+        state: z.string().optional(),
+
+        altPhone: z.string().optional(),
+        emergency: z.string().optional(),
+        disability: z.string().optional(),
+        medicalCondition: z.string().optional(),
+        medicalInsurance: z.string().optional(),
+    }).optional(),
+    // pin: z.string().min(1, 'PIN Number is required'), // <-- Added line
     pan: z.string().min(1, 'PAN Card Number is required'),
     email: z.string().email('Invalid email format').min(1, 'Email is required'),
 });
