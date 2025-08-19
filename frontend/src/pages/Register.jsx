@@ -116,6 +116,8 @@ const Register = () => {
                 })}
                 className="w-full px-4 py-3 mt-1 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter your phone number"
+                maxLength={10}
+                minLength={10}
               />
               {errors.phone && (
                 <span className="text-red-500 text-xs">

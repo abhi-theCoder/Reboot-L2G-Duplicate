@@ -158,7 +158,25 @@ function AgentForm() {
     }
 
     switch (name) {
-      // ... keep existing validations ...
+      case 'name':
+        if (!value.trim()) return 'Name is required';
+        if (value.trim().length < 2) return 'Name should be at least 2 characters';
+        break;
+      case 'email':
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email address';
+        break;
+      case 'aadhar_card':
+        if (!/^\d{12}$/.test(value)) return 'Aadhar must be 12 digits';
+        break;
+      case 'pan_card':
+        if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(value)) return 'Enter a valid PAN number';
+        break;
+      case 'password':
+        if (value.length < 6) return 'Password must be at least 6 characters';
+        break;
+      case 'income':
+        if (isNaN(value) || value <= 0) return 'Enter a valid income amount';
+        break;
       case 'permanent_address.pincode':
         if (!/^\d{6}$/.test(value || '')) return 'Pincode must be 6 digits';
         break;
@@ -168,7 +186,6 @@ function AgentForm() {
       case 'permanent_address.state':
         if (!value) return 'State is required';
         break;
-      // ... other existing cases ...
       default:
         if (name.includes('permanent_address')) {
           const field = name.split('.')[1];
@@ -283,31 +300,111 @@ function AgentForm() {
     let isValid = true;
 
     if (step === 1) {
-      // ... keep existing step 1 validation ...
+      // Validate personal information fields
+      const requiredFields = [
+        'name', 'gender', 'dob', 'phone_calling', 'phone_whatsapp',
+        'email', 'aadhar_card', 'pan_card', 'profession', 'income',
+        'office_address', 'password'
+      ];
+
+      requiredFields.forEach(field => {
+        const error = validateField(field, formData[field]);
+        if (error) {
+          newErrors[field] = error;
+          isValid = false;
+        }
+      });
+
+      // Validate file uploads
+      const requiredFiles = ['aadhaarPhotoFront', 'aadhaarPhotoBack', 'panCardPhoto', 'photo'];
+      requiredFiles.forEach(fileField => {
+        if (!formData[fileField]) {
+          newErrors[fileField] = 'This file is required';
+          isValid = false;
+        }
+      });
+
+      // Validate phone numbers
+      if (!formData.phone_calling) {
+        newErrors.phone_calling = 'Phone number is required';
+        isValid = false;
+      } else if (!isValidPhoneNumber(formData.phone_calling)) {
+        newErrors.phone_calling = 'Enter a valid phone number';
+        isValid = false;
+      }
+
+      if (!formData.phone_whatsapp) {
+        newErrors.phone_whatsapp = 'WhatsApp number is required';
+        isValid = false;
+      } else if (!isValidPhoneNumber(formData.phone_whatsapp)) {
+        newErrors.phone_whatsapp = 'Enter a valid phone number';
+        isValid = false;
+      }
+
     } else if (step === 2) {
       // Validate address
       const requiredFields = ['flatNo', 'locality', 'city', 'pincode', 'ps', 'state'];
       requiredFields.forEach(field => {
         const fieldName = `permanent_address.${field}`;
-        if (!formData.permanent_address[field]) {
-          newErrors[fieldName] = validateField(fieldName, formData.permanent_address[field]);
+        const error = validateField(fieldName, formData.permanent_address[field]);
+        if (error) {
+          newErrors[fieldName] = error;
           isValid = false;
         }
       });
-
-      // Validate pincode format
-      if (formData.permanent_address.pincode && !/^\d{6}$/.test(formData.permanent_address.pincode)) {
-        newErrors['permanent_address.pincode'] = 'Pincode must be 6 digits';
-        isValid = false;
-      }
 
       // Validate alternate phone if provided
       if (formData.permanent_address.altPhone && !isValidPhoneNumber(formData.permanent_address.altPhone)) {
         newErrors['permanent_address.altPhone'] = 'Enter a valid phone number';
         isValid = false;
       }
+    } else if (step === 3) {
+      // Validate working zones
+      formData.exclusive_zone.forEach((zone, index) => {
+        if (!zone.pincode) {
+          newErrors[`zone_pincode_${index}`] = 'Pincode is required';
+          isValid = false;
+        } else if (!/^\d{6}$/.test(zone.pincode)) {
+          newErrors[`zone_pincode_${index}`] = 'Pincode must be 6 digits';
+          isValid = false;
+        }
+
+        zone.village_preference.forEach((village, villageIndex) => {
+          if (!village.trim()) {
+            newErrors[`zone_village_${index}_${villageIndex}`] = 'Village preference is required';
+            isValid = false;
+          }
+        });
+      });
+    } else if (step === 4) {
+      // Validate banking details
+      const requiredFields = ['bank_name', 'acc_holder_name', 'acc_number', 'ifsc_code', 'branch_name'];
+      requiredFields.forEach(field => {
+        const fieldName = `banking_details.${field}`;
+        if (!formData.banking_details[field]?.trim()) {
+          newErrors[fieldName] = 'This field is required';
+          isValid = false;
+        }
+      });
+
+      // Validate account number format
+      if (formData.banking_details.acc_number && !/^\d{9,18}$/.test(formData.banking_details.acc_number.replace(/\s/g, ''))) {
+        newErrors['banking_details.acc_number'] = 'Enter a valid account number (9-18 digits)';
+        isValid = false;
+      }
+
+      // Validate IFSC code format
+      if (formData.banking_details.ifsc_code && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.banking_details.ifsc_code)) {
+        newErrors['banking_details.ifsc_code'] = 'Enter a valid IFSC code (e.g., SBIN0123456)';
+        isValid = false;
+      }
+    } else if (step === 5) {
+      // Final validation before submission
+      if (!termsAccepted) {
+        newErrors.termsAccepted = 'You must accept the Terms and Conditions';
+        isValid = false;
+      }
     }
-    // ... rest of the validation steps ...
 
     setErrors(newErrors);
     return isValid;
@@ -538,6 +635,7 @@ function AgentForm() {
                   onChange={handleChange}
                   error={errors.aadhar_card}
                   icon={FiCreditCard}
+                  type="number"
                   required
                 />
 
@@ -679,6 +777,7 @@ function AgentForm() {
                   onChange={handleChange}
                   error={errors['permanent_address.pincode']}
                   icon={FiMapPin}
+                  type="number"
                   required
                 />
 
@@ -697,7 +796,36 @@ function AgentForm() {
                   name="permanent_address.state"
                   value={formData.permanent_address.state}
                   onChange={handleChange}
-                  options={['West Bengal', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Uttar Pradesh']}
+                  options={[
+                    "Andhra Pradesh",
+                    "Arunachal Pradesh",
+                    "Assam",
+                    "Bihar",
+                    "Chhattisgarh",
+                    "Goa",
+                    "Gujarat",
+                    "Haryana",
+                    "Himachal Pradesh",
+                    "Jharkhand",
+                    "Karnataka",
+                    "Kerala",
+                    "Madhya Pradesh",
+                    "Maharashtra",
+                    "Manipur",
+                    "Meghalaya",
+                    "Mizoram",
+                    "Nagaland",
+                    "Odisha",
+                    "Punjab",
+                    "Rajasthan",
+                    "Sikkim",
+                    "Tamil Nadu",
+                    "Telangana",
+                    "Tripura",
+                    "Uttar Pradesh",
+                    "Uttarakhand",
+                    "West Bengal"
+                  ]}
                   error={errors['permanent_address.state']}
                   icon={FiMapPin}
                   required
@@ -803,6 +931,7 @@ function AgentForm() {
                     onChange={(e) => handleExclusiveZoneChange(i, 'pincode', e.target.value)}
                     error={errors[`zone_pincode_${i}`]}
                     icon={FiMapPin}
+                    type="number"
                     required
                   />
 
@@ -862,18 +991,56 @@ function AgentForm() {
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {['bank_name', 'acc_holder_name', 'acc_number', 'ifsc_code', 'branch_name'].map((field) => (
-                  <Input
-                    key={field}
-                    label={field.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
-                    name={`banking_details.${field}`}
-                    value={formData.banking_details[field]}
-                    onChange={handleChange}
-                    error={errors[`banking_details_${field}`]}
-                    icon={field.includes('bank') ? FiCreditCard : FiUser}
-                    required
-                  />
-                ))}
+                <Input
+                  label="Bank Name"
+                  name="banking_details.bank_name"
+                  value={formData.banking_details.bank_name}
+                  onChange={handleChange}
+                  error={errors['banking_details.bank_name']}
+                  icon={FiCreditCard}
+                  required
+                />
+
+                <Input
+                  label="Account Holder Name"
+                  name="banking_details.acc_holder_name"
+                  value={formData.banking_details.acc_holder_name}
+                  onChange={handleChange}
+                  error={errors['banking_details.acc_holder_name']}
+                  icon={FiUser}
+                  required
+                />
+
+                <Input
+                  label="Account Number"
+                  name="banking_details.acc_number"
+                  value={formData.banking_details.acc_number}
+                  onChange={handleChange}
+                  error={errors['banking_details.acc_number']}
+                  icon={FiCreditCard}
+                  type="number"
+                  required
+                />
+
+                <Input
+                  label="IFSC Code"
+                  name="banking_details.ifsc_code"
+                  value={formData.banking_details.ifsc_code}
+                  onChange={handleChange}
+                  error={errors['banking_details.ifsc_code']}
+                  icon={FiCreditCard}
+                  required
+                />
+
+                <Input
+                  label="Branch Name"
+                  name="banking_details.branch_name"
+                  value={formData.banking_details.branch_name}
+                  onChange={handleChange}
+                  error={errors['banking_details.branch_name']}
+                  icon={FiCreditCard}
+                  required
+                />
 
                 <Input
                   type="text"
