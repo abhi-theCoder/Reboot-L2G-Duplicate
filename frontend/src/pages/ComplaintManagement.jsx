@@ -466,7 +466,7 @@ const SuperadminComplaints = () => {
                 {/* Send Response to Customer */}
                 <div>
                   <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-                    <FiMessageSquare className="mr-2 text-blue-600" /> Send Response to Customer
+                    <FiMessageSquare className="mr-2 text-blue-600" /> Customer
                   </h3>
                   <textarea
                     value={replyMessage}
@@ -488,7 +488,7 @@ const SuperadminComplaints = () => {
                 {/* Send Message to Agent */}
                 <div>
                   <h3 className="font-bold text-gray-800 mb-3 flex items-center">
-                    <FiUsers className="mr-2 text-purple-600" /> Send Message to Agent
+                    <FiUsers className="mr-2 text-purple-600" /> Agent
                     {selectedComplaint.agentInfo?.id ? (
                         <span className="ml-2 text-sm text-gray-600 font-normal">(Assigned: {selectedComplaint.agentInfo.name || selectedComplaint.agentInfo.id})</span>
                     ) : (
