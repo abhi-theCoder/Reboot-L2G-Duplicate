@@ -51,6 +51,7 @@ app.use('/api/complaints', require('./routes/complaints'));
 app.use('/api/agent-chats', require('./routes/agentChats'));
 app.use('/api/contact-content', require('./routes/contactContent'));
 app.use('/api/about-content', require('./routes/AboutContent'));
+app.use('/api/know-us-content', require('./routes/KnowUsContent'));
 app.use('/api/blogs', require('./routes/Blog'));
 app.use('/api/grievance-policy', require('./routes/grievancePolicy'));
 app.use('/api/cancellation-policy', require('./routes/cancellationPolicy'));
