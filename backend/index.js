@@ -62,7 +62,7 @@ app.use('/api/customer-dump', require('./dumps/customer-dump'));
 app.use('/api/contact-form', require('./mailSend/contactPageMail'));
 app.use('/api/otp', require('./mailSend/Otp'));
 // app.use("/api/webhook", webhookRoute);
-// app.use('/api/admin', require('./routes/SuperAdminRoutes'));
+// app.use('/api/admin', require('./rodutes/SuperAdminRoutes'));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => {

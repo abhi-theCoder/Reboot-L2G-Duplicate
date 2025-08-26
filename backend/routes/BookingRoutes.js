@@ -102,7 +102,7 @@ const createBooking = async (req, res) => {
       existingBooking.customer = customerData; // ✅ Ensure id is set
       existingBooking.travelers = travelers;
       existingBooking.agent = agent;
-      existingBooking.homeAddress = customer.address;
+      existingBooking.customer.homeAddress = customer.address;
       existingBooking.utrNumber = utrNumber || existingBooking.utrNumber;
       const updatedBooking = await existingBooking.save();
       console.log("✅ Updated booking:", updatedBooking.bookingID);
@@ -115,8 +115,10 @@ const createBooking = async (req, res) => {
       status: status || 'pending',
       bookingDate: bookingDate || new Date(),
       tour,
-      customer: customerData,
-      homeAddress: customer.address,
+      customer: {
+        ...customerData,
+        homeAddress: customerData.address,
+      },
       travelers,
       agent,
       payment,
