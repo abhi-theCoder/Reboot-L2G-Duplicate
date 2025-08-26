@@ -465,7 +465,9 @@ console.log(tour);
                     totalAmount: (totalAmountWithoutGST) * (100 + tour.GST)/100,
                     paidAmount: 0,
                     paymentStatus: 'Pending',
-                }
+                },
+                numAdults: formData.numPersons,
+                numChildren : formData.numChildren,
             };
 
             const response = await axios.post('/api/bookings', bookingData, {

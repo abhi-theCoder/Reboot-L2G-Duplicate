@@ -107,6 +107,8 @@ const bookingSchema = new mongoose.Schema({
             idProof: { type: String }, // Path to the Aadhar/PAN document
         }
     ],
+    numAdults: { type: Number, default: 0 },
+    numChildren: { type: Number, default: 0 },
     payment: {
         totalAmount: {
             type: Number,

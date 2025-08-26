@@ -82,8 +82,8 @@ router.get('/daily-dump', async (req, res) => {
       const allTravelers = [booking.customer, ...booking.travelers];
 
       allTravelers.forEach((traveler) => {
-        const adultsCount = booking.travelers.filter(t => !t.isChild).length;
-        const childrenCount = booking.travelers.filter(t => t.isChild).length;
+        const adultsCount = booking.numAdults;
+        const childrenCount = booking.numChildren;
         const isCustomer = isMainCustomer(traveler, booking.customer.email);
 
         const rowData = {

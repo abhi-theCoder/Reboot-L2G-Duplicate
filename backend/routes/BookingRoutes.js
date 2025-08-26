@@ -13,7 +13,7 @@ const createBooking = async (req, res) => {
     console.log(req.body); 
 
   try {
-    const { bookingID, status, bookingDate, tour, customer, travelers, agent, packageRates, payment, utrNumber } = req.body;
+    const { bookingID, status, bookingDate, tour, customer, travelers, agent, packageRates, payment, utrNumber, numAdults, numChildren } = req.body;
 
     console.log(req.body); 
     console.log("req.body data is above");
@@ -27,7 +27,7 @@ const createBooking = async (req, res) => {
     }
     if (
       !bookingID || !tour || !packageRates || !payment || !customer || !customer.name || !customer.email ||
-      !req.user || !req.user.id || !travelers || !Array.isArray(travelers) || travelers.length === 0
+      !req.user || !req.user.id || !travelers || !Array.isArray(travelers) || travelers.length === 0 || !numAdults || !numChildren
     ) {
       return res.status(400).json({ error: 'Missing required booking fields.' });
     }
@@ -48,7 +48,7 @@ const createBooking = async (req, res) => {
     }
 
     const existingBooking = null;
-    
+
     // Check if a booking already exists for this tour + customer
     const booking = await Booking.findOne({
       'customer.email': customer.email,
@@ -110,6 +110,8 @@ const createBooking = async (req, res) => {
       existingBooking.agent = agent;
       existingBooking.customer.homeAddress = customer.address;
       existingBooking.utrNumber = utrNumber || existingBooking.utrNumber;
+      existingBooking.numAdults = numAdults || existingBooking.numAdults;
+      existingBooking.numChildren = numChildren || existingBooking.numChildren;
       const updatedBooking = await existingBooking.save();
       console.log("✅ Updated booking:", updatedBooking.bookingID);
       return res.status(200).json(updatedBooking);
@@ -128,6 +130,8 @@ const createBooking = async (req, res) => {
       travelers,
       agent,
       payment,
+      numAdults,
+      numChildren,
       // : {
       //   totalAmount: 0,
       //   paidAmount: 0,
