@@ -57,12 +57,12 @@ const sectionASchema = z.object({
     phone: z.string().min(1, 'Primary Phone is required'),
     aadhar: z.string().min(1, 'Aadhar Card Number is required'),
     homeAddress: z.object({
-        flatNo: z.string().optional(),
-        locality: z.string().optional(),
-        city: z.string().optional(),
-        pincode: z.string().optional(),
-        ps: z.string().optional(),
-        state: z.string().optional(),
+        flatNo: z.string().min(1, 'Flat No. is required'),
+        locality: z.string().min(1, 'Locality is required'),
+        city: z.string().min(1, 'City is required'),
+        pincode: z.string().min(1, 'Pin Code is required'),
+        ps: z.string().min(1, 'Police Station is required'),
+        state: z.string().min(1, 'State is required'),
 
         altPhone: z.string().optional(),
         emergency: z.string().optional(),
@@ -107,10 +107,10 @@ const passengerSchema = z.object({
 const adultPassengerSchema = passengerSchema.refine(
     p => {
         const age = parseInt(p.age, 10);
-        return !isNaN(age) && age >= 18;
+        return !isNaN(age) && age >= 9;
     },
     {
-        message: 'Age must be at least 18 for adult passengers',
+        message: 'Age must be at least 9 for guest passengers',
         path: ['age'], // This ensures the error attaches to the age field
     }
 );
@@ -118,10 +118,10 @@ const adultPassengerSchema = passengerSchema.refine(
 const childPassengerSchema = passengerSchema.refine(
     p => {
         const age = parseInt(p.age, 10);
-        return !isNaN(age) && age < 18;
+        return !isNaN(age) && age < 9;
     },
     {
-        message: 'Age must be less than 18 for child passengers',
+        message: 'Age must be less than 9 for child passengers',
         path: ['age'], // This ensures the error attaches to the age field
     }
 );
@@ -131,10 +131,10 @@ const childPassengerSchema = passengerSchema.refine(
 // Section C schema with custom refinements for age
 const sectionCSchema = z.object({
     numPersons: z.string()
-        .min(1, 'Number of adults is required')
-        .regex(/^\d+$/, 'Number of adults must be a number')
+        .min(1, 'Number of Guests is required')
+        .regex(/^\d+$/, 'Number of Guests must be a number')
         .transform(Number)
-        .refine(num => num >= 1, 'At least one adult is required'),
+        .refine(num => num >= 1, 'At least one Guest is required'),
 
     numChildren: z.string()
         .regex(/^\d*$/, 'Number of children must be a number')
@@ -143,7 +143,7 @@ const sectionCSchema = z.object({
         .optional(),
 
     passengers: z.array(adultPassengerSchema)
-        .min(1, 'At least one adult passenger is required'),
+        .min(1, 'At least one Guest passenger is required'),
 
     childPassengers: z.array(childPassengerSchema)
 });
@@ -352,8 +352,8 @@ const CustomerForm = () => {
         if (bookingData && bookingData.length > 0) {
             const data = bookingData[0]; // Use the first booking if multiple
 
-            const adults = data.travelers?.filter(t => t.age >= 18) || [];
-            const children = data.travelers?.filter(t => t.age < 18) || [];
+            const adults = data.travelers?.filter(t => t.age >= 9) || [];
+            const children = data.travelers?.filter(t => t.age < 9) || [];
 
             setBookingID(data.bookingID);
             console.log(data.bookingID);
@@ -374,7 +374,7 @@ const CustomerForm = () => {
                 disability: data.customer?.disability || '',
                 medicalCondition: data.customer?.medicalCondition || '',
                 medicalInsurance: data.customer?.medicalInsurance || 'no',
-                homeAddress: data.customer?.address || '',
+                homeAddress: data.customer?.homeAddress?.address || '',
 
                 // Section B
                 selectedTrip: data.tour?.name || '',
@@ -1701,7 +1701,7 @@ console.log(tour);
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                     <div className="relative">
                                         <label htmlFor="numPersons" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                            Number of Adults <span className="text-red-500 ml-1">*</span>
+                                            Number of Guests <span className="text-red-500 ml-1">*</span>
                                             {errors.numPersons && <FaExclamationCircle className="ml-2 text-red-500 text-xs" />}
                                         </label>
                                         <div className="relative">
@@ -1721,7 +1721,7 @@ console.log(tour);
 
                                     <div className="relative">
                                         <label htmlFor="numChildren" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Number of Children (below 10 years)
+                                            Number of Children (below 9 years)
                                         </label>
                                         <div className="relative">
                                             <input
@@ -1741,7 +1741,7 @@ console.log(tour);
 
                                 {Number(formData.numPersons) > 0 && (
                                     <>
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-4">Details of Adult Passengers:</h3>
+                                        <h3 className="text-lg font-semibold text-gray-700 mb-4">Details of Guest Passengers:</h3>
                                         <div className="overflow-x-auto mb-6">
                                             <table className="min-w-full bg-white border border-gray-200 rounded-md">
                                                 <thead>
@@ -1992,7 +1992,7 @@ console.log(tour);
                                     <div className="space-y-4">
                                         <h5 className="font-bold text-lg border-b pb-2 flex items-center">
                                             <FaUserFriends className="mr-2 text-blue-500" />
-                                            Adult Passengers ({formData.numPersons} Adults)
+                                            Guest Passengers ({formData.numPersons} Adults)
                                         </h5>
                                         {Number(formData.numPersons) > 0 ? (
                                             <div className="overflow-x-auto">

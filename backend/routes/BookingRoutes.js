@@ -47,17 +47,12 @@ const createBooking = async (req, res) => {
       }
     }
 
-    const existingBooking = null;
-
-    // Check if a booking already exists for this tour + customer
-    const booking = await Booking.findOne({
+    // If booking exists
+    const existingBooking = await Booking.findOne({
       'customer.email': customer.email,
       'tour.tourID': tour.tourID,
+      'status' : { $ne: 'confirmed' }
     });
-
-    // If booking exists and is pending, update it instead of creating a new one
-    if(booking.status == 'pending')
-    existingBooking = booking;
 
     // Common logic: Get or create customer, get the _id
     let existingCustomer = await Customer.findOne({
@@ -99,8 +94,8 @@ const createBooking = async (req, res) => {
 
     // IF BOOKING EXISTS, update it
     if (existingBooking) {
+      console.log(existingBooking.status);
       console.log("♻️ Updating existing booking");
-
       existingBooking.bookingID = bookingID;
       existingBooking.status = status || existingBooking.status;
       existingBooking.bookingDate = bookingDate || existingBooking.bookingDate;
