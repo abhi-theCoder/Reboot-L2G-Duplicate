@@ -31,7 +31,7 @@ const createBooking = async (req, res) => {
     ) {
       return res.status(400).json({ error: 'Missing required booking fields.' });
     }
-//pay_R7KM5PVD5OJyeP
+
     // Validate agent if provided
     if (agent) {
       const agentDetails = await Agent.findOne({ agentID: agent.agentID });
@@ -47,11 +47,17 @@ const createBooking = async (req, res) => {
       }
     }
 
+    const existingBooking = null;
+    
     // Check if a booking already exists for this tour + customer
-    const existingBooking = await Booking.findOne({
+    const booking = await Booking.findOne({
       'customer.email': customer.email,
       'tour.tourID': tour.tourID,
     });
+
+    // If booking exists and is pending, update it instead of creating a new one
+    if(booking.status == 'pending')
+    existingBooking = booking;
 
     // Common logic: Get or create customer, get the _id
     let existingCustomer = await Customer.findOne({
