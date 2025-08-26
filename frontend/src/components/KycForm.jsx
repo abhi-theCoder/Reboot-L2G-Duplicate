@@ -219,6 +219,17 @@ const CustomerForm = () => {
     const tourID = searchParams.get('t');
     const agentIDFromURL = searchParams.get('a') || '';
     const [isUppercase, setIsUppercase] = useState(false);
+    const allStatesAndUTs = [
+        "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+        "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+        "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+        "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+        "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+        "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+        "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry", "Other"
+    ];
+    const [stateSearch, setStateSearch] = useState('');
+
     // Initialize passengers and childPassengers arrays based on numPersons/numChildren
 
     useEffect(() => {
@@ -410,7 +421,7 @@ const CustomerForm = () => {
             getBooking();
         }
     }, [tourID, token, role]);
-console.log(tour);
+    console.log(tour);
     const saveBooking = async () => {
         setIsSubmitting(true);
         try {
@@ -427,7 +438,7 @@ console.log(tour);
             }));
 
             const totalAmountWithoutGST = Number(tour.packageRates.adultRate) * Number(formData.numPersons) +
-                        (Number(formData.numChildren) > 0 ? Number(tour.packageRates.childRate) * Number(formData.numChildren) : 0);
+                (Number(formData.numChildren) > 0 ? Number(tour.packageRates.childRate) * Number(formData.numChildren) : 0);
 
             const bookingData = {
 
@@ -462,7 +473,7 @@ console.log(tour);
                     childRate: tour.packageRates.childRate
                 },
                 payment: {
-                    totalAmount: (totalAmountWithoutGST) * (100 + tour.GST)/100,
+                    totalAmount: (totalAmountWithoutGST) * (100 + tour.GST) / 100,
                     paidAmount: 0,
                     paymentStatus: 'Pending',
                 }
@@ -521,7 +532,7 @@ console.log(tour);
                     tourStartDate,
                     GST: tour.GST,
                     numAdults: formData.numPersons,
-                    numChildren :formData.numChildren,
+                    numChildren: formData.numChildren,
                     packageRates: {
                         adultRate: tour.packageRates.adultRate,
                         childRate: tour.packageRates.childRate,
@@ -1293,16 +1304,41 @@ console.log(tour);
                                                     id="homeAddress.state"
                                                     name="homeAddress.state"
                                                     value={formData.homeAddress.state}
-                                                    onChange={handleChange}
+                                                    onChange={e => {
+                                                        handleChange(e);
+                                                        if (e.target.value !== "Other") setStateSearch(""); // Clear search if not Other
+                                                    }}
                                                     className={`w-full px-4 py-2 border ${errors['homeAddress.state'] ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500`}
                                                 >
                                                     <option value="">Select State</option>
-                                                    <option value="West Bengal">West Bengal</option>
-                                                    <option value="Maharashtra">Maharashtra</option>
-                                                    <option value="Karnataka">Karnataka</option>
-                                                    <option value="Tamil Nadu">Tamil Nadu</option>
-                                                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                                                    {allStatesAndUTs
+                                                        .filter(state =>
+                                                            state.toLowerCase().includes(stateSearch.trim().toLowerCase())
+                                                        )
+                                                        .map(state => (
+                                                            <option key={state} value={state}>{state}</option>
+                                                        ))}
                                                 </select>
+                                                {/* Show manual input if "Other" is selected */}
+                                                {formData.homeAddress.state === "Other" && (
+                                                    <input
+                                                        type="text"
+                                                        name="homeAddress.state"
+                                                        placeholder="Enter your state/UT"
+                                                        value={formData.homeAddress.stateManual || ""}
+                                                        onChange={e => {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                homeAddress: {
+                                                                    ...prev.homeAddress,
+                                                                    state: e.target.value,
+                                                                    stateManual: e.target.value
+                                                                }
+                                                            }));
+                                                        }}
+                                                        className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                                    />
+                                                )}
                                                 {errors['homeAddress.state'] && (
                                                     <p className="text-red-500 text-xs mt-1 flex items-center">
                                                         <FaInfoCircle className="mr-1" /> {errors['homeAddress.state']}
@@ -1346,8 +1382,7 @@ console.log(tour);
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {/* Disability */}
+                                        {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="relative">
                                                 <label htmlFor="homeAddress.disability" className="block text-sm font-medium text-gray-700 mb-1">
                                                     Disability
@@ -1366,8 +1401,6 @@ console.log(tour);
                                                     <option value="Other">Other</option>
                                                 </select>
                                             </div>
-
-                                            {/* Medical Condition */}
                                             <div className="relative">
                                                 <label htmlFor="homeAddress.medicalCondition" className="block text-sm font-medium text-gray-700 mb-1">
                                                     Medical Condition
@@ -1382,10 +1415,9 @@ console.log(tour);
                                                     className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                                 />
                                             </div>
-                                        </div>
+                                        </div> */}
 
-                                        {/* Medical Insurance */}
-                                        <div className="relative">
+                                        {/* <div className="relative">
                                             <label htmlFor="homeAddress.medicalInsurance" className="block text-sm font-medium text-gray-700 mb-1">
                                                 Medical Insurance
                                             </label>
@@ -1399,7 +1431,7 @@ console.log(tour);
                                                 <option value="no">No</option>
                                                 <option value="yes">Yes</option>
                                             </select>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             </div>
@@ -1777,6 +1809,7 @@ console.log(tour);
                                                                 <select value={formData.passengers[index]?.idType || ''} onChange={(e) => handleArrayChange('passengers', index, 'idType', e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
                                                                     <option value="">Select</option>
                                                                     <option value="aadhar">Aadhar Card</option>
+                                                                    <option value="PanCard">Pan Card</option>
                                                                     <option value="passport">Passport</option>
                                                                     <option value="drivingLicense">Driving License</option>
                                                                     <option value="voterId">Voter ID</option>
