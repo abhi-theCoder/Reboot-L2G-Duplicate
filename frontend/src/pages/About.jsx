@@ -375,7 +375,7 @@ const AboutL2G = () => {
                 </div>
 
                 {/* CTA Section */}
-                <div className="relative">
+                {/* <div className="relative">
                     <img
                         src={DiscountCover}
                         alt="cta"
@@ -391,7 +391,7 @@ const AboutL2G = () => {
                             <button className="bg-[#0D2044] text-white px-[100px] py-2 rounded-full text-lg hover:bg-[#09172f]">Book Now</button>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
             <Footer />
         </>
