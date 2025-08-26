@@ -131,7 +131,7 @@ function AgentForm() {
       pincode: '',
       ps: '',
       state: '',
-      altPhone: '',  
+      altPhone: '',
       emergencyContact: '',
       disability: 'none',
       medicalCondition: '',
@@ -156,6 +156,60 @@ function AgentForm() {
 
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [stateSearch, setStateSearch] = useState('');
+  const allStatesAndUTs = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+    "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+    "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry", "Other"
+  ];
+
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+
+  const handleSendOtp = async () => {
+    setIsSendingOtp(true);
+    try {
+      const email = formData.email;
+      if (!email) {
+        setErrors(prev => ({ ...prev, email: "Please enter a valid email address first." }));
+        setIsSendingOtp(false);
+        return;
+      }
+      await axios.post('/api/otp/send-otp', { email }, {
+        headers: { "Content-Type": "application/json" }
+      });
+      setMessage("OTP sent to your email!");
+      setIsOtpSent(true);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "Failed to send OTP. Try again.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setIsVerifying(true);
+    try {
+      const email = formData.email;
+      await axios.post('/api/otp/verify-otp', { email, otp }, {
+        headers: { "Content-Type": "application/json" }
+      });
+      setMessage("OTP verified successfully!");
+      setIsOtpVerified(true);
+    } catch (error) {
+      setMessage(error.response?.data?.message || "OTP verification failed. Please check the code.");
+      setIsOtpVerified(false);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   useEffect(() => {
     if (message) {
@@ -401,7 +455,7 @@ function AgentForm() {
       });
 
       // Validate account holder name should not accept any digits 
-      if (formData.banking_details.acc_holder_name && /\d/.test(formData.banking_details.acc_holder_name)) { 
+      if (formData.banking_details.acc_holder_name && /\d/.test(formData.banking_details.acc_holder_name)) {
         newErrors['banking_details.acc_holder_name'] = 'Account holder name should not contain digits';
         isValid = false;
       }
@@ -636,16 +690,71 @@ function AgentForm() {
                   {errors.phone_whatsapp && <p className="mt-1 text-sm text-red-500 flex items-center"><FiAlertCircle className="mr-1" /> {errors.phone_whatsapp}</p>}
                 </div>
 
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={errors.email}
-                  icon={FiMail}
-                  required
-                />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={`flex-1 px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500 ${errors.email ? 'border-red-400' : 'border-gray-300'}`}
+                      placeholder="Enter your Email address"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp}
+                      className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                    >
+                      {isSendingOtp ? (
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        isOtpSent ? "Resend OTP" : "Send OTP"
+                      )}
+                    </button>
+                  </div>
+                  {errors.email && (
+                    <span className="text-red-500 text-xs">{errors.email}</span>
+                  )}
+                  {/* OTP Verification UI */}
+                  {isOtpSent && (
+                    <div className="mt-2 flex gap-2">
+                      <input
+                        type="text"
+                        value={otp}
+                        onChange={e => setOtp(e.target.value)}
+                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter OTP"
+                        maxLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        disabled={isVerifying}
+                        className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                      >
+                        {isVerifying ? (
+                          <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          'Verify'
+                        )}
+                      </button>
+                    </div>
+                  )}
+                  {isOtpVerified && (
+                    <span className="text-green-600 text-xs mt-1 block">OTP verified!</span>
+                  )}
+                </div>
 
                 <Input
                   label="Aadhar Card No"
@@ -810,45 +919,62 @@ function AgentForm() {
                   required
                 />
 
-                <Select
-                  label="State"
-                  name="permanent_address.state"
-                  value={formData.permanent_address.state}
-                  onChange={handleChange}
-                  options={[
-                    "Andhra Pradesh",
-                    "Arunachal Pradesh",
-                    "Assam",
-                    "Bihar",
-                    "Chhattisgarh",
-                    "Goa",
-                    "Gujarat",
-                    "Haryana",
-                    "Himachal Pradesh",
-                    "Jharkhand",
-                    "Karnataka",
-                    "Kerala",
-                    "Madhya Pradesh",
-                    "Maharashtra",
-                    "Manipur",
-                    "Meghalaya",
-                    "Mizoram",
-                    "Nagaland",
-                    "Odisha",
-                    "Punjab",
-                    "Rajasthan",
-                    "Sikkim",
-                    "Tamil Nadu",
-                    "Telangana",
-                    "Tripura",
-                    "Uttar Pradesh",
-                    "Uttarakhand",
-                    "West Bengal"
-                  ]}
-                  error={errors['permanent_address.state']}
-                  icon={FiMapPin}
-                  required
-                />
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiMapPin className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <select
+                        name="permanent_address.state"
+                        value={formData.permanent_address.state}
+                        onChange={e => {
+                          handleChange(e);
+                          if (e.target.value !== "Other") setStateSearch("");
+                        }}
+                        className={`w-full pl-10 pr-3 py-2 border ${errors['permanent_address.state'] ? 'border-red-400' : 'border-gray-300'} rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white`}
+                        required
+                      >
+                        <option value="">Select State</option>
+                        {allStatesAndUTs
+                          .filter(state =>
+                            state.toLowerCase().includes(stateSearch.trim().toLowerCase())
+                          )
+                          .map(state => (
+                            <option key={state} value={state}>{state}</option>
+                          ))}
+                      </select>
+                    </div>
+                    {/* Show manual input if "Other" is selected */}
+                    {formData.permanent_address.state === "Other" && (
+                      <input
+                        type="text"
+                        name="permanent_address.stateManual"
+                        placeholder="Enter your state/UT"
+                        value={formData.permanent_address.stateManual || ""}
+                        onChange={e => {
+                          setFormData(prev => ({
+                            ...prev,
+                            permanent_address: {
+                              ...prev.permanent_address,
+                              stateManual: e.target.value,
+                              state: "Other"
+                            }
+                          }));
+                        }}
+                        className="w-full pl-10 pr-3 py-2 mt-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    )}
+                    {errors['permanent_address.state'] && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center">
+                        <FiAlertCircle className="mr-1" /> {errors['permanent_address.state']}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-600 mb-1">
@@ -1358,7 +1484,13 @@ function AgentForm() {
               <button
                 type="button"
                 onClick={nextStep}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center transition-colors"
+                disabled={
+                  (currentStep === 1 && !isOtpVerified) || isSubmitting
+                }
+                className={`px-6 py-2 rounded-lg flex items-center transition-colors ${(currentStep === 1 && !isOtpVerified) || isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
               >
                 Next <FiChevronRight className="ml-2" />
               </button>
