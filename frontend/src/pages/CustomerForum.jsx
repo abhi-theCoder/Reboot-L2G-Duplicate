@@ -124,7 +124,7 @@ const ForumPage = () => {
     const [allPosts, setAllPosts] = useState([]); // Will only store APPROVED posts
 
     const [newPostTitle, setNewPostTitle] = useState('');
-    const [newPostCategory, setNewPostCategory] = useState('Destination Tips');
+    const [newPostCategory, setNewPostCategory] = useState('Travel Stories');
     const [newPostContent, setNewPostContent] = useState('');
     const [topLevelReplyTexts, setTopLevelReplyTexts] = useState({});
 
@@ -144,13 +144,13 @@ const ForumPage = () => {
     const role = localStorage.getItem('role');
 
     const forumCategories = [
-        'All Topics',
-        'Destination Tips',
-        'Travel Deals',
-        'Accommodation',
-        'Transportation',
+        // 'All Topics',
+        // 'Destination Tips',
+        // 'Travel Deals',
+        // 'Accommodation',
+        // 'Transportation',
         'Travel Stories',
-        'Questions'
+        // 'Questions'
     ];
 
     // const handleComplaintSubmit = (e) => {

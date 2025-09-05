@@ -13,13 +13,13 @@ const createBooking = async (req, res) => {
     console.log(req.body); 
 
   try {
-    const { bookingID, status, bookingDate, tour, customer, travelers, agent, packageRates, payment, address, utrNumber } = req.body;
+    const { bookingID, status, bookingDate, tour, customer, travelers, agent, packageRates, payment, utrNumber, numAdults, numChildren } = req.body;
 
     console.log(req.body); 
     console.log("req.body data is above");
 
     // Basic validation
-    if(!address){
+    if(!customer.address){
       return res.status(400).json({ error: 'All Address details are required.' });
     }
     if(!payment){
@@ -27,11 +27,11 @@ const createBooking = async (req, res) => {
     }
     if (
       !bookingID || !tour || !packageRates || !payment || !customer || !customer.name || !customer.email ||
-      !req.user || !req.user.id || !travelers || !Array.isArray(travelers) || travelers.length === 0
+      !req.user || !req.user.id || !travelers || !Array.isArray(travelers) || travelers.length === 0 || !numAdults || !numChildren
     ) {
       return res.status(400).json({ error: 'Missing required booking fields.' });
     }
-//pay_R7KM5PVD5OJyeP
+
     // Validate agent if provided
     if (agent) {
       const agentDetails = await Agent.findOne({ agentID: agent.agentID });
@@ -47,10 +47,11 @@ const createBooking = async (req, res) => {
       }
     }
 
-    // Check if a booking already exists for this tour + customer
+    // If booking exists
     const existingBooking = await Booking.findOne({
       'customer.email': customer.email,
       'tour.tourID': tour.tourID,
+      'status' : { $ne: 'confirmed' }
     });
 
     // Common logic: Get or create customer, get the _id
@@ -93,8 +94,8 @@ const createBooking = async (req, res) => {
 
     // IF BOOKING EXISTS, update it
     if (existingBooking) {
+      console.log(existingBooking.status);
       console.log("♻️ Updating existing booking");
-
       existingBooking.bookingID = bookingID;
       existingBooking.status = status || existingBooking.status;
       existingBooking.bookingDate = bookingDate || existingBooking.bookingDate;
@@ -102,8 +103,10 @@ const createBooking = async (req, res) => {
       existingBooking.customer = customerData; // ✅ Ensure id is set
       existingBooking.travelers = travelers;
       existingBooking.agent = agent;
-      existingBooking.homeAddress = address;
+      existingBooking.customer.homeAddress = customer.address;
       existingBooking.utrNumber = utrNumber || existingBooking.utrNumber;
+      existingBooking.numAdults = numAdults || existingBooking.numAdults;
+      existingBooking.numChildren = numChildren || existingBooking.numChildren;
       const updatedBooking = await existingBooking.save();
       console.log("✅ Updated booking:", updatedBooking.bookingID);
       return res.status(200).json(updatedBooking);
@@ -115,11 +118,15 @@ const createBooking = async (req, res) => {
       status: status || 'pending',
       bookingDate: bookingDate || new Date(),
       tour,
-      customer: customerData,
-      homeAddress: address,
+      customer: {
+        ...customerData,
+        homeAddress: customerData.address,
+      },
       travelers,
       agent,
       payment,
+      numAdults,
+      numChildren,
       // : {
       //   totalAmount: 0,
       //   paidAmount: 0,

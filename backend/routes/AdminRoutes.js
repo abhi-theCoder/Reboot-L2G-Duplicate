@@ -134,6 +134,29 @@ router.get('/all-agents-name-id',authenticateSuperAdmin, async (req, res) => {
   }
 });
 
+router.get('/agents/status-count', authenticateSuperAdmin, async (req, res) => {
+  try {
+    // Count agents by status
+    const activeCount = await Agent.countDocuments({ status: 'active' });
+    const inactiveCount = await Agent.countDocuments({ status: 'inactive' });
+    const pendingCount = await Agent.countDocuments({ status: 'pending' });
+    const totalCount = await Agent.countDocuments({});
+
+    res.json({
+      counts: {
+        active: activeCount,
+        inactive: inactiveCount,
+        pending: pendingCount,
+        total: totalCount
+      },
+    });
+
+  } catch (error) {
+    console.error("Error fetching all agents: ", error);
+    res.status(500).json({ message: "Server error while fetching users" });
+  }
+});
+
 // const buildAgentTree = async (agent) => {
 //   const children = await Agent.find({ parentAgent: agent._id, status:'active' });
 

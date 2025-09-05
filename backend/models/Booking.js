@@ -84,11 +84,11 @@ const bookingSchema = new mongoose.Schema({
             pincode: { type: String, default: 'N/A' },
             ps: { type: String, default: 'N/A' },
             state: { type: String, default: 'N/A' },
-            altPhone: String,
-            emergencyContact: String,
-            disability: String,
-            medicalCondition: String,
-            medicalInsurance: String,
+            // altPhone: String,
+            // emergencyContact: String,
+            // disability: String,
+            // medicalCondition: String,
+            // medicalInsurance: String,
         },
     },
     travelers: [
@@ -107,6 +107,8 @@ const bookingSchema = new mongoose.Schema({
             idProof: { type: String }, // Path to the Aadhar/PAN document
         }
     ],
+    numAdults: { type: Number, default: 0 },
+    numChildren: { type: Number, default: 0 },
     payment: {
         totalAmount: {
             type: Number,
