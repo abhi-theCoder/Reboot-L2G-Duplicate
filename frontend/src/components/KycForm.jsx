@@ -503,13 +503,14 @@ console.log(tour);
             const tourName = tour.name;
             const tourPricePerHead = tour.pricePerHead;
             const tourActualOccupancy = tour.occupancy;
-            const tourGivenOccupancy = formData.numPersons + formData.numChildren;
+            const tourGivenOccupancy = parseInt(formData.numPersons) + parseInt(formData.numChildren);
             const tourStartDate = tour.startDate;
 
             setGenerating(true);
             setButtonDisabled(true);
             setError(false);
 
+            console.log(tourGivenOccupancy);
             const response = await axios.post(
                 '/api/generate-payment-link',
                 {
