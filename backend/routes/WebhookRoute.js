@@ -267,7 +267,7 @@ router.post('/', express.json({ verify: (req, res, buf) => { req.rawBody = buf; 
                     // stats.finalAmount = stats.finalAmount || 0;
                     // stats.commissionReceived = stats.commissionReceived || 0;
 
-                    // const givenCustomerCount = parsedTourGivenOccupancy;
+                    const givenCustomerCount = parsedTourGivenOccupancy;
                     // const addedAmountToStats = givenCustomerCount * parsedTourPricePerHead;
                     
                     const newCustomerGiven = stats.customerGiven + givenCustomerCount;
