@@ -497,13 +497,13 @@ console.log(tour);
             const saveBookingResponse = await saveBooking();
             console.log(saveBookingResponse.bookingID);
             const bookingID = saveBookingResponse.bookingID;
-            const givenOccupancy = searchParams.get('p');
+            // const givenOccupancy = searchParams.get('p');
             // const agentID = searchParams.get('a') || '';
             // const agentID = formData.throughAgent === 'yes' ? formData.agentID : '';
             const tourName = tour.name;
             const tourPricePerHead = tour.pricePerHead;
             const tourActualOccupancy = tour.occupancy;
-            const tourGivenOccupancy = givenOccupancy;
+            const tourGivenOccupancy = formData.numPersons + formData.numChildren;
             const tourStartDate = tour.startDate;
 
             setGenerating(true);
