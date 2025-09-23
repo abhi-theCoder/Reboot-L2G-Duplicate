@@ -11,7 +11,7 @@ import {
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+// const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
 function getInvoiceHtml(invoice) {
   if (!invoice) return '';
 
@@ -394,22 +394,23 @@ const Dashboard = () => {
     setInvoiceLoading(true);
     setInvoiceError(null);
     try {
-      const token = localStorage.getItem('Token');
-      const res = await fetch(`${BASE_URL}/api/bookings/${bookingId}/invoice`, {
+      const token = localStorage.getItem("Token");
+
+      const res = await axios.get(`/api/bookings/${bookingId}/invoice`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch invoice data');
-      }
-
-      const data = await res.json();
-      setSelectedInvoice(data);
+      setSelectedInvoice(res.data);
       setShowInvoiceModal(true);
     } catch (error) {
-      setInvoiceError(error.message || 'Failed to load invoice data');
+      // handle axios error correctly
+      const message =
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to load invoice data";
+      setInvoiceError(message);
       console.error("Invoice fetch error:", error);
     } finally {
       setInvoiceLoading(false);
