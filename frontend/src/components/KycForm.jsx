@@ -73,7 +73,15 @@ const sectionASchema = z.object({
     // pin: z.string().min(1, 'PIN Number is required'), // <-- Added line
     pan: z.string().min(1, 'PAN Card Number is required'),
     email: z.string().email('Invalid email format').min(1, 'Email is required'),
+}).refine((data) => {
+  const dobDate = parseISO(data.dob);
+  const age = differenceInYears(new Date(), dobDate);
+  return age >= 18;
+}, {
+  message: 'Customer must be at least 18 years old',
+  path: ['dob'],
 });
+;
 
 const sectionBSchema = z.object({
     tourType: z.string().min(1, 'Tour Type selected is required'),
@@ -554,9 +562,14 @@ const CustomerForm = () => {
             const paymentUrl = response.data.url;
             const uniqueId = crypto.randomUUID();
             const termsUrl = `${window.location.origin}/terms/tour/${tourID}/${uniqueId}?redirect=${encodeURIComponent(paymentUrl)}`;
-            setTermsLink(termsUrl);
+            const customerName = formData.name || 'Customer';
+            let query = new URLSearchParams({
+                n: customerName,
+            }).toString();
+            const modifiedTermsUrl = `${termsUrl}&${query}`;
+            setTermsLink(modifiedTermsUrl);
 
-            window.location.href = termsUrl;
+            window.location.href = modifiedTermsUrl;
         } catch (error) {
             console.error('Error in generateTermsAndPaymentLink:', error);
             setError(true);

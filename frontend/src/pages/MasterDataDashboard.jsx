@@ -1161,7 +1161,7 @@ const MasterDataDashboard = () => {
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             />
                         </div>
-                        <button
+                        {/* <button
                             onClick={() => {
                                 if (activeTab === 'agents') downloadCSV(filteredAgents, 'agents.csv', 'agents');
                                 if (activeTab === 'customers') downloadCSV(filteredCustomers, 'customers.csv', 'customers');
@@ -1172,9 +1172,9 @@ const MasterDataDashboard = () => {
                         >
                             <FiDownload className="mr-1" />
                             <span className="hidden md:inline">Download CSV</span>
-                        </button>
+                        </button> */}
                         {/* New button for Agent Commission Report (on Agents tab) */}
-                        {activeTab === 'agents' && (
+                        {/* {activeTab === 'agents' && (
                             <button
                                 onClick={downloadAgentCommissionReportCSV}
                                 className="px-3 py-2 bg-purple-600 text-white rounded-md flex items-center hover:bg-purple-700"
@@ -1182,7 +1182,7 @@ const MasterDataDashboard = () => {
                                 <FiDownload className="mr-1" />
                                 <span className="hidden md:inline">Agent Commission Report</span>
                             </button>
-                        )}
+                        )} */}
                         {/* New button for Payments Paid Detailed Report (on Payments Paid sub-tab) */}
                         {activeTab === 'payments' && paymentSubTab === 'paid' && (
                             <button
@@ -1194,21 +1194,21 @@ const MasterDataDashboard = () => {
                             </button>
                         )}
                         {/* NEW: Button for Agent Dump CSV */}
-                        <button
+                        {/* <button
                             onClick={downloadAgentDumpCSV}
                             className="px-3 py-2 bg-yellow-600 text-white rounded-md flex items-center hover:bg-yellow-700"
                         >
                             <FiDownload className="mr-1" />
                             <span className="hidden md:inline">Agent Dump</span>
-                        </button>
+                        </button> */}
                         {/* NEW: Button for Customer Dump CSV */}
-                        <button
+                        {/* <button
                             onClick={downloadCustomerDumpCSV}
                             className="px-3 py-2 bg-teal-600 text-white rounded-md flex items-center hover:bg-teal-700"
                         >
                             <FiDownload className="mr-1" />
                             <span className="hidden md:inline">Customer Dump</span>
-                        </button>
+                        </button> */}
                         <button
                             className="px-3 py-2 bg-gray-100 rounded-md"
                             onClick={() => {

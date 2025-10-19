@@ -72,3 +72,6 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => { 
   console.log(`Server running on port ${PORT}`);
 });
+
+// Initialize cron jobs
+require("./utils/cronJobs");

@@ -92,6 +92,7 @@ export default function TermsAndConditions() {
   const [searchParams] = useSearchParams();
   const {tourID} = useParams();
   const paymentUrl = searchParams.get('redirect');
+  const customerName = searchParams.get('n');
 
   useEffect(() => {
     const fetchTerms = async () => {
@@ -137,27 +138,48 @@ export default function TermsAndConditions() {
         ))}
         
 
-        <div className="mt-8 flex items-center justify-between">
-          <label className="flex items-center space-x-2">
+        <div className="mt-10 p-6 bg-white rounded-2xl shadow-md border border-gray-200">
+          <div className="flex items-start space-x-3">
             <input
               type="checkbox"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
             />
-            <span className="text-gray-700 font-medium">I accept the terms and conditions</span>
-          </label>
+            <div>
+              <p className="text-gray-800 font-semibold text-base">
+                I accept the <span className="text-blue-600 cursor-pointer hover:text-blue-700">terms and conditions</span>
+              </p>
+              {customerName && (
+                <p className="mt-2 text-gray-500 italic text-sm">
+                  Signed by <span className="font-medium text-gray-700">{customerName || 'Customer'}</span> on{' '}
+                  {new Date().toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
 
-          <button
-            disabled={!accepted || !paymentUrl}
-            onClick={() => window.location.href = paymentUrl}
-            className={`px-6 py-2 rounded-md text-white font-semibold transition duration-200 ${
-              accepted ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            Proceed to Payment
-          </button>
+          {/* Signature Line */}
+          {customerName && (
+            <div className="mt-4 ml-8 border-t border-gray-300 w-64"></div>
+          )}
+
+          {/* Proceed Button */}
+          <div className="mt-6 flex justify-end">
+            <button
+              disabled={!accepted || !paymentUrl}
+              onClick={() => window.location.href = paymentUrl}
+              className={`px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all duration-200 focus:outline-none ${
+                accepted
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-2 focus:ring-blue-400'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Proceed to Payment
+            </button>
+          </div>
         </div>
+
       </div>
     </div>
   );
