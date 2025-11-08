@@ -26,6 +26,47 @@ const formatDateForDisplay = (isoDateString) => {
   });
 };
 
+
+// Function to determine season and icon based on month name
+const getMonthDetails = (monthName) => {
+  const offPeak = ["January", "February", "July", "August"];
+  const shoulder = ["March", "April", "September", "October"];
+  const peak = ["May", "June", "November", "December"];
+
+  if (offPeak.includes(monthName)) return { season: "Off-Peak Season", weather: "Pleasant", icon: <FaCloud /> };
+  if (shoulder.includes(monthName)) return { season: "Shoulder Season", weather: "Sunny", icon: <FaSun /> };
+  if (peak.includes(monthName)) return { season: "Peak Season", weather: "Pleasant", icon: <FaCloud /> };
+  return { season: "Unknown", weather: "Unknown", icon: <FaCloud /> };
+};
+
+// Function to generate months data dynamically up to a specific year
+const generateMonthsData = (startYear = 2025, endYear = new Date().getFullYear()) => {
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const months = [];
+  for (let year = startYear; year <= endYear; year++) {
+    monthNames.forEach((month) => {
+      const { season, weather, icon } = getMonthDetails(month);
+      months.push({ month, year, season, weather, icon });
+    });
+  }
+  return months;
+};
+
+// Get the highest tour year dynamically
+const getHighestTourYear = (tours) => {
+  if (!tours || tours.length === 0) return new Date().getFullYear();
+  const validDates = tours
+    .map(tour => new Date(tour.startDate))
+    .filter(date => !isNaN(date));
+  if (validDates.length === 0) return new Date().getFullYear();
+  return new Date(Math.max(...validDates.map(d => d.getTime()))).getFullYear();
+};
+
+
 const TourPrograms = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -308,20 +349,26 @@ const TourPrograms = () => {
     setTooltipText("");
   };
 
-  const monthsData = [
-    { month: "January", year: 2025, season: "Off-Peak Season", weather: "Pleasant", icon: <FaCloud /> },
-    { month: "February", year: 2025, season: "Off-Peak Season", weather: "Pleasant", icon: <FaCloud /> },
-    { month: "March", year: 2025, season: "Shoulder Season", weather: "Sunny", icon: <FaSun /> },
-    { month: "April", year: 2025, season: "Shoulder Season", weather: "Sunny", icon: <FaSun /> },
-    { month: "May", year: 2025, season: "Peak Season", weather: "Sunny", icon: <FaSun /> },
-    { month: "June", year: 2025, season: "Peak Season", weather: "Sunny", icon: <FaSun /> },
-    { month: "July", year: 2025, season: "Off-Peak Season", weather: "Monsoon", icon: <FaCloudRain /> },
-    { month: "August", year: 2025, season: "Off-Peak Season", weather: "Monsoon", icon: <FaCloudRain /> },
-    { month: "September", year: 2025, season: "Shoulder Season", weather: "Pleasant", icon: <FaCloud /> },
-    { month: "October", year: 2025, season: "Shoulder Season", weather: "Pleasant", icon: <FaCloud /> },
-    { month: "November", year: 2025, season: "Peak Season", weather: "Pleasant", icon: <FaCloud /> },
-    { month: "December", year: 2025, season: "Peak Season", weather: "Pleasant", icon: <FaCloud /> },
-  ];
+  const [monthsData, setMonthsData] = useState([]);
+
+  useEffect(() => {
+    const highestYear = getHighestTourYear([...activeTours, ...expiredTours]);
+    setMonthsData(generateMonthsData(2025, highestYear));
+  }, [activeTours, expiredTours]);
+
+  // const monthsData = [
+  //   { month: "January", year: 2025, season: "Off-Peak Season", weather: "Pleasant", icon: <FaCloud /> },
+  //   { month: "February", year: 2025, season: "Off-Peak Season", weather: "Pleasant", icon: <FaCloud /> },
+  //   { month: "March", year: 2025, season: "Shoulder Season", weather: "Sunny", icon: <FaSun /> },
+  //   { month: "April", year: 2025, season: "Shoulder Season", weather: "Sunny", icon: <FaSun /> },
+  //   { month: "May", year: 2025, season: "Peak Season", weather: "Sunny", icon: <FaSun /> },
+  //   { month: "June", year: 2025, season: "Peak Season", weather: "Sunny", icon: <FaSun /> },
+  //   { month: "July", year: 2025, season: "Off-Peak Season", weather: "Monsoon", icon: <FaCloudRain /> },
+  //   { month: "August", year: 2025, season: "Off-Peak Season", weather: "Monsoon", icon: <FaCloudRain /> },
+  //   { month: "September", year: 2025, season: "Shoulder Season", weather: "Pleasant", icon: <FaCloud /> },
+  //   { month: "October", year: 2025, season: "Shoulder Season", weather: "Pleasant", icon: <FaCloud /> },
+  //   { month: "November", year: 2025, season: "Peak Season", weather: "Pleasant", icon: <FaCloud /> },
+  //   { month: "December", year: 2025, season: "Peak Season", weather: "Pleasant", icon: <FaCloud /> },
 
   useEffect(() => {
     window.scrollTo(0, 0);
