@@ -65,7 +65,7 @@ const Navbar = () => {
     { path: "/", label: "Home" },
     { path: "/About", label: "About Us" },
     { path: "/tour-programs/leisure tour", label: "Leisure Tour" },
-    { path: "/tour-programs/Medical Tour", label: "Medical Tour" },
+    { path: "/medical-tourism", label: "Medical Tour" },
     { path: "/customer-forum", label: "Forum" },
     { path: "/community-list", label: "Community" },
     { path: "/connect-us", label: "Contact" }
