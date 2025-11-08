@@ -84,9 +84,9 @@ const RedefiningMedicalTourismDetail = () => {
               <div className="mt-6 bg-white p-6 rounded-2xl shadow-lg border-l-4 border-[#086A16]">
                 <h3 className="text-2xl font-bold text-[#011A4D] mb-2">Package Details</h3>
                 <p className="text-xl font-semibold text-[#086A16]">{packageItem.price}</p>
-                <button className="mt-4 w-full bg-[#011A4D] text-white py-3 rounded-lg hover:bg-[#086A16] transition-colors font-semibold">
+                {/* <button className="mt-4 w-full bg-[#011A4D] text-white py-3 rounded-lg hover:bg-[#086A16] transition-colors font-semibold">
                   Book Now
-                </button>
+                </button> */}
               </div>
             </div>
 

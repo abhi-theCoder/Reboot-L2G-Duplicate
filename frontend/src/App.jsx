@@ -41,6 +41,7 @@ import EditAgentTermsConditions from './pages/EditTermsConditions';
 import AdminSpecialOffers from './pages/AdminSpecialOffers';
 import AttractionsEditPage from './pages/AttractionsEditPage';
 import RedefiningMedicalTourismDetail from './pages/RedefiningMedicalTourismDetail';
+import MedicalTourismPage from './pages/MedicalTourismPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -144,6 +145,8 @@ function App() {
         <Route path="/attractions-edit" element={<AttractionsEditPage />} /> */}
 
         <Route path="/redefining-medical-tourism/:id" element={<RedefiningMedicalTourismDetail />} />
+
+        <Route path="/medical-tourism" element={<MedicalTourismPage />} />
 
         {/* Login Page */}
       </Routes>
