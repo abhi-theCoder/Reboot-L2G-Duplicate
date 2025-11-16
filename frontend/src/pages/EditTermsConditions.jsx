@@ -1,8 +1,50 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from '../api'; // Assuming this is your configured axios instance
 
+// Utility function to safely convert HTML content to plain text
+const htmlToPlainText = (html) => {
+  if (typeof html !== 'string' || !html) return '';
+
+  // 1. Create a copy of the content to manipulate
+  let content = html;
+
+  // 2. Explicitly replace block-level tags with newlines
+
+  // CRITICAL FIX: Handle List Items. Numbered lists are typically converted to
+  // unnumbered lists during plain text conversion, but we ensure a newline separation.
+  // We use '* ' as a separator for bullet points, which is better than nothing.
+  content = content.replace(/<li>/gi, '\n* ');
+  content = content.replace(/<\/li>/gi, ''); // Remove closing </li>
+
+  // Replace <p> and <div> with a newline
+  content = content.replace(/<p>/gi, '\n'); 
+  content = content.replace(/<\/p>/gi, '\n');
+  content = content.replace(/<div>/gi, '\n'); 
+  content = content.replace(/<\/div>/gi, '');
+
+  // Replace <br> tags with a single newline
+  content = content.replace(/<br\s*\/?>/gi, '\n'); 
+
+  // Remove list container tags to prevent extra space around the whole list
+  content = content.replace(/<ul[^>]*>/gi, '');
+  content = content.replace(/<\/ul>/gi, '');
+  content = content.replace(/<ol[^>]*>/gi, '');
+  content = content.replace(/<\/ol>/gi, '');
+
+  // 3. Extract plain text content
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = content;
+  let text = tempDiv.textContent || tempDiv.innerText || '';
+
+  // 4. Clean up extra newlines/spaces
+  // Replace three or more sequential newlines with a maximum of two newlines
+  text = text.replace(/(\r\n|\n|\r){3,}/g, '\n\n'); 
+  text = text.replace(/ {2,}/g, ' '); 
+
+  return text.trim();
+};
+
 // --- Reusable Rich Text Editor Components ---
-// (No changes to these components, they are included for completeness)
 
 const EditorToolbar = ({ onFormat, isBold, isItalic }) => {
   return (
@@ -43,6 +85,7 @@ const RichTextEditor = ({ value, onChange, placeholder, className }) => {
   const [isItalic, setIsItalic] = useState(false);
   
   const useSelection = () => {
+    // ... useSelection logic ...
     const rangeRef = useRef(null);
     const saveSelection = () => {
       const selection = window.getSelection();
@@ -67,35 +110,71 @@ const RichTextEditor = ({ value, onChange, placeholder, className }) => {
     setIsItalic(document.queryCommandState('italic'));
   };
 
+  // UPDATED handleInput to preserve HTML for editing while cleaning entities
+  const handleInput = () => {
+      if (editorRef.current) {
+        // 1. Get the raw HTML/text content
+        let content = editorRef.current.innerHTML;
+  
+        // 2. Perform Cleaning (Preserving HTML tags for formatting and line breaks)
+        
+        // A. Replace &nbsp; with a regular space
+        content = content.replace(/&nbsp;/g, ' '); 
+        
+        // B. Decode general HTML entities (&amp;, &lt;, etc.)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = content;
+        content = tempDiv.innerHTML; // Note: using innerHTML here preserves tags
+        
+        // C. Update the React state with the cleaned HTML content
+        onChange(content);
+      }
+    };
+  
+  // 🌟 CORRECT PLACEMENT OF PASTE HANDLER 🌟
+  const handlePaste = (e) => {
+      e.preventDefault(); // Stop the default paste action
+
+      // Get the plain text version from the clipboard
+      const text = (e.clipboardData || window.clipboardData)
+          .getData('text/plain');
+
+      // Insert the plain text into the document at the cursor position
+      document.execCommand('insertText', false, text);
+      
+      // Update the React state with the now-cleaned content
+      handleInput(); 
+  };
+  // ------------------------------------------
+
+  // 🚀 CONSOLIDATED useEffect for event listeners 🚀
   useEffect(() => {
     const currentEditor = editorRef.current;
     if (currentEditor) {
       currentEditor.addEventListener('input', handleInput);
       currentEditor.addEventListener('mouseup', checkFormattingState);
       currentEditor.addEventListener('keyup', checkFormattingState);
+      currentEditor.addEventListener('paste', handlePaste); // 👈 Paste handler registered here
     }
     return () => {
       if (currentEditor) {
         currentEditor.removeEventListener('input', handleInput);
         currentEditor.removeEventListener('mouseup', checkFormattingState);
         currentEditor.removeEventListener('keyup', checkFormattingState);
+        currentEditor.removeEventListener('paste', handlePaste); // 👈 Paste handler cleaned up here
       }
     };
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount/unmount
 
+  // ... The useEffect for restoring selection on 'value' change remains separate ...
   useEffect(() => {
+    // Only update innerHTML if the current value is different from the prop value
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       saveSelection();
       editorRef.current.innerHTML = value;
       restoreSelection();
     }
-  }, [value]);
-
-  const handleInput = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML);
-    }
-  };
+  }, [value, saveSelection, restoreSelection]);
 
   const handleFormat = (command) => {
     document.execCommand(command, false, null);
@@ -278,30 +357,42 @@ export default function EditTermsAndConditions() {
         return;
     }
     
-    for (const section of terms.sections) {
-        if (!section.heading.trim()) {
-            setError('All section headings must be filled.');
-            return;
-        }
-        if (section.type === 'paragraph' && !section.content.trim()) {
+    // Create a deep copy of terms to modify for submission
+    const termsForSubmission = JSON.parse(JSON.stringify(terms));
+
+    // 1. Clean Intro Text: Convert HTML to Plain Text for saving
+    termsForSubmission.introText = htmlToPlainText(termsForSubmission.introText);
+
+    // 2. Clean Section Content: Convert HTML to Plain Text and Re-validate
+    for (const section of termsForSubmission.sections) {
+      if (!section.heading.trim()) {
+        setError('All section headings must be filled.');
+        return;
+      }
+      if (section.type === 'paragraph') {
+        // Clean the content of the paragraph section
+        section.content = htmlToPlainText(section.content);
+        if (!section.content.trim()) { // Re-validate after cleaning
             setError('All paragraph sections must have content.');
             return;
         }
-        if (section.type === 'table') {
-            if (section.tableData.headers.some(h => !h.trim())) {
-                setError('All table headers must be filled.');
+      }
+      
+      if (section.type === 'table') {
+        if (section.tableData.headers.some(h => !h.trim())) {
+            setError('All table headers must be filled.');
+            return;
+        }
+        for (const row of section.tableData.rows) {
+            if (row.some(cell => !cell.trim())) {
+                setError('All table cells must be filled.');
                 return;
             }
-            for (const row of section.tableData.rows) {
-                if (row.some(cell => !cell.trim())) {
-                    setError('All table cells must be filled.');
-                    return;
-                }
-            }
         }
+      }
     }
     
-    if (terms.footerNotes.some(note => !note.trim())) {
+    if (termsForSubmission.footerNotes.some(note => !note.trim())) {
         setError('All footer notes must be filled.');
         return;
     }
@@ -309,9 +400,9 @@ export default function EditTermsAndConditions() {
     try {
       const payload = {
         type,
-        ...terms,
+        ...termsForSubmission, // Use the cleaned object here
       };
-      if(type == 'tour'){
+      if(type === 'tour'){
         payload.tourId = tourId;
       }
       const response = await axios.post('/api/terms', payload, {
@@ -392,6 +483,8 @@ export default function EditTermsAndConditions() {
             <div className="mb-8">
               <label className="block text-gray-800 text-xl font-bold mb-3">Introductory Paragraph</label>
               <RichTextEditor
+                // IMPORTANT: When fetching terms, if the backend sends plain text, 
+                // you might need to convert \n to <br> or <div> for the editor to display it correctly.
                 value={terms.introText}
                 onChange={handleIntroTextChange}
                 className="bg-white rounded-lg"
