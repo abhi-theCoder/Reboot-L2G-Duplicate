@@ -336,14 +336,31 @@ function EditAnyTour() {
                                                 Create New Tour
                                             </button>
                                         ) : tour.isExpired && !tour.canCreateNewTour ? (
-                                            <button
-                                                onClick={() => handleCreateNewTour(tour.tourID, tour.canCreateNewTour)}
-                                                className="flex items-center px-4 py-2 rounded transition bg-gray-400 text-gray-700 cursor-not-allowed"
-                                                disabled
-                                            >
-                                                <FaPlus className="mr-2" />
-                                                Already Renewed
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={() => handleCreateNewTour(tour.tourID, tour.canCreateNewTour)}
+                                                    className="flex items-center px-4 py-2 rounded transition bg-gray-400 text-gray-700 cursor-not-allowed"
+                                                    disabled
+                                                >
+                                                    <FaPlus className="mr-2" />
+                                                    Already Renewed
+                                                </button>
+
+
+                                                
+                                                <button
+                                                    onClick={() => handleDelete(tour.tourID, tour.hasBookings)}
+                                                    className={`flex items-center px-4 py-2 rounded transition ${
+                                                        tour.hasBookings
+                                                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                                        : 'bg-red-500 hover:bg-red-600 text-white'
+                                                    }`}
+                                                    disabled={tour.hasBookings}
+                                                >
+                                                    <FaTrash className="mr-2" />
+                                                    Delete
+                                                </button>
+                                            </>
                                         ) : (
                                             <>
                                                 <button
