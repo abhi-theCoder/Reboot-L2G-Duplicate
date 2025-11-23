@@ -30,10 +30,7 @@ app.use(
   webhookRoute
 );
 
-app.use(cors({
-  origin: ['https://reboot-l2g.onrender.com', 'http://localhost:5173', 'https://l2gcruise.com'], // both production and local frontend
-  credentials: true,
-}));
+app.use(cors());
 
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
