@@ -7,10 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),],
-    server: {
-      port: 3000,
-      host: true,
-    },
+  server: {
+    port: 3000,
+    host: true,
+  },
   resolve: {
     dedupe: [
       '@ckeditor/ckeditor5-core',
