@@ -30,7 +30,17 @@ app.use(
   webhookRoute
 );
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://l2gcruise.com",
+    "https://www.l2gcruise.com",
+    "http://localhost:3000"
+  ],
+  methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  allowedHeaders: "Content-Type,Authorization,role",
+  credentials: true
+}));
+
 
 // app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
@@ -64,6 +74,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.get("/", (req, res) => {
   res.send("Backend is working!");
+});
+
+app.use((req, res) => {
+  res.status(404).send("Not Found");
 });
 
 app.listen(PORT, () => { 
