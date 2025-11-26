@@ -10,8 +10,25 @@ const Booking = require('../models/Booking');
 const AgentTourStats = require('../models/AgentTourStats');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const upload = multer(); // Memory storage if you're using base64 directly
+// const multer = require('multer');
+// const upload = multer(); // Memory storage if you're using base64 directly
+const multer = require("multer");
+const multerS3 = require("multer-s3");
+const { s3 } = require("../utils/s3.js");
+
+const upload = multer({
+  storage: multerS3({
+    s3,
+    bucket: process.env.AWS_S3_BUCKET,
+    // acl: "public-read",
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+
+    key: function (req, file, cb) {
+      const uniqueName = `${Date.now()}-${file.originalname}`;
+      cb(null, `tours/${uniqueName}`);
+    }
+  })
+});
 
 
 function formatTourForResponse(tour) {
@@ -19,7 +36,13 @@ function formatTourForResponse(tour) {
         tourID: tour._id,//done
         name: tour.name,//done
         // image: tour.image,
-        image: tour.image ? `data:image/jpeg;base64,${tour.image}` : null,
+
+        // for base 64
+        // image: tourDoc.image ? `data:image/jpeg;base64,${tourDoc.image}` : null,
+
+        // ✔ Return URL directly (S3 URL stored in DB)
+        image: tour.image || null,
+
         categoryType: tour.categoryType,
         country: tour.country,
         tourType: tour.tourType,
@@ -36,9 +59,13 @@ function formatTourForResponse(tour) {
         thingsToPack: tour.thingsToPack,
         itinerary: tour.itinerary,
          // Map gallery array to ensure each image string has the data URI prefix
-        gallery: tour.gallery && Array.isArray(tour.gallery)
-                   ? tour.gallery.map(imgBase64 => `data:image/jpeg;base64,${imgBase64}`)
-                   : [],
+        // gallery: tour.gallery && Array.isArray(tour.gallery)
+        //            ? tour.gallery.map(imgBase64 => `data:image/jpeg;base64,${imgBase64}`)
+        //            : [],
+        
+        // ✔ Return each gallery item as URL (no base64 prefix)
+        gallery: Array.isArray(tour.gallery) ? tour.gallery : [],
+
         packageRates: tour.packageRates, // Include package rates
         createdAt: tour.createdAt,
         updatedAt: tour.updatedAt
@@ -684,7 +711,11 @@ router.get('/tours', authenticateSuperAdmin, async (req, res) => {
         tourType: tourDoc.tourType,
         categoryType: tourDoc.categoryType,
         
-        image: tourDoc.image ? `data:image/jpeg;base64,${tourDoc.image}` : null,
+        // for base 64
+        // image: tourDoc.image ? `data:image/jpeg;base64,${tourDoc.image}` : null,
+
+        // for s3 bucket
+        image: tourDoc.image ? tourDoc.image : null,
         
         highlights: tourDoc.highlights || [], 
         inclusions: tourDoc.inclusions || [],
@@ -695,9 +726,7 @@ router.get('/tours', authenticateSuperAdmin, async (req, res) => {
         itinerary: tourDoc.itinerary || [],
 
         // Gallery: Map each Base64 string in the gallery array to a data URL
-        gallery: tourDoc.gallery && Array.isArray(tourDoc.gallery) 
-                   ? tourDoc.gallery.map(imgBase64 => `data:image/jpeg;base64,${imgBase64}`) 
-                   : [],
+        gallery: tourDoc.gallery && Array.isArray(tourDoc.gallery) ? tourDoc.gallery : [],
         hasBookings: !!hasBookings, // true if any booking exists
         isExpired: isExpired, // true if the tour start date is in the past
         canCreateNewTour: canCreateNewTour // whether a new tour can be created from this expired one
@@ -868,10 +897,11 @@ router.get('/tours/:_id', authenticateSuperAdmin, async (req, res) => {
 
 // ... (previous code) ...
 
-router.put('/tours/:_id', authenticateSuperAdmin,
+router.put('/tours/:_id',
+  authenticateSuperAdmin,
   upload.fields([
-    { name: 'image', maxCount: 1 },         // For the main tour image (if updating)
-    { name: 'galleryImages', maxCount: 10 } // For new gallery images (if adding more)
+    { name: 'image', maxCount: 1 },
+    { name: 'galleryImages', maxCount: 10 }
   ]),
   async (req, res) => {
     try {
@@ -882,99 +912,109 @@ router.put('/tours/:_id', authenticateSuperAdmin,
         return res.status(404).json({ message: 'Tour not found.' });
       }
 
-      const hasBookings = await Booking.exists({ 'tour.tourID': tourId, status: { $in: ['pending', 'confirmed'] } });
+      const hasBookings = await Booking.exists({
+        'tour.tourID': tourId,
+        status: { $in: ['pending', 'confirmed'] }
+      });
+
       if (hasBookings) {
-          return res.status(400).json({ message: 'Cannot edit tour: There are active bookings associated with this tour.' });
+        return res.status(400).json({
+          message: 'Cannot edit tour: Active bookings exist.'
+        });
       }
 
       const {
-        tourID, name, categoryType, country, tourType, pricePerHead, GST, 
+        tourID, name, categoryType, country, tourType, pricePerHead, GST,
         duration, occupancy, remainingOccupancy, startDate, description,
         highlights, inclusions, exclusions, thingsToPack, itinerary,
         currentGallery
       } = req.body;
 
-
-      // Prepare update object
       const updateData = {
-          tourID,
-          name, categoryType, country, tourType, pricePerHead, GST, 
-          duration, occupancy, startDate, description,
-          updatedAt: Date.now(),
+        tourID,
+        name,
+        categoryType,
+        country,
+        tourType,
+        pricePerHead,
+        GST,
+        duration,
+        occupancy,
+        startDate,
+        description,
+        updatedAt: Date.now()
       };
 
-      // Handle main image update
-      const mainImageFile = req.files && req.files['image'] ? req.files['image'][0] : null;
+      // =======================
+      // ⭐ MAIN IMAGE
+      // =======================
+      const mainImageFile = req.files?.image?.[0];
       if (mainImageFile) {
-        // Use your preferred conversion method: raw Base64 string
-        updateData.image = mainImageFile.buffer.toString('base64');
+        updateData.image = mainImageFile.location; // ⭐ S3 URL
       } else {
-          // If no new image uploaded, retain the existing raw Base64 string from the database.
-          updateData.image = tour.image;
+        updateData.image = tour.image;
       }
+
+      // =======================
+      // ⭐ GALLERY IMAGES
+      // =======================
       let retainedGallery = [];
       if (currentGallery) {
-          const parsedCurrentGallery = Array.isArray(currentGallery) ? currentGallery : [currentGallery];
-          // Strip the "data:image/...;base64," prefix for storage in DB
-          retainedGallery = parsedCurrentGallery
-                            .filter(img => img && img.startsWith('data:image/')) // Ensure valid
-                            .map(img => img.split(',')[1]); // Get only the raw Base64 part
+        retainedGallery = Array.isArray(currentGallery)
+          ? currentGallery
+          : [currentGallery];
       }
 
-      const newGalleryFiles = req.files && req.files['galleryImages'] ? req.files['galleryImages'] : [];
-      // Convert newly uploaded files to raw Base64 string
-      const newGalleryBase64 = newGalleryFiles.map(file => file.buffer.toString('base64'));
+      const newGalleryFiles = req.files?.galleryImages || [];
 
-      // Combine retained existing gallery images (raw Base64) with newly uploaded ones (raw Base64)
-      updateData.gallery = [...retainedGallery, ...newGalleryBase64];
+      const newGalleryUrls = newGalleryFiles.map(f => f.location); // ⭐ S3 URL
 
-      // Parse array/object fields from JSON string if they come that way
-      updateData.highlights = highlights ? (Array.isArray(highlights) ? highlights : JSON.parse(highlights)) : [];
-      updateData.inclusions = inclusions ? (Array.isArray(inclusions) ? inclusions : JSON.parse(inclusions)) : [];
-      updateData.exclusions = exclusions ? (Array.isArray(exclusions) ? exclusions : JSON.parse(exclusions)) : [];
-      updateData.thingsToPack = thingsToPack ? (Array.isArray(thingsToPack) ? thingsToPack : JSON.parse(thingsToPack)) : [];
-      try {
-        updateData.itinerary = itinerary ? JSON.parse(itinerary) : [];
-      } catch (jsonError) {
-        return res.status(400).json({ message: 'Invalid itinerary JSON format.' });
+      updateData.gallery = [...retainedGallery, ...newGalleryUrls];
+
+      // Parse JSON fields
+      function parseIfString(val) {
+        if (!val) return [];
+        return typeof val === 'string' ? JSON.parse(val) : val;
       }
 
-      // Update remainingOccupancy only if occupancy explicitly provided and changed
+      updateData.highlights = parseIfString(highlights);
+      updateData.inclusions = parseIfString(inclusions);
+      updateData.exclusions = parseIfString(exclusions);
+      updateData.thingsToPack = parseIfString(thingsToPack);
+      updateData.itinerary = parseIfString(itinerary);
+
+
+      // Occupancy logic
       if (occupancy !== undefined && Number(occupancy) !== tour.occupancy) {
-          // Adjust remaining based on the change in total occupancy
-          updateData.remainingOccupancy = Number(occupancy) - (tour.occupancy - tour.remainingOccupancy);
-          if (updateData.remainingOccupancy < 0) {
-              updateData.remainingOccupancy = 0;
-          }
+        updateData.remainingOccupancy =
+          Number(occupancy) -
+          (tour.occupancy - tour.remainingOccupancy);
+
+        if (updateData.remainingOccupancy < 0)
+          updateData.remainingOccupancy = 0;
       } else {
-          // If occupancy is not changed, keep the existing remainingOccupancy
-          updateData.remainingOccupancy = remainingOccupancy ? Number(remainingOccupancy) : tour.remainingOccupancy;
+        updateData.remainingOccupancy =
+          remainingOccupancy ?? tour.remainingOccupancy;
       }
 
       const updatedTour = await Tour.findByIdAndUpdate(
         tourId,
-        { $set: updateData }, // Use $set to only update provided fields
-        { new: true, runValidators: true } // Return the updated doc, run schema validators
+        { $set: updateData },
+        { new: true, runValidators: true }
       );
 
-      res.status(200).json({ message: 'Tour updated successfully!', tour: formatTourForResponse(updatedTour) });
+      res.status(200).json({
+        message: 'Tour updated successfully!',
+        tour: updatedTour
+      });
 
     } catch (err) {
       console.error('Error updating tour:', err);
-      if (err.name === 'CastError') {
-        return res.status(400).json({ message: 'Invalid tour ID format.' });
-      }
-      if (err.name === 'ValidationError') {
-        const messages = Object.values(err.errors).map(val => val.message);
-        return res.status(400).json({ message: 'Validation failed: ' + messages.join(', ') });
-      }
-      if (err.code === 11000 && err.keyPattern && err.keyPattern.tourID) {
-          return res.status(400).json({ message: 'Tour ID already exists. Please use a unique ID.' });
-      }
       res.status(500).json({ message: 'Internal server error' });
     }
   }
 );
+
 
 router.delete('/tours/:_id', authenticateSuperAdmin, async (req, res) => {
     try {

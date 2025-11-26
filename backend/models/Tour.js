@@ -37,7 +37,7 @@ const tourSchema = new mongoose.Schema({
     thingsToPack: [{ type: String }],
     itinerary: [itineraryDaySchema],
     gallery: [{ type: String }],
-    canCreateNewTour: { type: Boolean, default: false }
+    canCreateNewTour: { type: Boolean, default: true }
 });
 
 module.exports = mongoose.model("Tour", tourSchema);
