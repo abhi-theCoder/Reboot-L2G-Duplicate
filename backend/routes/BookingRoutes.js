@@ -32,6 +32,11 @@ const createBooking = async (req, res) => {
       return res.status(400).json({ error: 'Missing required booking fields.' });
     }
 
+    // Agent cannot give their email id as customer email id
+    isAgentEmail = await Agent.findOne({ email: customer.email });
+    if(isAgentEmail){
+      return res.status(403).json({ error: `Agents are not permitted to use their own email addresses in place of the customer’s email address.` });
+    }
     // Validate agent if provided
     if (agent) {
       const agentDetails = await Agent.findOne({ agentID: agent.agentID });
