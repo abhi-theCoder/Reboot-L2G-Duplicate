@@ -42,6 +42,7 @@ import AdminSpecialOffers from './pages/AdminSpecialOffers';
 import AttractionsEditPage from './pages/AttractionsEditPage';
 import RedefiningMedicalTourismDetail from './pages/RedefiningMedicalTourismDetail';
 import MedicalTourismPage from './pages/MedicalTourismPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -137,6 +138,7 @@ function App() {
         <Route path="/cancellation-policy" element={<CancellationPolicy />} />
         <Route path="/terms-conditions" element={<TermsConditions />} />
         <Route path="/grievance-policy" element={<GrievancePolicy />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* NEW: Route for editing an existing blog (uses AddBlog/BlogPostEditor with an ID) */}
         <Route path="/edit-blog/:id" element={<AddBlog />} />

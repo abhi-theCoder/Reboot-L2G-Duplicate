@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-
+const bcrypt = require("bcrypt");
 const Customer = require("../models/Customer");
 const Agent = require("../models/Agent");
 const SuperAdmin = require("../models/Superadmin");
@@ -23,11 +23,12 @@ const transporter = nodemailer.createTransport({
 // ========== 1. Send OTP ==========
 router.post("/send-otp", async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, forgot_password } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required" });
 
     exists = await Customer.findOne({ email }) || await Agent.findOne({ email }) || await SuperAdmin.findOne({ email });
-    if (exists) return res.status(405).json({ message: "Can't send OTP as email already exits" });
+    if (exists && !forgot_password) return res.status(405).json({ message: "Can't send OTP as email already exits" });
+    else if (!exists && forgot_password) return res.status(404).json({ message: "Email not found. Please check and try again." });
 
     const otp = crypto.randomInt(100000, 999999).toString();
     otpStore[email] = {
@@ -73,8 +74,34 @@ router.post("/verify-otp", (req, res) => {
 
   // Mark as verified
   otpStore[email].verified = true;
-  delete otpStore[email]; // clear OTP after verification
+
   res.status(200).json({ message: "Email verified successfully" });
+});
+
+// ========== 3. Reset Password ==========
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) return res.status(400).json({ message: "Email & new password required" });
+
+    const record = otpStore[email];
+    if (!record || !record.verified) {
+      return res.status(400).json({ message: "Email not verified. Cannot reset password. Please send OTP again and Verify you email !!" });
+    }
+
+    let user = await Customer.findOne({ email }) || await Agent.findOne({ email }) || await SuperAdmin.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+
+    await user.save();
+
+    delete otpStore[email]; // clear OTP record after password reset
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Password reset error:", err);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
 });
 
 module.exports = router;
