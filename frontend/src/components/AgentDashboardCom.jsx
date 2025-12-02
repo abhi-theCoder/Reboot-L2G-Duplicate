@@ -163,7 +163,7 @@ function AgentDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 
                     {/* Weekly Earnings */}
-                    <div className="bg-white text-black shadow-xl rounded-lg p-6 hover:scale-105 transform transition-all duration-300">
+                    {/* <div className="bg-white text-black shadow-xl rounded-lg p-6 hover:scale-105 transform transition-all duration-300">
                         <h4 className="text-xl font-bold text-gray-800">Weekly Earnings</h4>
                         <ul className="mt-3 text-gray-700">
                             {Object.entries(moneyHistory.weekly).map(([day, amount]) => (
@@ -173,15 +173,15 @@ function AgentDashboard() {
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </div> */}
 
                     {/* Monthly Earnings */}
-                    <div className="bg-white text-black shadow-xl rounded-lg p-6 hover:scale-105 transform transition-all duration-300">
+                    {/* <div className="bg-white text-black shadow-xl rounded-lg p-6 hover:scale-105 transform transition-all duration-300">
                         <h4 className="text-xl font-bold text-gray-800">Monthly Total</h4>
                         <p className="text-2xl font-bold text-blue-600 mt-4">
                             ₹{moneyHistory.monthly.total || 0}
                         </p>
-                    </div>
+                    </div> */}
 
                    {/* Account Status */}
                     <div className="bg-white text-black shadow-xl rounded-lg p-6 hover:scale-105 transform transition-all duration-300">
@@ -201,7 +201,7 @@ function AgentDashboard() {
 
                 {/* Action Buttons */}
                 <div className="flex justify-between mb-8">
-                    <button
+                    {/* <button
                         className="bg-indigo-700 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-indigo-800 transform transition-all duration-300"
                         onClick={() => {
                             if (profile.status === 'active') {
@@ -212,13 +212,13 @@ function AgentDashboard() {
                         }}
                     >
                         List Items
-                    </button>
+                    </button> */}
                     
                     {/* Add New Item */}
-                    <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg hover:opacity-90 transform transition-all duration-300">
+                    {/* <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg hover:opacity-90 transform transition-all duration-300">
                         <FontAwesomeIcon icon={faPlus} className="mr-2" />
                         Add New Item
-                    </button>
+                    </button> */}
                 </div>
 
                 {/* List Message */}
