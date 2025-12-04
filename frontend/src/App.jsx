@@ -26,7 +26,7 @@ import CustomerForum from './pages/CustomerForum';
 import L2gServices from './pages/L2gServices';
 import CommunityServices from './pages/CommunityServices';
 import ConnectUs from './pages/ContactForm';
-import About from './pages/About'; 
+import About from './pages/About';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import MasterDataDashboard from './pages/MasterDataDashboard';
 import PrivateRoute from './components/PrivateRoute';
@@ -43,6 +43,7 @@ import AttractionsEditPage from './pages/AttractionsEditPage';
 import RedefiningMedicalTourismDetail from './pages/RedefiningMedicalTourismDetail';
 import MedicalTourismPage from './pages/MedicalTourismPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("Token"));
@@ -55,105 +56,106 @@ function App() {
 
   return (
     <BrowserRouter>
-    <DashboardProvider>
-      <Routes>
+      <DashboardProvider>
+        <Routes>
 
-        {/* Main Layout wrapper for all other routes */}
-        <Route path="/" element={<Mainlayout />} errorElement={<ErrorPage />}>
-          <Route index element={<Home />} />
+          {/* Main Layout wrapper for all other routes */}
+          <Route path="/" element={<Mainlayout />} errorElement={<ErrorPage />}>
+            <Route index element={<Home />} />
 
-          <Route path="/agent-register" element={<AgentForm />} />
-          <Route path='/register' element={<Register />} />
-          <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
-          <Route path="/tour-programs/:tourType" element={<TourPrograms />} />
-          <Route path="tour-itinerary/:tourID" element={<TourItinerary />} />
-          <Route path='/travel-experience/:categoryType' element = { <TravelExperience/> }/>
-          <Route path='/travel-experience/:categoryType/:tourType' element = { <TourPrograms/> }/>
+            <Route path="/agent-register" element={<AgentForm />} />
+            <Route path='/register' element={<Register />} />
+            <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+            <Route path="/tour-programs/:tourType" element={<TourPrograms />} />
+            <Route path="tour-itinerary/:tourID" element={<TourItinerary />} />
+            <Route path='/travel-experience/:categoryType' element={<TravelExperience />} />
+            <Route path='/travel-experience/:categoryType/:tourType' element={<TourPrograms />} />
 
-          {/* 404 fallback */}
-          <Route path="*" element={<ErrorPage />} />
+            {/* 404 fallback */}
+            <Route path="*" element={<ErrorPage />} />
 
-        </Route>
+          </Route>
 
-        <Route path="thank-you" element={<ThankYou />} />
-        <Route path="cancel" element={<PaymentCancelled />} />
-        <Route 
-          path="/kyc" 
-          element={
-            <PrivateRoute>
-              <KycForm />
-            </PrivateRoute>
-          } 
-        />
-        <Route path="terms/:tourID" element={<TermsAndConditions />} />
-        {/* <Route path="terms/:ttourID/:uniqueId" element={<TermsAndConditions />} /> */}
-        <Route path="terms/tour/:tourID/:uniqueId" element={<TermsAndConditions />} />
-        {/* Protected Routes */}
-        <Route
-          path="agent/dashboard"
-          element={
-            <AgentProtectedRoute>
-              <AgentDashboard />
-            </AgentProtectedRoute>
-          }
-        />
-        <Route
-          path="superadmin/dashboard"
-          element={
-            <SuperadminProtectedRoute>
-              <Dashboard />
-            </SuperadminProtectedRoute>
-          }
-        />
-        <Route
-          path="agent-requests"
-          element={
-            <SuperadminProtectedRoute>
-              <AgentRequests />
-            </SuperadminProtectedRoute>
-          }
-        />
+          <Route path="thank-you" element={<ThankYou />} />
+          <Route path="cancel" element={<PaymentCancelled />} />
+          <Route
+            path="/kyc"
+            element={
+              <PrivateRoute>
+                <KycForm />
+              </PrivateRoute>
+            }
+          />
+          <Route path="terms/:tourID" element={<TermsAndConditions />} />
+          {/* <Route path="terms/:ttourID/:uniqueId" element={<TermsAndConditions />} /> */}
+          <Route path="terms/tour/:tourID/:uniqueId" element={<TermsAndConditions />} />
+          {/* Protected Routes */}
+          <Route
+            path="agent/dashboard"
+            element={
+              <AgentProtectedRoute>
+                <AgentDashboard />
+              </AgentProtectedRoute>
+            }
+          />
+          <Route
+            path="superadmin/dashboard"
+            element={
+              <SuperadminProtectedRoute>
+                <Dashboard />
+              </SuperadminProtectedRoute>
+            }
+          />
+          <Route
+            path="agent-requests"
+            element={
+              <SuperadminProtectedRoute>
+                <AgentRequests />
+              </SuperadminProtectedRoute>
+            }
+          />
 
-        <Route
-          path="edit-tour/:tourID"
-          element={
-            <SuperadminProtectedRoute>
-              <EditTour />
-            </SuperadminProtectedRoute>
-          }
-        />
-        <Route path="/customer-dashboard" element={<CustomerDashboard />} />
-        <Route path="/travel-experience" element={<TravelExperience />} />
-        <Route path="/customer-forum" element={<CustomerForum />} />
-        {/* <Route path="/terms-and-conditions-new" element={<TermsAndConditionsNew />} /> */}
-        <Route path="/l2g-services" element={<L2gServices />} />
-        <Route path="/community-services" element={<CommunityServices />} />
-        <Route path="/connect-us" element={<ConnectUs />} />
-        <Route path="/About" element={<About />} />
-        <Route  path="/superadmin-login" element={<SuperAdminLogin />} />
-        <Route path="/master-data-dashboard" element={<MasterDataDashboard />} />
-        <Route path="/community-list" element={<CommunityList />} />
-        <Route path="/community-list/:id" element={<CommunityListDetails />} />
-        <Route path="/add-blog" element={<AddBlog />} />
-        <Route path="/cancellation-policy" element={<CancellationPolicy />} />
-        <Route path="/terms-conditions" element={<TermsConditions />} />
-        <Route path="/grievance-policy" element={<GrievancePolicy />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route
+            path="edit-tour/:tourID"
+            element={
+              <SuperadminProtectedRoute>
+                <EditTour />
+              </SuperadminProtectedRoute>
+            }
+          />
+          <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+          <Route path="/travel-experience" element={<TravelExperience />} />
+          <Route path="/customer-forum" element={<CustomerForum />} />
+          {/* <Route path="/terms-and-conditions-new" element={<TermsAndConditionsNew />} /> */}
+          <Route path="/l2g-services" element={<L2gServices />} />
+          <Route path="/community-services" element={<CommunityServices />} />
+          <Route path="/connect-us" element={<ConnectUs />} />
+          <Route path="/About" element={<About />} />
+          <Route path="/superadmin-login" element={<SuperAdminLogin />} />
+          <Route path="/master-data-dashboard" element={<MasterDataDashboard />} />
+          <Route path="/community-list" element={<CommunityList />} />
+          <Route path="/community-list/:id" element={<CommunityListDetails />} />
+          <Route path="/add-blog" element={<AddBlog />} />
+          <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+          <Route path="/terms-conditions" element={<TermsConditions />} />
+          <Route path="/grievance-policy" element={<GrievancePolicy />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-        {/* NEW: Route for editing an existing blog (uses AddBlog/BlogPostEditor with an ID) */}
-        <Route path="/edit-blog/:id" element={<AddBlog />} />
-        {/* <Route path="/edit-agent-terms-conditions" element={<EditAgentTermsConditions />} />
+          {/* NEW: Route for editing an existing blog (uses AddBlog/BlogPostEditor with an ID) */}
+          <Route path="/edit-blog/:id" element={<AddBlog />} />
+          {/* <Route path="/edit-agent-terms-conditions" element={<EditAgentTermsConditions />} />
         <Route path="/edit-special-offers" element={<AdminSpecialOffers />} />
         <Route path="/attractions-edit" element={<AttractionsEditPage />} /> */}
 
-        <Route path="/redefining-medical-tourism/:id" element={<RedefiningMedicalTourismDetail />} />
+          <Route path="/redefining-medical-tourism/:id" element={<RedefiningMedicalTourismDetail />} />
 
-        <Route path="/medical-tourism" element={<MedicalTourismPage />} />
+          <Route path="/medical-tourism" element={<MedicalTourismPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
 
-        {/* Login Page */}
-      </Routes>
-    </DashboardProvider>
-      
+          {/* Login Page */}
+        </Routes>
+      </DashboardProvider>
+
     </BrowserRouter>
   );
 }
